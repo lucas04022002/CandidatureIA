@@ -98,7 +98,11 @@ export function ScrapeJobsButton({
       <Button onClick={handleScrape} disabled={isPending}>
         {isPending ? "Scraping..." : label}
       </Button>
-      {showFeedback && feedback ? <p className="mt-2 text-xs text-slate-300">{feedback}</p> : null}
+      {showFeedback && feedback ? (
+        <p className="mt-2 max-w-[32rem] text-xs leading-5 text-[var(--foreground-dim)]">
+          {feedback}
+        </p>
+      ) : null}
     </div>
   );
 }

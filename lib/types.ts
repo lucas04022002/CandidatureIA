@@ -29,6 +29,7 @@ export interface Application {
   jobUrl: string | null;
   jobTitle: string;
   company: string;
+  jobScore?: number | null;
   status: ApplicationStatus;
   updatedAt: string;
   sentAt: string | null;
@@ -57,6 +58,7 @@ export interface CandidateProfileSummary {
   role: string;
   targetRole: string;
   preferredKeywords: string[];
+  baseLetterTemplate: string;
   location: string;
   email: string;
   technicalSkills: string[];

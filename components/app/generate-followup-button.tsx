@@ -52,7 +52,7 @@ export function GenerateFollowupButton({ applicationId }: GenerateFollowupButton
       <Button variant="secondary" className="text-xs" onClick={handleGenerate} disabled={isPending}>
         {isPending ? "Génération..." : "Générer relance J+4"}
       </Button>
-      {feedback ? <p className="text-[11px] text-slate-300">{feedback}</p> : null}
+      {feedback ? <p className="text-[11px] text-[var(--foreground-dim)]">{feedback}</p> : null}
     </div>
   );
 }

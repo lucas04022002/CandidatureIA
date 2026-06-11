@@ -7,7 +7,11 @@ import {
 } from "@/lib/scoring/job-scoring";
 import { scrapeAdzunaJobs } from "@/lib/scrapers/adzuna";
 import { scrapeFranceTravailJobs } from "@/lib/scrapers/france-travail";
+import { scrapeGreenhouseJobs } from "@/lib/scrapers/greenhouse";
+import { scrapeLaBonneAlternanceJobs } from "@/lib/scrapers/la-bonne-alternance";
+import { scrapeLeverJobs } from "@/lib/scrapers/lever";
 import { scrapeJoobleJobs } from "@/lib/scrapers/jooble";
+import { scrapeSmartRecruitersJobs } from "@/lib/scrapers/smartrecruiters";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 interface ScrapedJob {
@@ -42,6 +46,60 @@ interface ScrapePayload {
   contract?: string;
   remoteOnly?: boolean;
   radiusKm?: number;
+}
+
+function pushUnique(list: string[], value: string | null | undefined) {
+  if (!value) return;
+  if (!list.includes(value)) {
+    list.push(value);
+  }
+}
+
+function normalizeSourceIssue(reason: string | undefined, source: string) {
+  const message = reason?.trim();
+  if (!message) {
+    return `${source} indisponible.`;
+  }
+
+  const normalized = normalizeText(message);
+
+  if (normalized.includes("configuration greenhouse absente")) {
+    return null;
+  }
+  if (normalized.includes("configuration lever absente")) {
+    return null;
+  }
+  if (normalized.includes("configuration la bonne alternance absente")) {
+    return null;
+  }
+  if (normalized.includes("aucune offre greenhouse ne correspond aux filtres")) {
+    return null;
+  }
+  if (normalized.includes("aucune offre lever ne correspond aux filtres")) {
+    return null;
+  }
+  if (normalized.includes("aucune offre smartrecruiters ne correspond aux filtres")) {
+    return null;
+  }
+  if (normalized.includes("aucune offre la bonne alternance ne correspond aux filtres")) {
+    return null;
+  }
+  if (normalized.includes("recruteur potentiel") && normalized.includes("non importe")) {
+    return null;
+  }
+  if (
+    source === "La bonne alternance" &&
+    (normalized.includes("internal server error") ||
+      normalized.includes("server was unable to complete your request") ||
+      normalized.includes("api la bonne alternance refusee (500"))
+  ) {
+    return "La bonne alternance temporairement indisponible.";
+  }
+  if (source === "La bonne alternance" && normalized.includes("401")) {
+    return "La bonne alternance refuse le jeton d'acces configure.";
+  }
+
+  return message;
 }
 
 function jobFingerprint(job: Pick<ScrapedJob, "title" | "company" | "location">) {
@@ -121,6 +179,10 @@ function pickBetterDuplicateJob(current: ScrapedJob, incoming: ScrapedJob) {
   if (incomingDescLength > currentDescLength) return incoming;
 
   const priorityBySource: Record<string, number> = {
+    Greenhouse: 4,
+    Lever: 4,
+    SmartRecruiters: 4,
+    "La bonne alternance": 4,
     "France Travail": 3,
     Adzuna: 2,
     Jooble: 1,
@@ -209,7 +271,10 @@ export async function POST(request: Request) {
     aggregatedJobs.push(...franceTravailResult.jobs);
     successfulSources.push("France Travail");
   } else {
-    sourceErrors.push(franceTravailResult.reason || "France Travail indisponible.");
+    pushUnique(
+      sourceErrors,
+      normalizeSourceIssue(franceTravailResult.reason, "France Travail"),
+    );
   }
 
   const adzunaResult = await scrapeAdzunaJobs({
@@ -222,7 +287,7 @@ export async function POST(request: Request) {
     aggregatedJobs.push(...adzunaResult.jobs);
     successfulSources.push("Adzuna");
   } else {
-    sourceErrors.push(adzunaResult.reason || "Adzuna indisponible.");
+    pushUnique(sourceErrors, normalizeSourceIssue(adzunaResult.reason, "Adzuna"));
   }
 
   const joobleResult = await scrapeJoobleJobs({
@@ -236,7 +301,86 @@ export async function POST(request: Request) {
     aggregatedJobs.push(...joobleResult.jobs);
     successfulSources.push("Jooble");
   } else {
-    sourceErrors.push(joobleResult.reason || "Jooble indisponible.");
+    pushUnique(sourceErrors, normalizeSourceIssue(joobleResult.reason, "Jooble"));
+  }
+
+  const greenhouseResult = await scrapeGreenhouseJobs({
+    keywords: payload.keywords,
+    limit: payload.limit,
+    location: payload.location,
+  });
+
+  if (greenhouseResult.ok) {
+    aggregatedJobs.push(...greenhouseResult.jobs);
+    successfulSources.push("Greenhouse");
+    if (greenhouseResult.warnings?.length) {
+      greenhouseResult.warnings.forEach((warning) =>
+        pushUnique(sourceErrors, normalizeSourceIssue(warning, "Greenhouse")),
+      );
+    }
+  } else {
+    pushUnique(sourceErrors, normalizeSourceIssue(greenhouseResult.reason, "Greenhouse"));
+  }
+
+  const laBonneAlternanceResult = await scrapeLaBonneAlternanceJobs({
+    keywords: payload.keywords,
+    limit: payload.limit,
+    location: payload.location,
+    radiusKm: payload.radiusKm,
+  });
+
+  if (laBonneAlternanceResult.ok) {
+    aggregatedJobs.push(...laBonneAlternanceResult.jobs);
+    successfulSources.push("La bonne alternance");
+    if (laBonneAlternanceResult.warnings?.length) {
+      laBonneAlternanceResult.warnings.forEach((warning) =>
+        pushUnique(sourceErrors, normalizeSourceIssue(warning, "La bonne alternance")),
+      );
+    }
+  } else {
+    pushUnique(
+      sourceErrors,
+      normalizeSourceIssue(laBonneAlternanceResult.reason, "La bonne alternance"),
+    );
+  }
+
+  const leverResult = await scrapeLeverJobs({
+    keywords: payload.keywords,
+    limit: payload.limit,
+    location: payload.location,
+  });
+
+  if (leverResult.ok) {
+    aggregatedJobs.push(...leverResult.jobs);
+    successfulSources.push("Lever");
+    if (leverResult.warnings?.length) {
+      leverResult.warnings.forEach((warning) =>
+        pushUnique(sourceErrors, normalizeSourceIssue(warning, "Lever")),
+      );
+    }
+  } else {
+    pushUnique(sourceErrors, normalizeSourceIssue(leverResult.reason, "Lever"));
+  }
+
+  const smartRecruitersResult = await scrapeSmartRecruitersJobs({
+    keywords: payload.keywords,
+    limit: payload.limit,
+    location: payload.location,
+  });
+
+  if (smartRecruitersResult.ok) {
+    aggregatedJobs.push(...smartRecruitersResult.jobs);
+    successfulSources.push("SmartRecruiters");
+    if (smartRecruitersResult.warnings?.length) {
+      smartRecruitersResult.warnings.forEach((warning) =>
+        pushUnique(sourceErrors, normalizeSourceIssue(warning, "SmartRecruiters")),
+      );
+    }
+  } else {
+    pushUnique(
+      sourceErrors,
+      normalizeSourceIssue(smartRecruitersResult.reason, "SmartRecruiters"),
+    );
   }
 
   if (!successfulSources.length) {

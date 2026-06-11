@@ -38,12 +38,11 @@ export function RescoreJobsButton() {
   }
 
   return (
-    <div className="mt-2 flex items-center gap-3">
+    <div className="flex items-center gap-3">
       <Button variant="secondary" onClick={handleRescore} disabled={isPending}>
         {isPending ? "Rescoring..." : "Recalculer les scores existants"}
       </Button>
-      {feedback ? <span className="text-xs text-slate-300">{feedback}</span> : null}
+      {feedback ? <span className="text-xs text-[var(--foreground-dim)]">{feedback}</span> : null}
     </div>
   );
 }
-

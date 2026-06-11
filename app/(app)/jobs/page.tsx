@@ -1,10 +1,8 @@
 import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { EmptyState } from "@/components/app/empty-state";
-import { JobsTable } from "@/components/app/jobs-table";
+import { JobsBoard } from "@/components/app/jobs-board";
 import { PageHeader } from "@/components/app/page-header";
-import { RescoreJobsButton } from "@/components/app/rescore-jobs-button";
 import { ScrapeJobsControls } from "@/components/app/scrape-jobs-controls";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCandidateProfileSummary, getJobs } from "@/lib/supabase/queries";
 import type { Job } from "@/lib/types";
 
@@ -62,16 +60,12 @@ function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string
       }
     }
 
-    if (location) {
-      if (!locationMatches(job.location, location)) {
-        return false;
-      }
+    if (location && !locationMatches(job.location, location)) {
+      return false;
     }
 
-    if (contract && contract !== "all") {
-      if (!job.contract.toLowerCase().includes(contract)) {
-        return false;
-      }
+    if (contract && contract !== "all" && !job.contract.toLowerCase().includes(contract)) {
+      return false;
     }
 
     if (remoteOnly) {
@@ -106,40 +100,43 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     candidateProfileResult.data.location && candidateProfileResult.data.location !== "Non renseigne"
       ? candidateProfileResult.data.location
       : "";
+  const averageScore = sortedJobs.length
+    ? Math.round(sortedJobs.reduce((sum, job) => sum + job.score, 0) / sortedJobs.length)
+    : 0;
+  const topMatches = sortedJobs.filter((job) => job.score >= 85).length;
+  const currentTarget =
+    candidateProfileResult.data.targetRole ||
+    candidateProfileResult.data.role ||
+    "Profil candidat";
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Offres d’emploi"
-        description="Toutes les offres récupérées par l’agent avec leur score de compatibilité."
-        action={
-          <ScrapeJobsControls
-            defaultKeywords={defaultKeywords}
-            defaultLocation={defaultLocation}
-          />
-        }
+        description="Toutes les offres récupérées par l’agent, triées par compatibilité avec ton profil actif."
       />
 
       <DataSourceBanner source={jobsResult.source} error={jobsResult.error} />
-      <RescoreJobsButton />
 
-      <Card>
-        <CardHeader>
-        <CardTitle>Pipeline d’offres</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {sortedJobs.length ? (
-            <JobsTable jobs={sortedJobs} />
-          ) : (
-            <div className="p-4">
-              <EmptyState
-                title="Aucune offre pour ce filtre"
-                description="Ajuste la ville/périmètre ou relance un scraping filtré."
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ScrapeJobsControls
+        defaultKeywords={defaultKeywords}
+        defaultLocation={defaultLocation}
+        resultCount={sortedJobs.length}
+        currentTarget={currentTarget}
+        averageScore={averageScore}
+        topMatches={topMatches}
+      />
+
+      {sortedJobs.length ? (
+        <JobsBoard jobs={sortedJobs} />
+      ) : (
+        <div className="rounded-[24px] border border-[var(--border)] bg-[var(--card)] p-4">
+          <EmptyState
+            title="Aucune offre pour ce filtre"
+            description="Ajuste la cible, la ville ou relance un scraping filtre pour nourrir le pipeline."
+          />
+        </div>
+      )}
     </div>
   );
 }

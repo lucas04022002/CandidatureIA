@@ -6,6 +6,7 @@ export interface CandidateProfile {
   role: string;
   targetRole: string;
   preferredKeywords: string[];
+  baseLetterTemplate: string;
   location: string;
   email: string;
   phone: string;
@@ -23,6 +24,7 @@ export const importedProfileDefaults: CandidateProfile = {
   role: "Profil candidat",
   targetRole: "",
   preferredKeywords: [],
+  baseLetterTemplate: "",
   location: "Non renseigne",
   email: "Non renseigne",
   phone: "",
@@ -40,6 +42,7 @@ interface CandidateProfileRow {
   role: string;
   target_role: string | null;
   preferred_keywords: string[] | null;
+  base_letter_template: string | null;
   location: string;
   email: string;
   phone: string;
@@ -51,12 +54,24 @@ interface CandidateProfileRow {
   experience_highlights: string[] | null;
 }
 
+function isMissingCandidatePreferenceColumns(message: string) {
+  return (
+    message.includes("candidate_profiles.target_role") ||
+    message.includes("candidate_profiles.preferred_keywords") ||
+    message.includes("candidate_profiles.base_letter_template") ||
+    message.includes("target_role") ||
+    message.includes("preferred_keywords") ||
+    message.includes("base_letter_template")
+  );
+}
+
 export const fallbackCandidateProfile: CandidateProfile = {
   profileId: null,
   fullName: "Lucas Guilhot",
   role: "Developpeur web full stack junior",
   targetRole: "Developpeur web full stack junior",
   preferredKeywords: ["developpeur full stack"],
+  baseLetterTemplate: "",
   location: "Haute-Garonne (31)",
   email: "lucasguilhot7@gmail.com",
   phone: "06.25.90.84.11",
@@ -123,6 +138,7 @@ function mapCandidateProfileRow(row: CandidateProfileRow): CandidateProfile {
     role,
     targetRole,
     preferredKeywords,
+    baseLetterTemplate: row.base_letter_template?.trim() || "",
     location: row.location.trim() || importedProfileDefaults.location,
     email: row.email.trim() || importedProfileDefaults.email,
     phone: row.phone.trim() || importedProfileDefaults.phone,
@@ -148,11 +164,49 @@ export async function getActiveCandidateProfile(): Promise<CandidateProfile> {
   const { data, error } = await supabase
     .from("candidate_profiles")
     .select(
-      "id,full_name,role,target_role,preferred_keywords,location,email,phone,github,linkedin,summary,technical_skills,soft_skills,experience_highlights",
+      "id,full_name,role,target_role,preferred_keywords,base_letter_template,location,email,phone,github,linkedin,summary,technical_skills,soft_skills,experience_highlights",
     )
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (error && isMissingCandidatePreferenceColumns(error.message)) {
+    const fallbackResult = await supabase
+      .from("candidate_profiles")
+      .select(
+        "id,full_name,role,location,email,phone,github,linkedin,summary,technical_skills,soft_skills,experience_highlights",
+      )
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fallbackResult.error || !fallbackResult.data) {
+      return fallbackCandidateProfile;
+    }
+
+    const row = fallbackResult.data as Omit<
+      CandidateProfileRow,
+      "target_role" | "preferred_keywords"
+    >;
+
+    return {
+      profileId: row.id ?? null,
+      fullName: row.full_name.trim() || importedProfileDefaults.fullName,
+      role: row.role.trim() || importedProfileDefaults.role,
+      targetRole: row.role.trim() || importedProfileDefaults.role,
+      preferredKeywords: [],
+      baseLetterTemplate: "",
+      location: row.location.trim() || importedProfileDefaults.location,
+      email: row.email.trim() || importedProfileDefaults.email,
+      phone: row.phone.trim() || importedProfileDefaults.phone,
+      github: row.github.trim() || importedProfileDefaults.github,
+      linkedin: row.linkedin.trim() || importedProfileDefaults.linkedin,
+      summary: row.summary.trim() || importedProfileDefaults.summary,
+      technicalSkills: normalizeImportedList(row.technical_skills),
+      softSkills: normalizeImportedList(row.soft_skills),
+      experienceHighlights: normalizeImportedList(row.experience_highlights),
+    };
+  }
 
   if (error || !data) {
     return fallbackCandidateProfile;

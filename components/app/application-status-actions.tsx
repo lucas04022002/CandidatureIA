@@ -120,14 +120,14 @@ export function ApplicationStatusActions({
         ))}
         <Button
           variant="ghost"
-          className="text-xs text-rose-200 hover:text-rose-100"
+          className="text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)]"
           disabled={isPending}
           onClick={deleteApplication}
         >
           {isPending ? "Suppression..." : "Supprimer la candidature"}
         </Button>
       </div>
-      {feedback ? <p className="text-[11px] text-slate-300">{feedback}</p> : null}
+      {feedback ? <p className="text-[11px] text-[var(--foreground-dim)]">{feedback}</p> : null}
     </div>
   );
 }

@@ -16,10 +16,22 @@ interface CandidateProfileRow {
   role: string;
   target_role: string | null;
   preferred_keywords: string[] | null;
+  base_letter_template: string | null;
   location: string;
   email: string;
   summary: string;
   technical_skills: string[] | null;
+}
+
+function isMissingCandidatePreferenceColumns(message: string) {
+  return (
+    message.includes("candidate_profiles.target_role") ||
+    message.includes("candidate_profiles.preferred_keywords") ||
+    message.includes("candidate_profiles.base_letter_template") ||
+    message.includes("target_role") ||
+    message.includes("preferred_keywords") ||
+    message.includes("base_letter_template")
+  );
 }
 
 interface JobRow {
@@ -51,8 +63,8 @@ interface ApplicationRow {
   linkedin_text: string | null;
   followup_email_text: string | null;
   jobs:
-    | { title: string; company: string; job_url: string | null }
-    | { title: string; company: string; job_url: string | null }[]
+    | { title: string; company: string; job_url: string | null; score: number | null }
+    | { title: string; company: string; job_url: string | null; score: number | null }[]
     | null;
 }
 
@@ -133,6 +145,7 @@ function mapApplicationRow(row: ApplicationRow): Application {
     jobUrl: job?.job_url ?? null,
     jobTitle: job?.title ?? "Offre inconnue",
     company: job?.company ?? "Entreprise inconnue",
+    jobScore: job?.score ?? null,
     status: normalizeApplicationStatus(row.status),
     updatedAt: asDateTimeLabel(row.updated_at),
     sentAt: row.sent_at ? asDateTimeLabel(row.sent_at) : null,
@@ -231,7 +244,7 @@ export async function getApplications(): Promise<DataResult<Application[]>> {
           supabase
             .from("applications")
             .select(
-            "id,job_id,status,updated_at,sent_at,letter_generated,email_generated,linkedin_generated,letter_text,email_text,linkedin_text,followup_email_text,jobs!applications_job_id_fkey(title,company,job_url)",
+            "id,job_id,status,updated_at,sent_at,letter_generated,email_generated,linkedin_generated,letter_text,email_text,linkedin_text,followup_email_text,jobs!applications_job_id_fkey(title,company,job_url,score)",
           )
           .order("updated_at", { ascending: false })
           .abortSignal(signal),
@@ -289,7 +302,7 @@ export async function getApplicationById(id: string): Promise<DataResult<Applica
         supabase
           .from("applications")
           .select(
-            "id,job_id,status,updated_at,sent_at,letter_generated,email_generated,linkedin_generated,letter_text,email_text,linkedin_text,followup_email_text,jobs!applications_job_id_fkey(title,company,job_url)",
+            "id,job_id,status,updated_at,sent_at,letter_generated,email_generated,linkedin_generated,letter_text,email_text,linkedin_text,followup_email_text,jobs!applications_job_id_fkey(title,company,job_url,score)",
           )
           .abortSignal(signal)
           .eq("id", id)
@@ -381,6 +394,7 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
         role: fallbackCandidateProfile.role,
         targetRole: fallbackCandidateProfile.targetRole,
         preferredKeywords: fallbackCandidateProfile.preferredKeywords,
+        baseLetterTemplate: fallbackCandidateProfile.baseLetterTemplate,
         location: fallbackCandidateProfile.location,
         email: fallbackCandidateProfile.email,
         technicalSkills: fallbackCandidateProfile.technicalSkills,
@@ -401,6 +415,7 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
         role: fallbackCandidateProfile.role,
         targetRole: fallbackCandidateProfile.targetRole,
         preferredKeywords: fallbackCandidateProfile.preferredKeywords,
+        baseLetterTemplate: fallbackCandidateProfile.baseLetterTemplate,
         location: fallbackCandidateProfile.location,
         email: fallbackCandidateProfile.email,
         technicalSkills: fallbackCandidateProfile.technicalSkills,
@@ -414,10 +429,65 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
 
   const { data, error } = await supabase
     .from("candidate_profiles")
-    .select("id,full_name,role,target_role,preferred_keywords,location,email,summary,technical_skills")
+    .select("id,full_name,role,target_role,preferred_keywords,base_letter_template,location,email,summary,technical_skills")
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (error && isMissingCandidatePreferenceColumns(error.message)) {
+    const fallbackResult = await supabase
+      .from("candidate_profiles")
+      .select("id,full_name,role,location,email,summary,technical_skills")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fallbackResult.error || !fallbackResult.data) {
+      return {
+        data: {
+          id: fallbackCandidateProfile.profileId ?? null,
+          fullName: fallbackCandidateProfile.fullName,
+          role: fallbackCandidateProfile.role,
+          targetRole: fallbackCandidateProfile.targetRole,
+          preferredKeywords: fallbackCandidateProfile.preferredKeywords,
+          baseLetterTemplate: fallbackCandidateProfile.baseLetterTemplate,
+          location: fallbackCandidateProfile.location,
+          email: fallbackCandidateProfile.email,
+          technicalSkills: fallbackCandidateProfile.technicalSkills,
+          summary: fallbackCandidateProfile.summary,
+          source: "fallback",
+        },
+        source: "supabase",
+        error: fallbackResult.error
+          ? `Lecture profil impossible: ${fallbackResult.error.message}`
+          : "Lecture profil impossible.",
+      };
+    }
+
+    const row = fallbackResult.data as Omit<
+      CandidateProfileRow,
+      "target_role" | "preferred_keywords"
+    >;
+
+    return {
+      data: {
+        id: row.id ?? null,
+        fullName: row.full_name?.trim() || importedProfileDefaults.fullName,
+        role: row.role?.trim() || importedProfileDefaults.role,
+        targetRole: row.role?.trim() || importedProfileDefaults.role,
+        preferredKeywords: [],
+        baseLetterTemplate: "",
+        location: row.location?.trim() || importedProfileDefaults.location,
+        email: row.email?.trim() || importedProfileDefaults.email,
+        technicalSkills: (row.technical_skills ?? []).filter(Boolean),
+        summary: row.summary?.trim() || importedProfileDefaults.summary,
+        source: "imported",
+      },
+      source: "supabase",
+      error:
+        "Colonnes profil avancé absentes en base. L’app utilise un mode compatible tant que la migration n’est pas appliquée.",
+    };
+  }
 
   if (error || !data) {
     return {
@@ -427,6 +497,7 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
         role: fallbackCandidateProfile.role,
         targetRole: fallbackCandidateProfile.targetRole,
         preferredKeywords: fallbackCandidateProfile.preferredKeywords,
+        baseLetterTemplate: fallbackCandidateProfile.baseLetterTemplate,
         location: fallbackCandidateProfile.location,
         email: fallbackCandidateProfile.email,
         technicalSkills: fallbackCandidateProfile.technicalSkills,
@@ -446,6 +517,7 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
       role: row.role?.trim() || importedProfileDefaults.role,
       targetRole: row.target_role?.trim() || "",
       preferredKeywords: (row.preferred_keywords ?? []).filter(Boolean),
+      baseLetterTemplate: row.base_letter_template?.trim() || "",
       location: row.location?.trim() || importedProfileDefaults.location,
       email: row.email?.trim() || importedProfileDefaults.email,
       technicalSkills: (row.technical_skills ?? []).filter(Boolean),

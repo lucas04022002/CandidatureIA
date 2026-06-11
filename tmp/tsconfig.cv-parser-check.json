@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist-check",
+    "rootDir": "..",
+    "module": "commonjs",
+    "moduleResolution": "node"
+  },
+  "include": [
+    "./cv-parser-coraline-check.ts",
+    "./cv-parser-lucas-check.ts",
+    "../lib/cv-parser.ts",
+    "../lib/candidate-profile.ts",
+    "../lib/supabase/server.ts",
+    "../next-env.d.ts"
+  ]
+}

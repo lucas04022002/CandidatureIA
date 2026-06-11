@@ -22,6 +22,15 @@ interface UploadedFileLike {
   arrayBuffer: () => Promise<ArrayBuffer>;
 }
 
+function isMissingCandidatePreferenceColumns(message: string) {
+  return (
+    message.includes("candidate_profiles.target_role") ||
+    message.includes("candidate_profiles.preferred_keywords") ||
+    message.includes("target_role") ||
+    message.includes("preferred_keywords")
+  );
+}
+
 async function extractTextFromFile(file: UploadedFileLike) {
   const fileName = file.name.toLowerCase();
   const arrayBuffer = await file.arrayBuffer();
@@ -137,8 +146,10 @@ export async function POST(request: Request) {
 
     const profile = parseCandidateProfileFromCv(rawText);
 
+    const profileId = crypto.randomUUID();
+
     const { error: insertError } = await supabase.from("candidate_profiles").insert({
-      id: crypto.randomUUID(),
+      id: profileId,
       file_name: file.name,
       raw_text: rawText,
       full_name: profile.fullName,
@@ -158,6 +169,81 @@ export async function POST(request: Request) {
     } as never);
 
     if (insertError) {
+      if (isMissingCandidatePreferenceColumns(insertError.message)) {
+        const { error: legacyInsertError } = await supabase.from("candidate_profiles").insert({
+          id: profileId,
+          file_name: file.name,
+          raw_text: rawText,
+          full_name: profile.fullName,
+          role: profile.role,
+          location: profile.location,
+          email: profile.email,
+          phone: profile.phone,
+          github: profile.github,
+          linkedin: profile.linkedin,
+          summary: profile.summary,
+          technical_skills: profile.technicalSkills,
+          soft_skills: profile.softSkills,
+          experience_highlights: profile.experienceHighlights,
+          updated_at: new Date().toISOString(),
+        } as never);
+
+        if (!legacyInsertError) {
+          const { data: jobsData, error: jobsError } = await supabase
+            .from("jobs")
+            .select("id,title,company,location,contract,source,job_description,score");
+
+          if (jobsError) {
+            return NextResponse.json(
+              {
+                ok: true,
+                warning:
+                  "CV importé en mode compatible. Applique la migration profil pour activer la cible avancée.",
+                profile,
+                profileId,
+              },
+              { status: 200 },
+            );
+          }
+
+          const jobs = (jobsData ?? []) as unknown as JobRow[];
+          let rescored = 0;
+
+          for (const job of jobs) {
+            const scoring = await scoreJob(
+              {
+                title: job.title,
+                company: job.company,
+                location: job.location,
+                contract: job.contract,
+                source: job.source,
+                description: job.job_description,
+              },
+              { mode: "heuristic", allowOpenAI: false, candidateProfile: profile },
+            );
+
+            if (scoring.score !== job.score) {
+              const { error: updateError } = await supabase
+                .from("jobs")
+                .update({ score: scoring.score } as never)
+                .eq("id", job.id);
+
+              if (!updateError) {
+                rescored += 1;
+              }
+            }
+          }
+
+          return NextResponse.json({
+            ok: true,
+            warning:
+              "CV importé en mode compatible. Applique la migration profil pour activer la cible avancée.",
+            rescored,
+            profile,
+            profileId,
+          });
+        }
+      }
       return NextResponse.json(
         { ok: false, error: `Impossible d'enregistrer le profil: ${insertError.message}` },
         { status: 500 },
@@ -174,6 +260,7 @@ export async function POST(request: Request) {
           ok: true,
           warning: `Profil importe, mais rescoring impossible: ${jobsError.message}`,
           profile,
+          profileId,
         },
         { status: 200 },
       );
@@ -212,6 +299,7 @@ export async function POST(request: Request) {
       message: "CV importe et compatibilite recalculee.",
       rescored,
       profile,
+      profileId,
     });
   } catch (error) {
     return NextResponse.json(

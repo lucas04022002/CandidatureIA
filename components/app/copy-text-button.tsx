@@ -33,7 +33,7 @@ export function CopyTextButton({ text, label = "Copier" }: CopyTextButtonProps) 
       <Button variant="secondary" className="text-xs" onClick={handleCopy}>
         {label}
       </Button>
-      {feedback ? <span className="text-[11px] text-slate-300">{feedback}</span> : null}
+      {feedback ? <span className="text-[11px] text-[var(--foreground-dim)]">{feedback}</span> : null}
     </div>
   );
 }

@@ -61,8 +61,10 @@ export function ApplyOfferButton({ jobId, jobUrl }: ApplyOfferButtonProps) {
       >
         {isPending ? "Ouverture..." : "Postuler sur l'offre"}
       </Button>
-      {feedback ? <span className="text-[11px] text-slate-400">{feedback}</span> : null}
-      {!jobUrl ? <span className="text-[11px] text-slate-400">Lien d&apos;offre indisponible</span> : null}
+      {feedback ? <span className="text-[11px] text-[var(--foreground-dim)]">{feedback}</span> : null}
+      {!jobUrl ? (
+        <span className="text-[11px] text-[var(--foreground-faint)]">Lien d&apos;offre indisponible</span>
+      ) : null}
     </div>
   );
 }
