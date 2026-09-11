@@ -50,7 +50,9 @@ function mapJoinedRow(row: JoinedRow): Application {
   };
 }
 
-const joined = () =>
+// La jointure est elle aussi bornée à l'utilisateur : même si une candidature pointait un jour vers
+// l'offre d'un autre compte, aucun titre ni score ne fuiterait.
+const joined = (userId: string) =>
   db
     .select({
       application: applications,
@@ -60,15 +62,15 @@ const joined = () =>
       jobScore: jobs.score,
     })
     .from(applications)
-    .leftJoin(jobs, eq(jobs.id, applications.jobId));
+    .leftJoin(jobs, and(eq(jobs.id, applications.jobId), eq(jobs.userId, userId)));
 
 export async function getApplications(userId: string): Promise<Application[]> {
-  const rows = await joined().where(eq(applications.userId, userId)).orderBy(desc(applications.updatedAt));
+  const rows = await joined(userId).where(eq(applications.userId, userId)).orderBy(desc(applications.updatedAt));
   return rows.map(mapJoinedRow);
 }
 
 export async function getApplicationById(userId: string, id: string): Promise<Application | null> {
-  const rows = await joined()
+  const rows = await joined(userId)
     .where(and(eq(applications.userId, userId), eq(applications.id, id)))
     .limit(1);
   return rows[0] ? mapJoinedRow(rows[0]) : null;
@@ -81,14 +83,6 @@ export async function getApplicationRow(userId: string, id: string): Promise<App
     .where(and(eq(applications.userId, userId), eq(applications.id, id)))
     .limit(1);
   return rows[0] ?? null;
-}
-
-export async function getApplicationsForJob(userId: string, jobId: string): Promise<ApplicationRow[]> {
-  return db
-    .select()
-    .from(applications)
-    .where(and(eq(applications.userId, userId), eq(applications.jobId, jobId)))
-    .orderBy(desc(applications.updatedAt));
 }
 
 // Crée ou remplace la candidature de CET utilisateur pour CETTE offre. L'offre est revérifiée ici :

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { assertSameOrigin, handle, json, readJson } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
-import { deleteApplication, getApplicationsForJob } from "@/lib/db/queries/applications";
+import { deleteApplication } from "@/lib/db/queries/applications";
 import { getJobById, updateJobStatus } from "@/lib/db/queries/jobs";
 import type { ApplicationStatus } from "@/lib/types";
 
@@ -15,16 +15,11 @@ export const POST = handle(async (req) => {
   const removed = await deleteApplication(user.id, b.applicationId);
   if (!removed) return json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
 
-  // Statut de l'offre recalculé : la candidature restante la plus récente, sinon "Brouillon" si
-  // l'utilisateur avait déjà cliqué sur "postuler", sinon retour à "Nouveau".
-  const remaining = await getApplicationsForJob(user.id, removed.jobId);
-  let nextJobStatus: ApplicationStatus = "Nouveau";
-  if (remaining.length > 0) {
-    nextJobStatus = remaining[0].status;
-  } else {
-    const job = await getJobById(user.id, removed.jobId);
-    nextJobStatus = job?.appliedClickedAt ? "Brouillon" : "Nouveau";
-  }
+  // L'unicité (job_id, user_id) garantit qu'il n'existait qu'une candidature pour cette offre :
+  // après suppression, l'offre retombe sur "Brouillon" si l'utilisateur avait cliqué sur
+  // "postuler", sinon sur "Nouveau".
+  const job = await getJobById(user.id, removed.jobId);
+  const nextJobStatus: ApplicationStatus = job?.appliedClickedAt ? "Brouillon" : "Nouveau";
 
   await updateJobStatus(user.id, removed.jobId, nextJobStatus);
 

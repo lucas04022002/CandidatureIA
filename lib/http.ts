@@ -14,10 +14,14 @@ export function handle(fn: (req: Request, ctx: unknown) => Promise<Response>) {
     try {
       return await fn(req, ctx);
     } catch (e) {
-      if (e instanceof HttpError) return json({ error: e.message }, { status: e.status });
-      if (e instanceof ZodError) return json({ error: "Données invalides", details: e.issues }, { status: 400 });
+      // Même enveloppe que les réponses d'erreur écrites dans les routes (`{ ok: false, error }`) :
+      // les clients testent `payload.ok` avant d'afficher `payload.error`.
+      if (e instanceof HttpError) return json({ ok: false, error: e.message }, { status: e.status });
+      if (e instanceof ZodError) {
+        return json({ ok: false, error: "Données invalides", details: e.issues }, { status: 400 });
+      }
       console.error(e);
-      return json({ error: "Erreur interne" }, { status: 500 });
+      return json({ ok: false, error: "Erreur interne" }, { status: 500 });
     }
   };
 }

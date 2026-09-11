@@ -8,7 +8,7 @@ import { signSession } from "@/lib/auth/jwt";
 import { createOrganisation, registerTraineeWithCode } from "@/lib/db/queries/organisations";
 import { createUser } from "@/lib/db/queries/users";
 import { getProfile } from "@/lib/db/queries/profiles";
-import { getJobs } from "@/lib/db/queries/jobs";
+import { getJobById, getJobs } from "@/lib/db/queries/jobs";
 import { getApplicationById, getApplications } from "@/lib/db/queries/applications";
 
 // Pas de clé OpenAI pendant le parcours : génération et scoring restent sur le chemin heuristique,
@@ -60,6 +60,8 @@ const { POST: generateApplication } = await import("@/app/api/generate-applicati
 const { POST: updateApplicationStatus } = await import("@/app/api/update-application-status/route");
 const { POST: generateFollowup } = await import("@/app/api/generate-followup/route");
 const { POST: deleteApplication } = await import("@/app/api/delete-application/route");
+const { POST: updateCandidateProfile } = await import("@/app/api/update-candidate-profile/route");
+const { POST: markJobApplied } = await import("@/app/api/mark-job-applied/route");
 const { SESSION_COOKIE } = await import("@/lib/auth/session");
 
 const CV = [
@@ -97,6 +99,16 @@ function formRequest(path: string, form: FormData) {
 let userId = "";
 let otherUserId = "";
 
+// Bascule la session mockée sur un autre utilisateur le temps d'un appel.
+async function asUser(id: string, run: () => Promise<void>) {
+  mockCookies.set(SESSION_COOKIE, await signSession({ userId: id, role: "stagiaire" }));
+  try {
+    await run();
+  } finally {
+    mockCookies.set(SESSION_COOKIE, await signSession({ userId, role: "stagiaire" }));
+  }
+}
+
 describe("parcours candidat sur Postgres", () => {
   beforeAll(async () => {
     await resetDatabase();
@@ -130,6 +142,43 @@ describe("parcours candidat sur Postgres", () => {
 
     const profile = await getProfile(userId);
     expect(profile?.fullName).toBe("Camille Test");
+  });
+
+  it("1b. mise à jour partielle du profil : la lettre modèle n'est pas effacée", async () => {
+    const withTemplate = await updateCandidateProfile(
+      jsonRequest("/api/update-candidate-profile", {
+        targetRole: "Developpeuse frontend",
+        preferredKeywords: ["react"],
+        baseLetterTemplate: "Bonjour, voici ma lettre modèle.",
+      }),
+      {},
+    );
+    expect(withTemplate.status).toBe(200);
+    expect((await getProfile(userId))?.baseLetterTemplate).toBe("Bonjour, voici ma lettre modèle.");
+
+    // Le client d'onboarding n'envoie pas `baseLetterTemplate` : le champ absent doit rester intact.
+    const partial = await updateCandidateProfile(
+      jsonRequest("/api/update-candidate-profile", {
+        profileId: (await getProfile(userId))?.id,
+        targetRole: "Developpeuse backend",
+        preferredKeywords: ["node"],
+      }),
+      {},
+    );
+    expect(partial.status).toBe(200);
+
+    const profile = await getProfile(userId);
+    expect(profile?.targetRole).toBe("Developpeuse backend");
+    expect(profile?.preferredKeywords).toEqual(["node"]);
+    expect(profile?.baseLetterTemplate).toBe("Bonjour, voici ma lettre modèle.");
+  });
+
+  it("1c. CV de plus de 5 Mo → refusé sans consommer le quota", async () => {
+    const form = new FormData();
+    form.append("cv", new File(["x".repeat(5 * 1024 * 1024 + 1)], "gros-cv.txt", { type: "text/plain" }));
+    const res = await importCv(formRequest("/api/import-cv", form), {});
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/5 Mo/);
   });
 
   it("2. scraping → 3 offres pour l'utilisateur et 1 ligne dans search_runs", async () => {
@@ -186,6 +235,36 @@ describe("parcours candidat sur Postgres", () => {
     expect(application?.content?.followupEmailText).toBeTruthy();
   });
 
+  it("5b. avec la session d'un autre utilisateur, les ids de Camille renvoient 404", async () => {
+    const before = await getApplicationById(userId, applicationId);
+    const jobBefore = await getJobById(userId, jobId);
+
+    await asUser(otherUserId, async () => {
+      const attempts = [
+        await deleteApplication(jsonRequest("/api/delete-application", { applicationId }), {}),
+        await updateApplicationStatus(
+          jsonRequest("/api/update-application-status", { applicationId, status: "Refusé" }),
+          {},
+        ),
+        await generateApplication(jsonRequest("/api/generate-application", { jobId }), {}),
+        await generateFollowup(jsonRequest("/api/generate-followup", { applicationId }), {}),
+        await markJobApplied(jsonRequest("/api/mark-job-applied", { jobId }), {}),
+      ];
+      for (const res of attempts) {
+        expect(res.status).toBe(404);
+        expect(await res.json()).toMatchObject({ ok: false });
+      }
+      expect(await getApplications(otherUserId)).toHaveLength(0);
+    });
+
+    // Rien n'a bougé côté Camille.
+    const after = await getApplicationById(userId, applicationId);
+    expect(after).toEqual(before);
+    const jobAfter = await getJobById(userId, jobId);
+    expect(jobAfter?.status).toBe(jobBefore?.status);
+    expect(jobAfter?.appliedClickedAt).toEqual(jobBefore?.appliedClickedAt);
+  });
+
   it("6. suppression → plus aucune candidature", async () => {
     // Vérifié tant que la ligne existe encore : un autre utilisateur ne peut pas la lire par son id.
     expect(await getApplicationById(otherUserId, applicationId)).toBeNull();
@@ -200,5 +279,17 @@ describe("parcours candidat sur Postgres", () => {
     expect(await getJobs(otherUserId)).toHaveLength(0);
     expect(await getProfile(otherUserId)).toBeNull();
     expect(await getApplications(otherUserId)).toHaveLength(0);
+  });
+
+  it("8. import CV : le 11e en 24 h → 429", async () => {
+    // Un import a déjà été consommé à l'étape 1 (celui de l'étape 1c a été refusé avant le quota).
+    let last: Response | undefined;
+    for (let i = 0; i < 10; i++) {
+      const form = new FormData();
+      form.append("cv", new File([CV], `cv-${i}.txt`, { type: "text/plain" }));
+      last = await importCv(formRequest("/api/import-cv", form), {});
+    }
+    expect(last!.status).toBe(429);
+    expect(await last!.json()).toMatchObject({ ok: false });
   });
 });

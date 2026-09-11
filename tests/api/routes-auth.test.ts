@@ -38,6 +38,8 @@ describe("routes candidat sans session", () => {
         {},
       );
       expect(res.status).toBe(401);
+      // Même forme d'enveloppe que les 404 des routes : le client teste `payload.ok`.
+      expect(await res.json()).toMatchObject({ ok: false, error: expect.any(String) });
     });
   }
 });

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assertSameOrigin, handle, json, readJson } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { getActiveCandidateProfile } from "@/lib/candidate-profile";
-import { getProfile, upsertProfile } from "@/lib/db/queries/profiles";
+import { getProfile, upsertProfile, type CandidateProfileInput } from "@/lib/db/queries/profiles";
 import { getJobRows, updateJobScore } from "@/lib/db/queries/jobs";
 import { scoreJob } from "@/lib/scoring/job-scoring";
 
@@ -25,11 +25,16 @@ export const POST = handle(async (req) => {
     return json({ ok: false, error: "Importe d'abord un CV avant de personnaliser la cible." }, { status: 404 });
   }
 
-  await upsertProfile(user.id, {
-    targetRole: b.targetRole?.trim() || "",
-    preferredKeywords: (b.preferredKeywords ?? []).map((keyword) => keyword.trim()).filter(Boolean),
-    baseLetterTemplate: b.baseLetterTemplate?.trim() || "",
-  });
+  // Mise à jour partielle : seuls les champs présents dans le corps sont écrits. L'onboarding
+  // n'envoie pas `baseLetterTemplate`, qui ne doit donc pas être effacé au passage.
+  const patch: CandidateProfileInput = {};
+  if (b.targetRole !== undefined) patch.targetRole = b.targetRole.trim();
+  if (b.preferredKeywords !== undefined) {
+    patch.preferredKeywords = b.preferredKeywords.map((keyword) => keyword.trim()).filter(Boolean);
+  }
+  if (b.baseLetterTemplate !== undefined) patch.baseLetterTemplate = b.baseLetterTemplate.trim();
+
+  if (Object.keys(patch).length > 0) await upsertProfile(user.id, patch);
 
   const candidateProfile = await getActiveCandidateProfile(user.id);
   const jobs = await getJobRows(user.id);

@@ -92,6 +92,12 @@ export const POST = handle(async (req) => {
   const user = await requireUser();
   await checkImportQuota(user.id);
 
+  // Garde avant lecture du corps : évite de matérialiser un envoi manifestement trop gros.
+  const declaredLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_CV_BYTES) {
+    return json({ ok: false, error: "Le CV dépasse la taille maximale de 5 Mo." }, { status: 400 });
+  }
+
   const formData = await req.formData();
   const file = formData.get("cv");
 
@@ -105,7 +111,11 @@ export const POST = handle(async (req) => {
     return json({ ok: false, error: "Fichier CV manquant." }, { status: 400 });
   }
 
-  if ("size" in file && typeof file.size === "number" && file.size > MAX_CV_BYTES) {
+  if (!("size" in file) || typeof file.size !== "number") {
+    return json({ ok: false, error: "Fichier CV illisible : taille inconnue." }, { status: 400 });
+  }
+
+  if (file.size > MAX_CV_BYTES) {
     return json({ ok: false, error: "Le CV dépasse la taille maximale de 5 Mo." }, { status: 400 });
   }
 
