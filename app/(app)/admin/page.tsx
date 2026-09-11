@@ -81,6 +81,7 @@ export default async function AdminPage() {
                           id={organisation.id}
                           active={organisation.active}
                           seats={organisation.seats}
+                          hasResponsable={organisation.responsableEmail !== null}
                         />
                       </td>
                     </tr>

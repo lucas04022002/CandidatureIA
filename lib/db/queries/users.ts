@@ -3,6 +3,7 @@ import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { applications, candidateProfiles, cvImports, jobs, searchRuns, users } from "@/lib/db/schema";
 import type { Role } from "@/lib/auth/jwt";
+import { countActiveTrainees } from "@/lib/db/queries/organisations";
 
 export async function findUserByEmail(email: string) {
   const rows = await db
@@ -90,11 +91,20 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
 }
 
 // Conservation : 12 mois après la dernière connexion (ou après la création pour un compte qui ne
-// s'est jamais connecté). L'administrateur est exclu : c'est le compte d'exploitation, sa purge
-// fermerait la porte du service. Appelée par `scripts/purge-inactive.ts`.
+// s'est jamais connecté). Appelée par `scripts/purge-inactive.ts`.
+//
+// Deux exceptions, toutes deux parce que la purge fermerait une porte que personne ne pourrait
+// rouvrir :
+//  - l'administrateur, compte d'exploitation du service ;
+//  - un responsable dont l'organisme compte encore au moins un stagiaire non supprimé. Le
+//    responsable est le seul à pouvoir régénérer le code d'inscription, gérer les places et retirer
+//    un membre : le purger laisse un organisme vivant mais inadministrable, avec des utilisateurs
+//    actifs dedans. Un responsable ne se connecte de toute façon que rarement — c'est la nature du
+//    rôle, pas un signe d'abandon. Si l'organisme s'est réellement vidé (plus aucun stagiaire), la
+//    purge s'applique normalement.
 export async function purgeInactiveUsers(before: Date): Promise<number> {
   const dormants = await db
-    .select({ id: users.id })
+    .select({ id: users.id, role: users.role, organisationId: users.organisationId })
     .from(users)
     .where(
       and(
@@ -104,6 +114,26 @@ export async function purgeInactiveUsers(before: Date): Promise<number> {
       ),
     );
 
-  for (const { id } of dormants) await deleteUserAndData(id);
-  return dormants.length;
+  let purges = 0;
+  for (const dormant of dormants) {
+    if (dormant.role === "responsable" && dormant.organisationId) {
+      const stagiaires = await countActiveTrainees(dormant.organisationId);
+      if (stagiaires > 0) continue;
+    }
+    await deleteUserAndData(dormant.id);
+    purges += 1;
+  }
+  return purges;
+}
+
+// Rattachement d'un utilisateur à un organisme, réservé à l'administration (voir
+// `app/api/admin/organisation/route.ts`). C'est la sortie de secours de l'organisme orphelin : sans
+// elle, un organisme qui a perdu son responsable n'est réparable qu'en SQL.
+export async function setUserOrganisation(userId: string, organisationId: string | null) {
+  const [user] = await db
+    .update(users)
+    .set({ organisationId })
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .returning();
+  return user ?? null;
 }

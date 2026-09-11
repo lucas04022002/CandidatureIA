@@ -4,19 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-// Formulaire inline d'une ligne du tableau d'administration : activation et nombre de places.
+// Formulaire inline d'une ligne du tableau d'administration : activation, nombre de places, et —
+// pour un organisme qui a perdu son responsable — rattachement d'un responsable par e-mail. Le champ
+// n'apparaît que dans ce cas : c'est une réparation, pas une opération courante.
 export function OrganisationSeatsForm({
   id,
   active,
   seats,
+  hasResponsable,
 }: {
   id: string;
   active: boolean;
   seats: number;
+  hasResponsable: boolean;
 }) {
   const router = useRouter();
   const [nextActive, setNextActive] = useState(active);
   const [nextSeats, setNextSeats] = useState(String(seats));
+  const [responsableEmail, setResponsableEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -30,7 +35,13 @@ export function OrganisationSeatsForm({
       const res = await fetch("/api/admin/organisation", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, active: nextActive, seats: Number(nextSeats) }),
+        body: JSON.stringify({
+          id,
+          active: nextActive,
+          seats: Number(nextSeats),
+          // Champ omis quand il est vide : l'API ne doit pas voir passer une chaîne vide.
+          ...(responsableEmail.trim() ? { responsableEmail: responsableEmail.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -38,6 +49,7 @@ export function OrganisationSeatsForm({
         return;
       }
       setSaved(true);
+      setResponsableEmail("");
       router.refresh();
     } catch {
       setError("Une erreur est survenue.");
@@ -69,6 +81,18 @@ export function OrganisationSeatsForm({
           className="w-20 rounded-[9px] border border-[var(--border-strong)] bg-[var(--card)] px-2 py-1 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none"
         />
       </label>
+      {hasResponsable ? null : (
+        <label className="flex items-center gap-2 text-xs text-[var(--foreground-dim)]">
+          Responsable
+          <input
+            type="email"
+            value={responsableEmail}
+            onChange={(event) => setResponsableEmail(event.target.value)}
+            placeholder="e-mail du responsable"
+            className="w-52 rounded-[9px] border border-[var(--border-strong)] bg-[var(--card)] px-2 py-1 text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-faint)] focus:border-[var(--accent)] focus:outline-none"
+          />
+        </label>
+      )}
       <Button type="submit" disabled={pending} className="px-3 py-1.5 text-xs">
         {pending ? "Patiente…" : "Enregistrer"}
       </Button>

@@ -73,6 +73,59 @@ l'interface Coolify.
      commitée une fois doit être considérée compromise même après suppression
      du fichier, tant que l'historique n'a pas été réécrit.
 
+## Exploitation — organisme sans responsable
+
+Un organisme peut se retrouver **sans aucun responsable actif** : le responsable
+supprime son compte (droit à l'effacement), ou la purge RGPD mensuelle emporte
+son compte dormant alors que l'organisme était déjà vide de stagiaires. Plus
+personne ne peut alors régénérer le code d'inscription, ajuster le nombre de
+places ni retirer un membre — l'organisme est vivant mais inadministrable.
+
+**Détection.** Le cron mensuel (`npm run purge-inactive`, voir
+`deploy/crontab.txt`) termine son exécution en listant ces organismes :
+
+```
+organisation AFPA Untel sans responsable (code 7KQ2M4XZ) — aucune désactivation automatique.
+```
+
+Rien n'est désactivé automatiquement : couper l'accès des stagiaires d'un
+organisme est une décision commerciale, pas une conséquence d'un script de
+maintenance. Le même signalement est visible dans `/admin`, colonne
+« Responsable » à « Aucun ».
+
+**Garde-fou en amont.** Depuis la revue de sécurité, la purge ne supprime plus un
+responsable dormant tant que son organisme compte au moins un stagiaire non
+supprimé (`purgeInactiveUsers`, `lib/db/queries/users.ts`). Un responsable se
+connecte rarement — c'est la nature du rôle, pas un signe d'abandon. Le cas
+restant est donc l'organisme réellement vidé, ou le responsable qui a demandé
+l'effacement de son compte.
+
+**Réparation.** Depuis `/admin`, connecté avec le compte administrateur :
+
+1. Créer d'abord le compte du nouveau responsable s'il n'existe pas. Il s'inscrit
+   lui-même via `/organisme/inscription` — ce parcours crée un **nouvel**
+   organisme, qu'on laissera inactif et vide ; seul son compte utilisateur
+   (rôle `responsable`) nous intéresse.
+2. Sur la ligne de l'organisme orphelin, le champ **« Responsable »** apparaît
+   (il n'est affiché que dans ce cas). Y saisir l'e-mail du responsable, puis
+   « Enregistrer ».
+3. Vérifier que la colonne « Responsable » affiche bien l'e-mail, et que le
+   responsable voit l'organisme dans `/organisme` après reconnexion.
+
+En ligne de commande, la même opération passe par `POST /api/admin/organisation`
+avec une session administrateur :
+
+```json
+{ "id": "<uuid de l'organisme>", "active": true, "seats": 20, "responsableEmail": "resp@organisme.fr" }
+```
+
+Réponses possibles : `404` si aucun compte actif ne porte cet e-mail, `400` si le
+compte existe mais n'a pas le rôle `responsable`. La route **ne promeut jamais**
+un stagiaire en responsable : ce rôle donne vue sur les membres de l'organisme,
+ça se décide explicitement et ça ne se fait pas en effet de bord d'une mise à
+jour de places. Pour un stagiaire qu'on veut promouvoir, changer son rôle en base
+puis le rattacher.
+
 ## Ce que fait Claude et ce que fait Lucas
 
 - Lucas : accès au VPS Coolify, achat/gestion du domaine, saisie des secrets
