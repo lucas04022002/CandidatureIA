@@ -6,7 +6,7 @@
 
 **Architecture:** Une seule application Next.js 16 App Router. `lib/db` (Drizzle + pg) remplace `lib/supabase` ; `lib/auth` (argon2 + JWT en cookie httpOnly) remplace Supabase Auth et `proxy.ts` ; chaque route API appelle `requireUser()`. Les modules réutilisés tels quels : `lib/scrapers/*`, `lib/cv-parser.ts`, `lib/scoring/job-scoring.ts` (branche heuristique), `lib/application-generation.ts` (gabarits).
 
-**Tech Stack:** Next.js 16.2.6, React 19, TypeScript 5 strict, Tailwind 4, Postgres 16, drizzle-orm + drizzle-kit + pg, argon2, jose (JWT), zod, Vitest + @testing-library/react, Docker (standalone), GitHub Actions.
+**Tech Stack:** Next.js 16.2.6, React 19, TypeScript 5 strict, Tailwind 4, Postgres 16, drizzle-orm + drizzle-kit + pg + PGlite, hash-wasm (argon2id), jose (JWT), zod, Vitest + @testing-library/react, Docker (standalone), GitHub Actions.
 
 ## Global Constraints
 
@@ -16,7 +16,7 @@
 - Aucun fichier `.env*` suivi sauf `.env.example`. **Ne jamais coller de clé dans le chat, les commits ou les tests.** Les tests n'appellent jamais le réseau (fixtures enregistrées, anonymisées).
 - Rôles : `stagiaire`, `responsable`, `admin`. Toute requête de données filtrée par `user_id` de la session, côté serveur.
 - Cookie de session `ab_session`, JWT HS256 signé avec `JWT_SECRET` (≥ 32 caractères, refus au démarrage sinon), 7 jours, `httpOnly`, `SameSite=Lax`, `Secure` quand `NODE_ENV=production`.
-- Mot de passe ≥ 10 caractères, haché **argon2id**.
+- Mot de passe ≥ 10 caractères, haché **argon2id** (`hash-wasm`, WebAssembly ; aucun module natif dans le projet, Smart App Control les bloque).
 - Code d'organisme : 8 caractères parmi `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
 - Quotas : `scrape-jobs` 1/utilisateur/heure ; `import-cv` 10/jour et 5 Mo ; connexion 10 essais/e-mail/15 min.
 - La Bonne Alternance : `SOURCE_LBA=on` (défaut `on`).
@@ -65,7 +65,7 @@
 **Interfaces:**
 - Produces : `npm test` (Vitest), `npm run typecheck` (`tsc --noEmit`), `docker compose up -d db` fournit Postgres sur 5432.
 
-- [ ] **Step 1 : Commiter l'état actuel tel quel** (les 30 fichiers en attente), pour que la refonte parte d'une base traçable. Vérifier d'abord qu'aucun fichier ajouté ne contient de secret :
+- [ ] **Step 1 : Commiter l'état actuel tel quel** (les fichiers modifiés suivis ont déjà été inclus dans le commit du plan `3e8491f` ; restent les fichiers non suivis : `app/auth/`, `app/login/`, `components/app/login-form.tsx`, `lib/application-generation.ts`, `lib/sanitize-text.ts`, `lib/supabase/browser.ts`, `lib/validation.ts`, `proxy.ts`, la migration 12, `supabase/seed.sql`), pour que la refonte parte d'une base traçable. Vérifier d'abord qu'aucun fichier ajouté ne contient de secret :
 
 ```bash
 git add -A && git diff --cached --name-only | grep -v "^.env" | xargs grep -lE "sk-[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{30,}" ; echo "exit=$?"   # attendu : aucun fichier listé, exit=123 (grep sans résultat)
@@ -125,7 +125,7 @@ SMARTRECRUITERS_COMPANY_TOKENS=
 - [ ] **Step 5 : Dépendances et scripts**
 
 ```bash
-npm install drizzle-orm pg @electric-sql/pglite argon2 jose zod
+npm install drizzle-orm pg @electric-sql/pglite hash-wasm jose zod
 npm install -D drizzle-kit @types/pg vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/jest-dom tsx
 ```
 
@@ -458,12 +458,15 @@ describe("code d'organisme", () => {
 
 - [ ] **Step 2 : Implémentations**
 
-`lib/auth/password.ts` :
+`lib/auth/password.ts` (argon2id en WebAssembly via `hash-wasm`, pas de module natif : Smart App Control bloque les binaires non signés sur le PC de Lucas) :
 
 ```ts
-import argon2 from "argon2";
-export const hashPassword = (p: string) => argon2.hash(p, { type: argon2.argon2id });
-export const verifyPassword = (hash: string, p: string) => argon2.verify(hash, p).catch(() => false);
+import { argon2id, argon2Verify } from "hash-wasm";
+import { randomBytes } from "node:crypto";
+export async function hashPassword(p: string) {
+  return argon2id({ password: p, salt: randomBytes(16), parallelism: 1, iterations: 3, memorySize: 65536, hashLength: 32, outputType: "encoded" }); // "$argon2id$v=19$m=65536,t=3,p=1$…"
+}
+export const verifyPassword = (hash: string, p: string) => argon2Verify({ password: p, hash }).catch(() => false);
 ```
 
 `lib/auth/jwt.ts` :
