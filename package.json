@@ -4,28 +4,47 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1",
-    "dev:turbo": "next dev --turbo --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "create-admin": "tsx scripts/create-admin.ts",
+    "purge-inactive": "tsx scripts/purge-inactive.ts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.106.0",
+    "drizzle-orm": "^0.45.2",
+    "hash-wasm": "^4.12.0",
+    "jose": "^6.2.12",
     "next": "16.2.6",
     "pdf-parse": "^2.4.5",
     "pdf2json": "^4.0.3",
+    "pg": "^8.23.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
