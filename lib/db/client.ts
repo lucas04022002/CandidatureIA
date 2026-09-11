@@ -31,6 +31,16 @@ function open(): Db {
   return drizzle(pool, { schema }) as unknown as Db;
 }
 
-export const db: Db = open();
-export const closeDb = () => closeFn();
+// En dev, Next.js compile les routes API et les pages dans des graphes de modules séparés : sans
+// cache global, chaque graphe ouvrirait sa propre instance PGlite sur le même dossier, et une
+// écriture faite par une route resterait invisible des pages jusqu'au redémarrage. On mémorise
+// donc l'instance sur `globalThis`, clé par URL (même motif que le singleton Prisma/Drizzle).
+type DbCache = { url: string; db: Db; close: () => Promise<void> };
+const g = globalThis as unknown as { __applybotDb?: DbCache };
+if (!g.__applybotDb || g.__applybotDb.url !== url) {
+  const opened = open();
+  g.__applybotDb = { url, db: opened, close: closeFn };
+}
+export const db: Db = g.__applybotDb.db;
+export const closeDb = () => g.__applybotDb!.close();
 export const isPglite = url.startsWith("pglite://");
