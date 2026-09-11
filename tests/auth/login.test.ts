@@ -15,10 +15,19 @@ const { POST: login } = await import("@/app/api/auth/login/route");
 const { GET: me } = await import("@/app/api/auth/me/route");
 const { POST: logout } = await import("@/app/api/auth/logout/route");
 
+// IP dédiée à ce fichier : voir la même remarque dans tests/auth/register.test.ts.
+const TEST_IP = "198.51.100.20";
+
 function request(path: string, init: RequestInit = {}) {
   return new Request(`http://localhost${path}`, {
     method: init.method ?? "POST",
-    headers: { "content-type": "application/json", host: "localhost", "sec-fetch-site": "same-origin", ...(init.headers ?? {}) },
+    headers: {
+      "content-type": "application/json",
+      host: "localhost",
+      "sec-fetch-site": "same-origin",
+      "x-forwarded-for": TEST_IP,
+      ...(init.headers ?? {}),
+    },
     body: init.body,
   });
 }
@@ -125,5 +134,10 @@ describe("connexion, session, déconnexion", () => {
     const setCookie = r.headers.get("set-cookie") ?? "";
     expect(setCookie).toMatch(/ab_session=;/);
     expect(setCookie).toMatch(/Max-Age=0/i);
+  });
+
+  it("POST /api/auth/logout origine cross-site (sec-fetch-site) → 403", async () => {
+    const r = await logout(request("/api/auth/logout", { headers: { "sec-fetch-site": "cross-site" } }), {});
+    expect(r.status).toBe(403);
   });
 });

@@ -59,17 +59,43 @@ export async function checkLoginAttempts(email: string) {
   }
 }
 
-// Adresse IP du client : premier maillon de `x-forwarded-for`, sinon "local" (dev/tests sans proxy).
-export function getClientIp(req: Request) {
-  const first = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return first || "local";
+function trustedProxyHops() {
+  const raw = process.env.TRUSTED_PROXY_HOPS;
+  const n = raw ? Number.parseInt(raw, 10) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// Adresse IP du client, à ne jamais faire confiance aveuglément : `x-forwarded-for` est un en-tête
+// que n'importe quel client peut forger. `TRUSTED_PROXY_HOPS` (0 par défaut) déclare combien de
+// reverse proxies de confiance (Traefik/Coolify…) précèdent l'appli et ajoutent chacun une adresse
+// à la fin de l'en-tête. Sans proxy de confiance déclaré (0, le défaut en dev direct), l'adresse du
+// client est simplement inconnue depuis un route handler Next : on retourne `null` et la limite par
+// IP est désactivée plutôt que de regrouper tout le monde sous un même compartiment "local".
+export function getClientIp(req: Request): string | null {
+  const hops = trustedProxyHops();
+  if (hops <= 0) return null;
+
+  const parts = req.headers
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts || parts.length === 0) return null;
+
+  // N-ième adresse en partant de la DROITE : avec N proxies de confiance, chacun ajoute une entrée
+  // à la fin ; la N-ième depuis la droite est donc la dernière adresse posée par un tiers non fiable
+  // (le vrai client), celles plus à droite ayant été ajoutées par nos propres proxies.
+  const index = parts.length - hops;
+  if (index < 0) return null;
+  return parts[index] || null;
 }
 
 function ipKey(ip: string) {
   return `ip:${ip}`;
 }
 
-export async function checkIpAttempts(ip: string) {
+export async function checkIpAttempts(ip: string | null) {
+  if (!ip) return;
   const since = new Date(Date.now() - IP_WINDOW_MS);
   const count = await countLoginAttemptsSince(ipKey(ip), since);
   if (count >= IP_MAX) {
@@ -77,6 +103,7 @@ export async function checkIpAttempts(ip: string) {
   }
 }
 
-export async function recordIpAttempt(ip: string) {
+export async function recordIpAttempt(ip: string | null) {
+  if (!ip) return;
   await recordLoginAttempt(ipKey(ip));
 }

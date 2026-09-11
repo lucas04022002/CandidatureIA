@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { resetDatabase } from "../setup-db";
 import { db } from "@/lib/db/client";
-import { cvImports, searchRuns } from "@/lib/db/schema";
+import { cvImports, loginAttempts, searchRuns } from "@/lib/db/schema";
 import { createUser } from "@/lib/db/queries/users";
 import { hashPassword } from "@/lib/auth/password";
 import { recordSearchRun, recordCvImport, recordLoginAttempt } from "@/lib/db/queries/quotas";
@@ -11,6 +12,7 @@ import {
   checkLoginAttempts,
   checkIpAttempts,
   recordIpAttempt,
+  getClientIp,
   SEARCH_MAX,
   SEARCH_WINDOW_MS,
   IMPORT_MAX,
@@ -111,5 +113,51 @@ describe("quotas et limite d'essais", () => {
       await recordIpAttempt(ip);
     }
     await expect(checkIpAttempts(ip)).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("purge : les lignes de plus de 15 min disparaissent lors d'un nouvel enregistrement", async () => {
+    const email = "purge@ex.fr";
+    const old = new Date(Date.now() - 20 * 60 * 1000); // hors fenêtre de 15 min
+    await db.insert(loginAttempts).values({ email, attemptedAt: old });
+
+    const before = await db.select().from(loginAttempts).where(eq(loginAttempts.email, email));
+    expect(before).toHaveLength(1);
+
+    await recordLoginAttempt(email); // doit purger la ligne de 20 min avant d'insérer la nouvelle
+
+    const after = await db.select().from(loginAttempts).where(eq(loginAttempts.email, email));
+    expect(after).toHaveLength(1);
+    expect(after[0].attemptedAt.getTime()).toBeGreaterThan(Date.now() - 60 * 1000);
+  });
+});
+
+describe("adresse IP du client (getClientIp)", () => {
+  const originalHops = process.env.TRUSTED_PROXY_HOPS;
+
+  afterEach(() => {
+    if (originalHops === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+    else process.env.TRUSTED_PROXY_HOPS = originalHops;
+  });
+
+  it("TRUSTED_PROXY_HOPS=1 : retient la dernière adresse de x-forwarded-for", () => {
+    process.env.TRUSTED_PROXY_HOPS = "1";
+    const req = new Request("http://localhost/api/auth/login", {
+      headers: { "x-forwarded-for": "1.1.1.1, 10.0.0.2" },
+    });
+    expect(getClientIp(req)).toBe("10.0.0.2");
+  });
+
+  it("TRUSTED_PROXY_HOPS=0 : adresse inconnue, la limite par IP ne se déclenche jamais (40 requêtes passent)", async () => {
+    process.env.TRUSTED_PROXY_HOPS = "0";
+    const req = new Request("http://localhost/api/auth/login", {
+      headers: { "x-forwarded-for": "1.1.1.1, 10.0.0.2" },
+    });
+    expect(getClientIp(req)).toBeNull();
+
+    for (let i = 0; i < 40; i++) {
+      const ip = getClientIp(req);
+      await expect(checkIpAttempts(ip)).resolves.toBeUndefined();
+      await recordIpAttempt(ip);
+    }
   });
 });

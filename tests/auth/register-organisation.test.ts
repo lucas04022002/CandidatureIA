@@ -5,11 +5,20 @@ import { db } from "@/lib/db/client";
 import { organisations, users } from "@/lib/db/schema";
 import { POST as registerOrganisation } from "@/app/api/auth/register-organisation/route";
 
+// IP dédiée à ce fichier : voir la même remarque dans tests/auth/register.test.ts.
+const TEST_IP = "198.51.100.30";
+
 const post = (body: unknown, headers: Record<string, string> = {}) =>
   registerOrganisation(
     new Request("http://localhost/api/auth/register-organisation", {
       method: "POST",
-      headers: { "content-type": "application/json", host: "localhost", "sec-fetch-site": "same-origin", ...headers },
+      headers: {
+        "content-type": "application/json",
+        host: "localhost",
+        "sec-fetch-site": "same-origin",
+        "x-forwarded-for": TEST_IP,
+        ...headers,
+      },
       body: JSON.stringify(body),
     }),
     {},

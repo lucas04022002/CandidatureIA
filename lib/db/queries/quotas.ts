@@ -1,6 +1,11 @@
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { cvImports, loginAttempts, searchRuns } from "@/lib/db/schema";
+
+// Rétention de `login_attempts` : doit couvrir la plus large des fenêtres qui l'exploitent
+// (connexion et anti-flood IP, toutes deux à 15 min dans `lib/rate-limit.ts`). Bornée ici plutôt
+// qu'avec un job externe, pour que la table ne grossisse jamais sans limite.
+const LOGIN_ATTEMPTS_RETENTION_MS = 15 * 60 * 1000;
 
 export async function countSearchRunsSince(userId: string, since: Date) {
   const [row] = await db
@@ -58,6 +63,9 @@ export async function countLoginAttemptsSince(email: string, since: Date) {
 }
 
 export async function recordLoginAttempt(email: string) {
+  // Purge globale (toutes clés confondues, pas seulement `email`) avant l'insertion : borne la
+  // taille de la table sans job de nettoyage séparé.
+  await db.delete(loginAttempts).where(lt(loginAttempts.attemptedAt, new Date(Date.now() - LOGIN_ATTEMPTS_RETENTION_MS)));
   await db.insert(loginAttempts).values({ email });
 }
 

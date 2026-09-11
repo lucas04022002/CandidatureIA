@@ -6,11 +6,21 @@ import { organisations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { POST as register } from "@/app/api/auth/register/route";
 
+// IP dédiée à ce fichier : évite tout compartiment anti-flood partagé avec les autres fichiers de
+// test (qui tournent en principe déjà dans des bases isolées, mais chacun sa propre adresse rend
+// l'isolation explicite plutôt que dépendante d'un détail d'implémentation de Vitest).
+const TEST_IP = "198.51.100.10";
+
 const post = (body: unknown) =>
   register(
     new Request("http://localhost/api/auth/register", {
       method: "POST",
-      headers: { "content-type": "application/json", host: "localhost", "sec-fetch-site": "same-origin" },
+      headers: {
+        "content-type": "application/json",
+        host: "localhost",
+        "sec-fetch-site": "same-origin",
+        "x-forwarded-for": TEST_IP,
+      },
       body: JSON.stringify(body),
     }),
     {},
@@ -20,7 +30,7 @@ const postWithHeaders = (body: unknown, headers: Record<string, string>) =>
   register(
     new Request("http://localhost/api/auth/register", {
       method: "POST",
-      headers: { "content-type": "application/json", host: "localhost", ...headers },
+      headers: { "content-type": "application/json", host: "localhost", "x-forwarded-for": TEST_IP, ...headers },
       body: JSON.stringify(body),
     }),
     {},
