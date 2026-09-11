@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:pl-[248px]">
-      <Sidebar userId={session.id} />
+      <Sidebar userId={session.id} role={session.role} />
       <div className="flex min-h-screen flex-col">
         <Topbar />
         <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-5 md:px-8 md:py-8">

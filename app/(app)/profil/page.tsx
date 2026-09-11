@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FileTextIcon, MapPinIcon, TargetIcon, UserIcon } from "@/components/app/icons";
+import { AccountActions } from "@/components/app/account-actions";
 import { PageHeader } from "@/components/app/page-header";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -308,6 +309,27 @@ export default async function ProfilPage() {
                 </Link>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Mes données</CardTitle>
+              <p className="mt-1 text-sm text-[var(--foreground-dim)]">
+                Export au format JSON et suppression définitive du compte (RGPD).
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-6 text-[var(--foreground-dim)]">
+              L&apos;export contient ton profil, tes offres et tes candidatures. La suppression
+              efface immédiatement ces mêmes données, libère ton adresse e-mail et, si tu es
+              rattaché à un organisme, libère ta place.
+            </p>
+            <AccountActions />
           </CardContent>
         </Card>
       </section>

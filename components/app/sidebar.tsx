@@ -5,8 +5,9 @@ import { BoltIcon, UserIcon } from "@/components/app/icons";
 import { NavLinks } from "@/components/app/nav-links";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { SignOutButton } from "@/components/app/sign-out-button";
+import type { Role } from "@/lib/auth/jwt";
 
-export async function Sidebar({ userId }: { userId: string }) {
+export async function Sidebar({ userId, role }: { userId: string; role: Role }) {
   const [jobs, applications] = await Promise.all([getJobs(userId), getApplications(userId)]);
   const counts = {
     jobs: jobs.length,
@@ -30,7 +31,7 @@ export async function Sidebar({ userId }: { userId: string }) {
             </Link>
             <ScoreGauge value={92} size={38} thickness={5} />
           </div>
-          <NavLinks mobile counts={counts} />
+          <NavLinks mobile role={role} counts={counts} />
         </div>
       </header>
 
@@ -47,7 +48,7 @@ export async function Sidebar({ userId }: { userId: string }) {
 
         <div className="mt-7">
           <div className="label-xs px-3 pb-2">Navigation</div>
-          <NavLinks counts={counts} />
+          <NavLinks role={role} counts={counts} />
         </div>
 
         <div className="mt-7">

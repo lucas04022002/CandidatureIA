@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { organisations, users } from "@/lib/db/schema";
 import { generateOrgCode } from "@/lib/auth/org-code";
@@ -48,6 +48,11 @@ export async function createOrganisation(p: { name: string }) {
   return insertOrganisationWith(db, p.name);
 }
 
+export async function findOrganisationById(id: string) {
+  const rows = await db.select().from(organisations).where(eq(organisations.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function countActiveTrainees(organisationId: string) {
   return countActiveTraineesWith(db, organisationId);
 }
@@ -76,4 +81,113 @@ export async function registerTraineeWithCode(p: { email: string; passwordHash: 
       .returning();
     return user;
   });
+}
+
+// Régénère le code d'inscription : l'ancien code cesse immédiatement de fonctionner (il n'existe
+// plus en base), ce qui est tout l'intérêt de la manœuvre quand un code a fuité. Même boucle de
+// réessai que l'insertion, pour le cas rarissime d'une collision sur `organisations.code`.
+export async function regenerateCode(organisationId: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const [org] = await db
+        .update(organisations)
+        .set({ code: generateOrgCode(), updatedAt: new Date() })
+        .where(eq(organisations.id, organisationId))
+        .returning();
+      return org ?? null;
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? (e as { cause?: { code?: string } }).cause?.code;
+      if (code === "23505") continue;
+      throw e;
+    }
+  }
+  throw new Error("Impossible de générer un code d'organisme unique après plusieurs tentatives");
+}
+
+// Ce que le responsable a le droit de voir de ses stagiaires : l'e-mail et deux dates. Jamais leur
+// CV, leurs offres ni leurs candidatures — d'où une projection explicite plutôt qu'un `select()`.
+export async function listMembers(organisationId: string) {
+  return db
+    .select({
+      id: users.id,
+      email: users.email,
+      createdAt: users.createdAt,
+      lastLoginAt: users.lastLoginAt,
+    })
+    .from(users)
+    .where(
+      and(eq(users.organisationId, organisationId), eq(users.role, "stagiaire"), isNull(users.deletedAt)),
+    )
+    .orderBy(desc(users.createdAt));
+}
+
+// Le stagiaire n'est retourné que s'il appartient à CET organisme : un responsable qui envoie l'id
+// d'un stagiaire d'un autre organisme obtient `null`, donc un 404 côté route.
+export async function findTraineeInOrganisation(organisationId: string, userId: string) {
+  const rows = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organisationId, organisationId),
+        eq(users.role, "stagiaire"),
+        isNull(users.deletedAt),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export interface OrganisationSummary {
+  id: string;
+  name: string;
+  code: string;
+  seats: number;
+  active: boolean;
+  createdAt: Date;
+  responsableEmail: string | null;
+  traineeCount: number;
+}
+
+// Vue d'administration. Deux requêtes plutôt qu'une jointure agrégée : le nombre d'organismes se
+// compte en dizaines, et le rapprochement en mémoire reste lisible.
+export async function listOrganisations(): Promise<OrganisationSummary[]> {
+  const [orgs, members] = await Promise.all([
+    db.select().from(organisations).orderBy(desc(organisations.createdAt)),
+    db
+      .select({ organisationId: users.organisationId, email: users.email, role: users.role })
+      .from(users)
+      .where(isNull(users.deletedAt))
+      .orderBy(users.createdAt),
+  ]);
+
+  const responsables = new Map<string, string>();
+  const trainees = new Map<string, number>();
+  for (const m of members) {
+    if (!m.organisationId) continue;
+    if (m.role === "responsable" && !responsables.has(m.organisationId)) responsables.set(m.organisationId, m.email);
+    if (m.role === "stagiaire") trainees.set(m.organisationId, (trainees.get(m.organisationId) ?? 0) + 1);
+  }
+
+  return orgs.map((org) => ({
+    id: org.id,
+    name: org.name,
+    code: org.code,
+    seats: org.seats,
+    active: org.active,
+    createdAt: org.createdAt,
+    responsableEmail: responsables.get(org.id) ?? null,
+    traineeCount: trainees.get(org.id) ?? 0,
+  }));
+}
+
+// Réservé à l'admin : l'activation et le nombre de places ne se négocient pas côté organisme.
+export async function setOrganisationStatus(id: string, p: { active: boolean; seats: number }) {
+  const [org] = await db
+    .update(organisations)
+    .set({ active: p.active, seats: p.seats, updatedAt: new Date() })
+    .where(eq(organisations.id, id))
+    .returning();
+  return org ?? null;
 }

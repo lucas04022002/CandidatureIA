@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { BriefcaseIcon, FileTextIcon, GridIcon, TargetIcon, UserIcon } from "@/components/app/icons";
+import { BoltIcon, BriefcaseIcon, FileTextIcon, GridIcon, ListIcon, TargetIcon, UserIcon } from "@/components/app/icons";
+import type { Role } from "@/lib/auth/jwt";
 
 interface NavLinksProps {
   mobile?: boolean;
+  role?: Role;
   counts?: {
     jobs: number;
     applications: number;
@@ -14,16 +16,27 @@ interface NavLinksProps {
   };
 }
 
-const links = [
-  { href: "/dashboard", label: "Tableau de bord", icon: GridIcon },
-  { href: "/jobs", label: "Offres", icon: BriefcaseIcon, countKey: "jobs" as const },
-  { href: "/applications", label: "Candidatures", icon: FileTextIcon, countKey: "applications" as const },
-  { href: "/suivi", label: "Suivi", icon: TargetIcon, countKey: "followups" as const },
-  { href: "/profil", label: "Profil", icon: UserIcon },
-];
+// Navigation propre à chaque rôle : le pipeline de candidature n'existe que pour le stagiaire,
+// « Mon organisme » que pour le responsable, « Admin » que pour l'admin. « Profil » reste commun :
+// c'est de là que tout compte s'exporte et se supprime.
+function linksFor(role: Role | undefined) {
+  const candidate = [
+    { href: "/jobs", label: "Offres", icon: BriefcaseIcon, countKey: "jobs" as const },
+    { href: "/applications", label: "Candidatures", icon: FileTextIcon, countKey: "applications" as const },
+    { href: "/suivi", label: "Suivi", icon: TargetIcon, countKey: "followups" as const },
+  ];
+  return [
+    { href: "/dashboard", label: "Tableau de bord", icon: GridIcon },
+    ...(role === "responsable" || role === "admin" ? [] : candidate),
+    ...(role === "responsable" ? [{ href: "/organisme", label: "Mon organisme", icon: ListIcon }] : []),
+    ...(role === "admin" ? [{ href: "/admin", label: "Admin", icon: BoltIcon }] : []),
+    { href: "/profil", label: "Profil", icon: UserIcon },
+  ];
+}
 
-export function NavLinks({ mobile = false, counts }: NavLinksProps) {
+export function NavLinks({ mobile = false, role, counts }: NavLinksProps) {
   const pathname = usePathname();
+  const links = linksFor(role);
 
   return (
     <nav className={cn("flex gap-2", mobile ? "overflow-x-auto pb-1" : "flex-col gap-1")}>
@@ -31,7 +44,7 @@ export function NavLinks({ mobile = false, counts }: NavLinksProps) {
         const isActive =
           pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
         const Icon = link.icon;
-        const count = link.countKey ? counts?.[link.countKey] : undefined;
+        const count = "countKey" in link && link.countKey ? counts?.[link.countKey] : undefined;
 
         return (
           <Link
