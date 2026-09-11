@@ -1,0 +1,40 @@
+// @vitest-environment jsdom
+import { describe, expect, it } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+
+// Ancienne UI (components/ui, components/app) et ancienne page d'accueil (app/page.tsx) :
+// elles référencent encore des variables CSS et couleurs héritées du thème précédent.
+// Elles seront remplacées par les nouveaux composants Bleu Klein en tâche 5 — d'ici là on
+// les exclut de la garde plutôt que de les réécrire hors périmètre de cette tâche.
+const LEGACY_PATHS = ["components/ui/", "components/app/", "app/page.tsx"];
+
+// `globSync` (node:fs) est bien disponible au runtime (Node 25) mais @types/node reste en
+// ^20 dans ce projet : on liste récursivement avec `readdirSync` (typé, sans dépendance de
+// version) plutôt que d'élargir @types/node hors du périmètre de cette tâche.
+function collect(dir: string, extensions: string[]): string[] {
+  return readdirSync(dir, { recursive: true, encoding: "utf8" })
+    .map((f) => f.split("\\").join("/"))
+    .filter((f) => extensions.some((ext) => f.endsWith(ext)))
+    .map((f) => `${dir}/${f}`);
+}
+
+const files = [...collect("app", [".ts", ".tsx", ".css"]), ...collect("components", [".ts", ".tsx"])]
+  .filter((f) => !f.endsWith("globals.css"))
+  .filter((f) => !LEGACY_PATHS.some((legacy) => f.includes(legacy)));
+
+describe("aucune couleur hors jetons", () => {
+  it("pas de couleur en dur dans app/ et components/ (hors legacy, à vider en tâche 5)", () => {
+    const bad: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      if (/#[0-9a-fA-F]{3,8}\b|\b(rgb|oklch|hsl)a?\(/.test(src)) bad.push(f);
+      if (
+        /\b(text|bg|border|ring|from|to)-(red|blue|gray|grey|slate|zinc|neutral|stone|green|emerald|amber|yellow|orange|indigo|violet|purple|pink|rose|sky|cyan|teal|lime)-\d{2,3}\b/.test(
+          src,
+        )
+      )
+        bad.push(f);
+    }
+    expect(bad).toEqual([]);
+  });
+});

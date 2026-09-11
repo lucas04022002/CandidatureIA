@@ -4,8 +4,11 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Par défaut node (API, DB, scoring…) ; les tests UI (tests/ui/**) passent en jsdom via
+    // le commentaire `@vitest-environment jsdom` en tête de chaque fichier concerné —
+    // `environmentMatchGlobs` a disparu de Vitest 4.
     environment: "node",
-    setupFiles: ["tests/setup.ts"],
+    setupFiles: ["tests/setup.ts", "tests/ui/setup-dom.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
     testTimeout: 15000,
     // Fichiers de test exécutés les uns après les autres. Chaque fichier qui touche la base appelle
