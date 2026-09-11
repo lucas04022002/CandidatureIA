@@ -1,41 +1,25 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { LoginForm } from "@/components/app/login-form";
-import { LegalFooter } from "@/components/app/legal-footer";
+import { LegalFooter } from "@/components/legal-footer";
+import { LoginForm } from "@/components/forms/login-form";
+import { PublicBar } from "@/components/shell";
 
 export const metadata = {
-  title: "Connexion — ApplyBot",
+  title: "Connexion",
 };
 
 export default function LoginPage() {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center px-4 py-10">
-      <Link href="/" className="mb-8 flex items-center gap-3 self-center">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[linear-gradient(145deg,var(--accent),var(--accent-press))] text-white shadow-[var(--shadow-1),0_6px_18px_-8px_var(--accent)]">
-          A
-        </span>
-        <span>
-          <span className="block text-base font-semibold tracking-[-0.02em] text-white">
-            ApplyBot
-          </span>
-          <span className="block text-[11px] text-[var(--foreground-faint)]">Votre pilote de candidatures</span>
-        </span>
-      </Link>
+    <div className="flex min-h-full flex-1 flex-col bg-paper">
+      <PublicBar />
 
-      <Card>
-        <CardContent className="p-6">
-          <h1 className="text-lg font-semibold text-white">Accède à ton espace</h1>
-          <p className="mt-1 text-sm text-[var(--foreground-dim)]">
-            Connecte-toi pour retrouver tes offres, tes candidatures et ton profil.
-          </p>
-          <div className="mt-6">
-            <Suspense fallback={null}>
-              <LoginForm />
-            </Suspense>
-          </div>
-        </CardContent>
-      </Card>
+      <main className="grid flex-1 place-items-center px-6 py-14">
+        <div className="w-[min(440px,100%)] rounded-tile border border-line bg-white p-7">
+          <h1 className="sr-only">Connexion ou inscription</h1>
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
+        </div>
+      </main>
 
       <LegalFooter />
     </div>

@@ -2,11 +2,11 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 
-// Ancienne UI (components/ui, components/app) et ancienne page d'accueil (app/page.tsx) :
-// elles référencent encore des variables CSS et couleurs héritées du thème précédent.
-// Elles seront remplacées par les nouveaux composants Bleu Klein en tâche 5 — d'ici là on
-// les exclut de la garde plutôt que de les réécrire hors périmètre de cette tâche.
-const LEGACY_PATHS = ["components/ui/", "components/app/", "app/page.tsx"];
+// Ancienne UI (components/ui, components/app) : elle référence encore des variables CSS et des
+// couleurs héritées du thème précédent. Elle sera remplacée par les nouveaux composants Bleu Klein
+// en tâches 4 et 5 — d'ici là on l'exclut de la garde plutôt que de la réécrire hors périmètre.
+// `app/page.tsx` est sorti de cette liste en tâche 3 : l'accueil est réécrit en jetons.
+const LEGACY_PATHS = ["components/ui/", "components/app/"];
 
 // `globSync` (node:fs) est bien disponible au runtime (Node 25) mais @types/node reste en
 // ^20 dans ce projet : on liste récursivement avec `readdirSync` (typé, sans dépendance de

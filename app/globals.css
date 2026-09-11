@@ -54,6 +54,21 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Séquence d'entrée de l'accueil (spec §1) : le titre puis la carte, 400 ms, décalés de 120 ms.
+ * Appliquée uniquement via le variant `motion-safe:` de Tailwind — sous
+ * `prefers-reduced-motion: reduce`, la règle n'est pas émise du tout et l'élément s'affiche
+ * immédiatement. `backwards` évite le clignotement de l'élément retardé avant son départ. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* =========================================================================
  * LEGACY — pont vers l'ancienne UI, À SUPPRIMER EN TÂCHE 5
  * -------------------------------------------------------------------------
@@ -94,9 +109,11 @@ h3 {
   --shadow-1: 0 1px 0 rgba(16, 18, 38, 0.03) inset, 0 1px 2px rgba(16, 18, 38, 0.08);
   --shadow-2: 0 18px 40px -24px rgba(16, 18, 38, 0.18), 0 2px 8px -2px rgba(16, 18, 38, 0.12);
   --shadow-pop: var(--shadow-hero);
+  /* `--radius-*` est un espace de noms Tailwind 4 : redéfinir `--radius-lg` ici changeait la valeur
+   * de l'utilitaire `rounded-lg` pour toute l'application (20 px au lieu de 8 px — constaté sur les
+   * champs de /login). `--radius-sm` et `--radius-lg` n'étaient utilisés par aucun composant : ils
+   * sont retirés. `--radius` reste : components/ui/card.tsx le lit en `rounded-[var(--radius)]`. */
   --radius: var(--radius-tile);
-  --radius-sm: 8px;
-  --radius-lg: 20px;
 }
 
 @theme inline {
@@ -135,12 +152,19 @@ h3 {
   -webkit-backdrop-filter: blur(14px);
 }
 
-* {
-  border-color: var(--border);
-}
+/* Dans `@layer base`, et non hors couche : une règle sans couche l'emporte sur TOUTES les couches
+ * Tailwind, donc ce `*` écrasait chaque utilitaire de couleur de bordure (`border-klein` d'un onglet
+ * actif, `border-ink` d'une case à cocher, `border-bad` d'une erreur) — vérifié dans le navigateur :
+ * l'onglet actif de /login ressortait en `line` (#e2e0d8) au lieu du bleu. En base, la valeur par
+ * défaut sert toujours l'ancienne UI, et les utilitaires reprennent la main. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 
-::selection {
-  background: var(--accent-soft);
+  ::selection {
+    background: var(--accent-soft);
+  }
 }
 
 .rise {

@@ -1,4 +1,4 @@
-import { LegalPage, type LegalSection } from "@/components/app/legal-page";
+import { LegalPage, type LegalSection } from "@/components/legal-page";
 import { JOB_SOURCES, LEGAL, RETENTION_MONTHS } from "@/lib/legal";
 
 export const metadata = { title: "Conditions d'utilisation", robots: { index: false } };
