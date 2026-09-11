@@ -57,8 +57,15 @@ export function OfferTile({ job, application, className }: OfferTileProps) {
 
       <p className="font-mono text-[12.5px] leading-[1.5] text-grey">{meta}</p>
 
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2.5">
-        {hasScore ? <Score value={job.score} size="tile" /> : <span />}
+      {/* Sans score, `justify-end` pousse le tampon à droite tout seul : le `<span />` vide qui
+          servait d'espaceur était un nœud sans contenu ni rôle dans l'arbre d'accessibilité. */}
+      <div
+        className={cn(
+          "mt-auto flex flex-wrap items-center gap-3 pt-2.5",
+          hasScore ? "justify-between" : "justify-end",
+        )}
+      >
+        {hasScore ? <Score value={job.score} size="tile" /> : null}
         {application ? (
           <Stamp status={stampStatus(application)} />
         ) : (

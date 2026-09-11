@@ -5,6 +5,7 @@ import { Empty } from "@/components/empty";
 import { Kpi } from "@/components/kpi";
 import { PageTitle } from "@/components/page-title";
 import { getSession } from "@/lib/auth/session";
+import { parisDay } from "@/lib/dates";
 import { getApplications } from "@/lib/db/queries/applications";
 import { getJobRows } from "@/lib/db/queries/jobs";
 import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
@@ -16,14 +17,12 @@ function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] || "toi";
 }
 
-function isToday(date: Date | null) {
-  if (!date || Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
+// « Aujourd'hui » au sens du stagiaire, c'est-à-dire à Paris — et non dans le fuseau du serveur,
+// qui est UTC en production : une offre relevée après 22:00 UTC porte déjà la date du lendemain à
+// Paris, et l'inverse en heure d'été. On compare deux jours civils parisiens, pas deux horloges.
+function isToday(date: Date | null, today: string | null) {
+  const day = parisDay(date);
+  return day !== null && day === today;
 }
 
 /**
@@ -76,7 +75,8 @@ export default async function DashboardPage() {
     getCandidateProfileSummary(session.id),
   ]);
 
-  const jobsToday = jobRows.filter((row) => isToday(row.createdAt)).length;
+  const today = parisDay(new Date());
+  const jobsToday = jobRows.filter((row) => isToday(row.createdAt, today)).length;
   const sent = applications.filter((application) => application.sentAt).length;
   const awaiting = applications.filter((application) => application.status === "Envoyé").length;
   const followupsToDo = applications.filter(

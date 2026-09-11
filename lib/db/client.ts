@@ -42,5 +42,14 @@ if (!g.__applybotDb || g.__applybotDb.url !== url) {
   g.__applybotDb = { url, db: opened, close: closeFn };
 }
 export const db: Db = g.__applybotDb.db;
-export const closeDb = () => g.__applybotDb!.close();
+// Fermer sans oublier le cache laissait `globalThis.__applybotDb` pointer sur une instance morte :
+// tout import ultérieur dans le même processus (un test qui ferme puis rouvre, un script qui
+// enchaîne deux connexions) récupérait la référence en cache au lieu d'ouvrir une base, et échouait
+// sur un client déjà fermé. On supprime l'entrée : le prochain import retombe sur `open()`.
+export const closeDb = async () => {
+  const cached = g.__applybotDb;
+  if (!cached) return;
+  delete g.__applybotDb;
+  await cached.close();
+};
 export const isPglite = url.startsWith("pglite://");

@@ -4,6 +4,7 @@ import { OfferList } from "@/components/offer-list";
 import { PageTitle } from "@/components/page-title";
 import { SearchControls } from "@/components/search-controls";
 import { getSession } from "@/lib/auth/session";
+import { formatParisTime } from "@/lib/dates";
 import { getApplications } from "@/lib/db/queries/applications";
 import { getJobRows, mapJobRow } from "@/lib/db/queries/jobs";
 import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
@@ -67,16 +68,6 @@ function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string
   });
 }
 
-function hourLabel(date: Date | null) {
-  if (!date || Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-}
-
 export default async function JobsPage({ searchParams }: JobsPageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -110,7 +101,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     if (!row.createdAt) return latest;
     return !latest || row.createdAt > latest ? row.createdAt : latest;
   }, null);
-  const lastRunLabel = hourLabel(lastRun);
+  const lastRunLabel = formatParisTime(lastRun);
 
   const shownKeywords = normalizeParamValue(resolvedSearchParams.keywords).trim() || defaultKeywords;
   const shownLocation = normalizeParamValue(resolvedSearchParams.location).trim() || defaultLocation;

@@ -7,6 +7,7 @@ import { GenerateFollowupAction } from "@/components/actions/generate-followup";
 import { Score } from "@/components/score";
 import { Stamp } from "@/components/stamp";
 import { getSession } from "@/lib/auth/session";
+import { formatParisDate } from "@/lib/dates";
 import { getApplicationById, getApplicationRow } from "@/lib/db/queries/applications";
 import { getJobById } from "@/lib/db/queries/jobs";
 
@@ -19,13 +20,12 @@ type ApplicationDetailPageProps = {
 };
 
 function publishedLabel(date: Date | null | undefined) {
-  if (!date || Number.isNaN(date.getTime())) return null;
-  return `publiée le ${date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`;
+  const label = formatParisDate(date, { day: "2-digit", month: "2-digit" });
+  return label && `publiée le ${label}`;
 }
 
 function dayLabel(date: Date | null | undefined) {
-  if (!date || Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  return formatParisDate(date);
 }
 
 function TextBlock({

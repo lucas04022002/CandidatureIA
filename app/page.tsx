@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/button";
 import { Kpi } from "@/components/kpi";
 import { LegalFooter } from "@/components/legal-footer";
@@ -41,12 +42,15 @@ export default function Home() {
                 <Button variant="onBlue" href="/organisme/inscription">
                   Ouvrir des places pour ma promo
                 </Button>
-                <a
+                {/* `Link` et non `<a>` : c'était le seul lien interne de l'accueil à provoquer un
+                    rechargement complet du document — perte du préchargement et du rendu client,
+                    alors que le bouton juste à côté (`Button href`) passe déjà par `Link`. */}
+                <Link
                   href="/login"
                   className="font-body text-[14px] text-white underline underline-offset-[3px]"
                 >
                   J&apos;ai un code d&apos;organisme
-                </a>
+                </Link>
               </div>
             </div>
 

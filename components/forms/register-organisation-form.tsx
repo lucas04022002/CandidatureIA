@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/button";
@@ -23,6 +23,17 @@ export function RegisterOrganisationForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Le succès ouvre un délai de 1,5 s avant de partir sur /dashboard, le temps de lire la
+  // confirmation. Ce minuteur doit mourir avec le composant : si l'utilisateur quitte la page
+  // entre-temps, `router.push` s'exécuterait sur un composant démonté et le ramènerait de force sur
+  // /dashboard depuis là où il était allé.
+  const redirect = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (redirect.current) clearTimeout(redirect.current);
+    };
+  }, []);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -39,17 +50,22 @@ export function RegisterOrganisationForm() {
 
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "Une erreur est survenue.");
+        setPending(false);
         return;
       }
 
       setNotice(typeof data.message === "string" ? data.message : "Organisme créé.");
-      setTimeout(() => {
+      // Volontairement PAS de `setPending(false)` ici, ni dans un `finally` : l'organisme est créé,
+      // et pendant la seconde et demie d'attente le bouton redevenait cliquable. Un second clic
+      // rejouait l'inscription avec le même e-mail — au mieux une erreur affichée par-dessus la
+      // confirmation, au pire un doublon. Le bouton reste désactivé jusqu'à ce que la navigation
+      // emporte le formulaire.
+      redirect.current = setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
       }, 1500);
     } catch {
       setError("Une erreur est survenue.");
-    } finally {
       setPending(false);
     }
   }

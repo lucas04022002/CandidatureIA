@@ -78,10 +78,21 @@ describe("OfferTile", () => {
   });
 
   it("une candidature sans score n'affiche aucun chiffre de correspondance", () => {
-    renderTile(<OfferTile job={job} application={application({ jobScore: null })} />);
+    const { container } = renderTile(
+      <OfferTile job={job} application={application({ jobScore: null })} />,
+    );
 
     expect(screen.queryByText("correspondance")).toBeNull();
     expect(screen.queryByText("0")).toBeNull();
+
+    // Le pied ne contient plus que le tampon, sans `<span />` vide pour le pousser à droite : c'est
+    // `justify-end` qui s'en charge. Un nœud vide n'a ni contenu ni rôle — il n'existait que pour
+    // occuper une colonne de `justify-between`.
+    const foot = container.querySelector("div.mt-auto") as HTMLElement;
+    const classes = foot.className.split(/\s+/);
+    expect(classes).toContain("justify-end");
+    expect(classes).not.toContain("justify-between");
+    expect(foot.querySelectorAll("span:empty")).toHaveLength(0);
   });
 
   it("une candidature envoyée dont la relance est prête porte le tampon « À relancer »", () => {
