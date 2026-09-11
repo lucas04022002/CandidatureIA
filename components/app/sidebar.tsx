@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { getApplications, getJobs } from "@/lib/supabase/queries";
+import { getApplications } from "@/lib/db/queries/applications";
+import { getJobs } from "@/lib/db/queries/jobs";
 import { BoltIcon, UserIcon } from "@/components/app/icons";
 import { NavLinks } from "@/components/app/nav-links";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { SignOutButton } from "@/components/app/sign-out-button";
 
-export async function Sidebar() {
-  const [jobsResult, applicationsResult] = await Promise.all([getJobs(), getApplications()]);
+export async function Sidebar({ userId }: { userId: string }) {
+  const [jobs, applications] = await Promise.all([getJobs(userId), getApplications(userId)]);
   const counts = {
-    jobs: jobsResult.data.length,
-    applications: applicationsResult.data.length,
-    followups: applicationsResult.data.filter((application) => application.status === "Envoyé").length,
+    jobs: jobs.length,
+    applications: applications.length,
+    followups: applications.filter((application) => application.status === "Envoyé").length,
   };
 
   return (

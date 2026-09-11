@@ -1,14 +1,17 @@
 import { ApplicationsBoard } from "@/components/app/applications-board";
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { EmptyState } from "@/components/app/empty-state";
 import { PageHeader } from "@/components/app/page-header";
-import { getApplications } from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getApplications } from "@/lib/db/queries/applications";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApplicationsPage() {
-  const applicationsResult = await getApplications();
-  const applications = applicationsResult.data;
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const applications = await getApplications(session.id);
   const readyCount = applications.filter((application) => application.status === "À valider").length;
   const sentCount = applications.filter((application) => application.status === "Envoyé").length;
 
@@ -18,8 +21,6 @@ export default async function ApplicationsPage() {
         title="Candidatures générées"
         description="Relis, valide et fais avancer chaque dossier avant l’envoi ou la relance."
       />
-
-      <DataSourceBanner source={applicationsResult.source} error={applicationsResult.error} />
 
       {applications.length ? (
         <>

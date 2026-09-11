@@ -1,34 +1,20 @@
-import { NextResponse } from "next/server";
+import { assertSameOrigin, handle, json } from "@/lib/http";
+import { requireUser } from "@/lib/auth/session";
+import { checkImportQuota } from "@/lib/rate-limit";
+import { recordCvImport } from "@/lib/db/queries/quotas";
+import { upsertProfile } from "@/lib/db/queries/profiles";
+import { getJobRows, updateJobScore } from "@/lib/db/queries/jobs";
 import { parseCandidateProfileFromCv } from "@/lib/cv-parser";
 import { scoreJob } from "@/lib/scoring/job-scoring";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-interface JobRow {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  contract: string;
-  source: string;
-  job_description: string | null;
-  score: number;
-}
+const MAX_CV_BYTES = 5 * 1024 * 1024;
 
 interface UploadedFileLike {
   name: string;
   type: string;
   arrayBuffer: () => Promise<ArrayBuffer>;
-}
-
-function isMissingCandidatePreferenceColumns(message: string) {
-  return (
-    message.includes("candidate_profiles.target_role") ||
-    message.includes("candidate_profiles.preferred_keywords") ||
-    message.includes("target_role") ||
-    message.includes("preferred_keywords")
-  );
 }
 
 async function extractTextFromFile(file: UploadedFileLike) {
@@ -51,7 +37,7 @@ async function extractTextFromFile(file: UploadedFileLike) {
         try {
           await parser.destroy();
         } catch {
-          // Some PDFs trigger cleanup issues in pdf.js; prefer returning parsed text when available.
+          // Certains PDF déclenchent une erreur de nettoyage dans pdf.js : on privilégie le texte extrait.
         }
       }
     } catch (error) {
@@ -101,233 +87,101 @@ async function extractPdfTextWithPdf2Json(buffer: Buffer) {
   });
 }
 
-export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
-    const file = formData.get("cv");
+export const POST = handle(async (req) => {
+  assertSameOrigin(req);
+  const user = await requireUser();
+  await checkImportQuota(user.id);
 
-    if (
-      !file ||
-      typeof file !== "object" ||
-      !("name" in file) ||
-      !("arrayBuffer" in file) ||
-      typeof file.arrayBuffer !== "function"
-    ) {
-      return NextResponse.json({ ok: false, error: "Fichier CV manquant." }, { status: 400 });
-    }
+  const formData = await req.formData();
+  const file = formData.get("cv");
 
-    const MAX_CV_BYTES = 5 * 1024 * 1024;
-    if ("size" in file && typeof file.size === "number" && file.size > MAX_CV_BYTES) {
-      return NextResponse.json(
-        { ok: false, error: "Le CV dépasse la taille maximale de 5 Mo." },
-        { status: 400 },
-      );
-    }
+  if (
+    !file ||
+    typeof file !== "object" ||
+    !("name" in file) ||
+    !("arrayBuffer" in file) ||
+    typeof file.arrayBuffer !== "function"
+  ) {
+    return json({ ok: false, error: "Fichier CV manquant." }, { status: 400 });
+  }
 
-    const uploadName = String(file.name).toLowerCase();
-    const uploadType = "type" in file ? String(file.type) : "";
-    const isPdf = uploadType === "application/pdf" || uploadName.endsWith(".pdf");
-    const isText =
-      uploadType.startsWith("text/") || uploadName.endsWith(".txt") || uploadName.endsWith(".md");
-    if (!isPdf && !isText) {
-      return NextResponse.json(
-        { ok: false, error: "Format non supporté : utilise un CV en PDF ou en texte brut." },
-        { status: 400 },
-      );
-    }
+  if ("size" in file && typeof file.size === "number" && file.size > MAX_CV_BYTES) {
+    return json({ ok: false, error: "Le CV dépasse la taille maximale de 5 Mo." }, { status: 400 });
+  }
 
-    const supabase = await createSupabaseServerClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { ok: false, error: "Supabase non configure cote serveur." },
-        { status: 500 },
-      );
-    }
-
-    let rawText = "";
-    try {
-      rawText = await extractTextFromFile(file as UploadedFileLike);
-    } catch (error) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Impossible de lire le CV: ${error instanceof Error ? error.message : "erreur inconnue"}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    if (!rawText) {
-      return NextResponse.json(
-        { ok: false, error: "Le CV est vide ou illisible." },
-        { status: 400 },
-      );
-    }
-
-    const profile = parseCandidateProfileFromCv(rawText);
-
-    const profileId = crypto.randomUUID();
-
-    const { error: insertError } = await supabase.from("candidate_profiles").insert({
-      id: profileId,
-      file_name: file.name,
-      raw_text: rawText,
-      full_name: profile.fullName,
-      role: profile.role,
-      target_role: profile.targetRole || profile.role,
-      preferred_keywords: profile.preferredKeywords.length ? profile.preferredKeywords : [profile.role],
-      location: profile.location,
-      email: profile.email,
-      phone: profile.phone,
-      github: profile.github,
-      linkedin: profile.linkedin,
-      summary: profile.summary,
-      technical_skills: profile.technicalSkills,
-      soft_skills: profile.softSkills,
-      experience_highlights: profile.experienceHighlights,
-      updated_at: new Date().toISOString(),
-    } as never);
-
-    if (insertError) {
-      if (isMissingCandidatePreferenceColumns(insertError.message)) {
-        const { error: legacyInsertError } = await supabase.from("candidate_profiles").insert({
-          id: profileId,
-          file_name: file.name,
-          raw_text: rawText,
-          full_name: profile.fullName,
-          role: profile.role,
-          location: profile.location,
-          email: profile.email,
-          phone: profile.phone,
-          github: profile.github,
-          linkedin: profile.linkedin,
-          summary: profile.summary,
-          technical_skills: profile.technicalSkills,
-          soft_skills: profile.softSkills,
-          experience_highlights: profile.experienceHighlights,
-          updated_at: new Date().toISOString(),
-        } as never);
-
-        if (!legacyInsertError) {
-          const { data: jobsData, error: jobsError } = await supabase
-            .from("jobs")
-            .select("id,title,company,location,contract,source,job_description,score");
-
-          if (jobsError) {
-            return NextResponse.json(
-              {
-                ok: true,
-                warning:
-                  "CV importé en mode compatible. Applique la migration profil pour activer la cible avancée.",
-                profile,
-                profileId,
-              },
-              { status: 200 },
-            );
-          }
-
-          const jobs = (jobsData ?? []) as unknown as JobRow[];
-          let rescored = 0;
-
-          for (const job of jobs) {
-            const scoring = await scoreJob(
-              {
-                title: job.title,
-                company: job.company,
-                location: job.location,
-                contract: job.contract,
-                source: job.source,
-                description: job.job_description,
-              },
-              { mode: "heuristic", allowOpenAI: false, candidateProfile: profile },
-            );
-
-            if (scoring.score !== job.score) {
-              const { error: updateError } = await supabase
-                .from("jobs")
-                .update({ score: scoring.score } as never)
-                .eq("id", job.id);
-
-              if (!updateError) {
-                rescored += 1;
-              }
-            }
-          }
-
-          return NextResponse.json({
-            ok: true,
-            warning:
-              "CV importé en mode compatible. Applique la migration profil pour activer la cible avancée.",
-            rescored,
-            profile,
-            profileId,
-          });
-        }
-      }
-      return NextResponse.json(
-        { ok: false, error: `Impossible d'enregistrer le profil: ${insertError.message}` },
-        { status: 500 },
-      );
-    }
-
-    const { data: jobsData, error: jobsError } = await supabase
-      .from("jobs")
-      .select("id,title,company,location,contract,source,job_description,score");
-
-    if (jobsError) {
-      return NextResponse.json(
-        {
-          ok: true,
-          warning: `Profil importe, mais rescoring impossible: ${jobsError.message}`,
-          profile,
-          profileId,
-        },
-        { status: 200 },
-      );
-    }
-
-    const jobs = (jobsData ?? []) as unknown as JobRow[];
-    let rescored = 0;
-
-    for (const job of jobs) {
-      const scoring = await scoreJob(
-        {
-          title: job.title,
-          company: job.company,
-          location: job.location,
-          contract: job.contract,
-          source: job.source,
-          description: job.job_description,
-        },
-        { mode: "heuristic", allowOpenAI: false, candidateProfile: profile },
-      );
-
-      if (scoring.score !== job.score) {
-        const { error: updateError } = await supabase
-          .from("jobs")
-          .update({ score: scoring.score } as never)
-          .eq("id", job.id);
-
-        if (!updateError) {
-          rescored += 1;
-        }
-      }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      message: "CV importe et compatibilite recalculee.",
-      rescored,
-      profile,
-      profileId,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: `Erreur import CV: ${error instanceof Error ? error.message : "erreur inconnue"}`,
-      },
-      { status: 500 },
+  const uploadName = String(file.name).toLowerCase();
+  const uploadType = "type" in file ? String(file.type) : "";
+  const isPdf = uploadType === "application/pdf" || uploadName.endsWith(".pdf");
+  const isText = uploadType.startsWith("text/") || uploadName.endsWith(".txt") || uploadName.endsWith(".md");
+  if (!isPdf && !isText) {
+    return json(
+      { ok: false, error: "Format non supporté : utilise un CV en PDF ou en texte brut." },
+      { status: 400 },
     );
   }
-}
+
+  await recordCvImport(user.id);
+
+  let rawText = "";
+  try {
+    rawText = await extractTextFromFile(file as UploadedFileLike);
+  } catch (error) {
+    return json(
+      { ok: false, error: `Impossible de lire le CV: ${error instanceof Error ? error.message : "erreur inconnue"}` },
+      { status: 400 },
+    );
+  }
+
+  if (!rawText) {
+    return json({ ok: false, error: "Le CV est vide ou illisible." }, { status: 400 });
+  }
+
+  const profile = parseCandidateProfileFromCv(rawText);
+
+  const row = await upsertProfile(user.id, {
+    fileName: String(file.name),
+    rawText,
+    fullName: profile.fullName,
+    role: profile.role,
+    targetRole: profile.targetRole || profile.role,
+    preferredKeywords: profile.preferredKeywords.length ? profile.preferredKeywords : [profile.role],
+    location: profile.location,
+    email: profile.email,
+    phone: profile.phone,
+    github: profile.github,
+    linkedin: profile.linkedin,
+    summary: profile.summary,
+    technicalSkills: profile.technicalSkills,
+    softSkills: profile.softSkills,
+    experienceHighlights: profile.experienceHighlights,
+  });
+
+  const jobs = await getJobRows(user.id);
+  let rescored = 0;
+
+  for (const job of jobs) {
+    const scoring = await scoreJob(
+      {
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        contract: job.contract,
+        source: job.source,
+        description: job.jobDescription,
+      },
+      { mode: "heuristic", allowOpenAI: false, candidateProfile: profile },
+    );
+
+    if (scoring.score !== job.score && (await updateJobScore(user.id, job.id, scoring.score))) {
+      rescored += 1;
+    }
+  }
+
+  return json({
+    ok: true,
+    message: "CV importe et compatibilite recalculee.",
+    rescored,
+    profile,
+    profileId: row.id,
+  });
+});

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { EmptyState } from "@/components/app/empty-state";
 import { GenerateFollowupButton } from "@/components/app/generate-followup-button";
 import { PageHeader } from "@/components/app/page-header";
@@ -7,7 +6,9 @@ import { ScoreGauge } from "@/components/app/score-gauge";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getApplications } from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getApplications } from "@/lib/db/queries/applications";
 import type { Application } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -54,8 +55,10 @@ function buildTrackingApplications(applications: Application[]) {
 }
 
 export default async function SuiviPage() {
-  const applicationsResult = await getApplications();
-  const applications = applicationsResult.data;
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const applications = await getApplications(session.id);
   const trackedApplications = buildTrackingApplications(applications);
 
   const generatedCount = applications.length;
@@ -80,8 +83,6 @@ export default async function SuiviPage() {
         title="Suivi candidatures"
         description="Pilote les dossiers déjà partis, les relances prêtes et les prochaines actions à mener."
       />
-
-      <DataSourceBanner source={applicationsResult.source} error={applicationsResult.error} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {funnel.map((item, index) => (

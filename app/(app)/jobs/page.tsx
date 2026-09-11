@@ -1,9 +1,11 @@
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { EmptyState } from "@/components/app/empty-state";
 import { JobsBoard } from "@/components/app/jobs-board";
 import { PageHeader } from "@/components/app/page-header";
 import { ScrapeJobsControls } from "@/components/app/scrape-jobs-controls";
-import { getCandidateProfileSummary, getJobs } from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getJobs } from "@/lib/db/queries/jobs";
+import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
 import type { Job } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -82,31 +84,33 @@ function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string
 }
 
 export default async function JobsPage({ searchParams }: JobsPageProps) {
-  const [jobsResult, candidateProfileResult] = await Promise.all([
-    getJobs(),
-    getCandidateProfileSummary(),
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const [jobs, candidateProfile] = await Promise.all([
+    getJobs(session.id),
+    getCandidateProfileSummary(session.id),
   ]);
-  const jobs = jobsResult.data;
   const resolvedSearchParams = (await searchParams) ?? {};
   const filteredJobs = filterDisplayedJobs(jobs, resolvedSearchParams);
   const sortedJobs = [...filteredJobs].sort((a, b) => b.score - a.score);
   const defaultKeywords =
-    candidateProfileResult.data.preferredKeywords[0] ||
-    candidateProfileResult.data.targetRole ||
-    (candidateProfileResult.data.role && candidateProfileResult.data.role !== "Profil candidat"
-      ? candidateProfileResult.data.role
+    candidateProfile.preferredKeywords[0] ||
+    candidateProfile.targetRole ||
+    (candidateProfile.role && candidateProfile.role !== "Profil candidat"
+      ? candidateProfile.role
       : "emploi");
   const defaultLocation =
-    candidateProfileResult.data.location && candidateProfileResult.data.location !== "Non renseigne"
-      ? candidateProfileResult.data.location
+    candidateProfile.location && candidateProfile.location !== "Non renseigne"
+      ? candidateProfile.location
       : "";
   const averageScore = sortedJobs.length
     ? Math.round(sortedJobs.reduce((sum, job) => sum + job.score, 0) / sortedJobs.length)
     : 0;
   const topMatches = sortedJobs.filter((job) => job.score >= 85).length;
   const currentTarget =
-    candidateProfileResult.data.targetRole ||
-    candidateProfileResult.data.role ||
+    candidateProfile.targetRole ||
+    candidateProfile.role ||
     "Profil candidat";
 
   return (
@@ -115,8 +119,6 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
         title="Offres d’emploi"
         description="Toutes les offres récupérées par l’agent, triées par compatibilité avec ton profil actif."
       />
-
-      <DataSourceBanner source={jobsResult.source} error={jobsResult.error} />
 
       <ScrapeJobsControls
         defaultKeywords={defaultKeywords}

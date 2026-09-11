@@ -1,53 +1,32 @@
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { assertSameOrigin, handle, json, readJson } from "@/lib/http";
+import { requireUser } from "@/lib/auth/session";
+import { checkSearchQuota } from "@/lib/rate-limit";
+import { recordSearchRun } from "@/lib/db/queries/quotas";
 import { getActiveCandidateProfile } from "@/lib/candidate-profile";
-import {
-  getMaxOpenAIScoresPerRun,
-  getScoringMode,
-  scoreJob,
-} from "@/lib/scoring/job-scoring";
-import { scrapeAdzunaJobs } from "@/lib/scrapers/adzuna";
-import { scrapeFranceTravailJobs } from "@/lib/scrapers/france-travail";
-import { scrapeGreenhouseJobs } from "@/lib/scrapers/greenhouse";
-import { scrapeLaBonneAlternanceJobs } from "@/lib/scrapers/la-bonne-alternance";
-import { scrapeLeverJobs } from "@/lib/scrapers/lever";
-import { scrapeJoobleJobs } from "@/lib/scrapers/jooble";
-import { scrapeSmartRecruitersJobs } from "@/lib/scrapers/smartrecruiters";
+import { getMaxOpenAIScoresPerRun, getScoringMode, scoreJob } from "@/lib/scoring/job-scoring";
+import { scrapeAll, type ScrapedJob } from "@/lib/scrapers/registry";
 import { sanitizeJobDescription } from "@/lib/sanitize-text";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  backfillJobs,
+  deleteJobs,
+  getJobRows,
+  insertJobs,
+  jobFingerprint,
+  type JobBackfill,
+  type NewJobInput,
+} from "@/lib/db/queries/jobs";
 
-interface ScrapedJob {
-  title: string;
-  company: string;
-  location: string;
-  contract: string;
-  source: string;
-  jobUrl: string | null;
-  jobDescription: string | null;
-  score: number;
-  status: "Nouveau";
-}
+const Body = z.object({
+  keywords: z.string().max(200).optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+  location: z.string().max(200).optional(),
+  contract: z.string().max(100).optional(),
+  remoteOnly: z.boolean().optional(),
+  radiusKm: z.number().int().min(0).max(500).optional(),
+});
 
-interface ExistingJobRow {
-  id: string;
-  source: string;
-  source_labels: string[] | null;
-  title: string;
-  company: string;
-  location: string;
-  job_url: string | null;
-  job_description: string | null;
-  status: "Nouveau" | "À valider" | "Brouillon" | "Envoyé" | "Refusé";
-  applied_clicked_at: string | null;
-}
-
-interface ScrapePayload {
-  keywords?: string;
-  limit?: number;
-  location?: string;
-  contract?: string;
-  remoteOnly?: boolean;
-  radiusKm?: number;
-}
+type ScrapePayload = z.infer<typeof Body>;
 
 function pushUnique(list: string[], value: string | null | undefined) {
   if (!value) return;
@@ -56,6 +35,17 @@ function pushUnique(list: string[], value: string | null | undefined) {
   }
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+// Motifs d'échec sans intérêt pour l'utilisateur (connecteur non configuré, zéro résultat) : ils ne
+// remontent pas dans `sourceErrors`.
 function normalizeSourceIssue(reason: string | undefined, source: string) {
   const message = reason?.trim();
   if (!message) {
@@ -64,30 +54,14 @@ function normalizeSourceIssue(reason: string | undefined, source: string) {
 
   const normalized = normalizeText(message);
 
-  if (normalized.includes("configuration greenhouse absente")) {
-    return null;
-  }
-  if (normalized.includes("configuration lever absente")) {
-    return null;
-  }
-  if (normalized.includes("configuration la bonne alternance absente")) {
-    return null;
-  }
-  if (normalized.includes("aucune offre greenhouse ne correspond aux filtres")) {
-    return null;
-  }
-  if (normalized.includes("aucune offre lever ne correspond aux filtres")) {
-    return null;
-  }
-  if (normalized.includes("aucune offre smartrecruiters ne correspond aux filtres")) {
-    return null;
-  }
-  if (normalized.includes("aucune offre la bonne alternance ne correspond aux filtres")) {
-    return null;
-  }
-  if (normalized.includes("recruteur potentiel") && normalized.includes("non importe")) {
-    return null;
-  }
+  if (normalized.includes("configuration greenhouse absente")) return null;
+  if (normalized.includes("configuration lever absente")) return null;
+  if (normalized.includes("configuration la bonne alternance absente")) return null;
+  if (normalized.includes("aucune offre greenhouse ne correspond aux filtres")) return null;
+  if (normalized.includes("aucune offre lever ne correspond aux filtres")) return null;
+  if (normalized.includes("aucune offre smartrecruiters ne correspond aux filtres")) return null;
+  if (normalized.includes("aucune offre la bonne alternance ne correspond aux filtres")) return null;
+  if (normalized.includes("recruteur potentiel") && normalized.includes("non importe")) return null;
   if (
     source === "La bonne alternance" &&
     (normalized.includes("internal server error") ||
@@ -103,23 +77,8 @@ function normalizeSourceIssue(reason: string | undefined, source: string) {
   return message;
 }
 
-function jobFingerprint(job: Pick<ScrapedJob, "title" | "company" | "location">) {
-  return `${job.title.trim().toLowerCase()}::${job.company.trim().toLowerCase()}::${job.location
-    .trim()
-    .toLowerCase()}`;
-}
-
 function normalizeFilterValue(value: string | undefined) {
   return value?.trim().toLowerCase() || "";
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
 }
 
 function locationMatches(jobLocation: string, locationFilter: string) {
@@ -135,23 +94,18 @@ function locationMatches(jobLocation: string, locationFilter: string) {
   );
 }
 
-function filterJobsWithPayload(jobs: ScrapedJob[], payload: ScrapePayload) {
+function filterJobsWithPayload(scraped: ScrapedJob[], payload: ScrapePayload) {
   const locationFilter = normalizeFilterValue(payload.location);
   const contractFilter = normalizeFilterValue(payload.contract);
   const remoteOnly = payload.remoteOnly === true;
 
-  return jobs.filter((job) => {
-    if (locationFilter) {
-      if (!locationMatches(job.location, locationFilter)) {
-        return false;
-      }
+  return scraped.filter((job) => {
+    if (locationFilter && !locationMatches(job.location, locationFilter)) {
+      return false;
     }
 
-    if (contractFilter && contractFilter !== "all") {
-      const jobContract = job.contract.toLowerCase();
-      if (!jobContract.includes(contractFilter)) {
-        return false;
-      }
+    if (contractFilter && contractFilter !== "all" && !job.contract.toLowerCase().includes(contractFilter)) {
+      return false;
     }
 
     if (remoteOnly) {
@@ -160,9 +114,7 @@ function filterJobsWithPayload(jobs: ScrapedJob[], payload: ScrapePayload) {
         jobLocation.includes("remote") ||
         jobLocation.includes("télétravail") ||
         jobLocation.includes("teletravail");
-      if (!isRemote) {
-        return false;
-      }
+      if (!isRemote) return false;
     }
 
     return true;
@@ -202,194 +154,50 @@ function mergeSourceLabels(current: string[] | null | undefined, incoming: strin
   return labels;
 }
 
-export async function POST(request: Request) {
-  const payload = (await request.json().catch(() => ({}))) as ScrapePayload;
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return NextResponse.json(
+export const POST = handle(async (req) => {
+  assertSameOrigin(req);
+  const user = await requireUser();
+  await checkSearchQuota(user.id);
+  const payload = await readJson(req, Body);
+
+  // La recherche est comptabilisée avant l'appel aux connecteurs : une recherche lancée consomme le
+  // quota horaire même si toutes les sources échouent.
+  await recordSearchRun(user.id);
+
+  const existingRows = await getJobRows(user.id);
+  const fingerprintToExisting = new Map(
+    existingRows.map((row) => [
+      jobFingerprint(row),
       {
-        ok: false,
-        error: "Supabase non configuré. Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-      },
-      { status: 500 },
-    );
-  }
-
-  const jobsTable = supabase.from("jobs");
-  const { data: existingRows, error: existingError } = await jobsTable.select(
-    "id,source,source_labels,title,company,location,job_url,job_description,status,applied_clicked_at",
-  );
-
-  if (existingError) {
-    return NextResponse.json(
-      { ok: false, error: `Impossible de lire les jobs existants: ${existingError.message}` },
-      { status: 500 },
-    );
-  }
-
-  const rows = (existingRows ?? []) as unknown as ExistingJobRow[];
-
-  const fingerprintToExisting = new Map<
-    string,
-    {
-      id: string;
-      source: string;
-      sourceLabels: string[];
-      jobUrl: string | null;
-      hasDescription: boolean;
-    }
-  >(
-    rows.map((row) => [
-      jobFingerprint({
-        title: String(row.title),
-        company: String(row.company),
-        location: String(row.location),
-      }),
-      {
-        id: String(row.id),
+        id: row.id,
         source: row.source,
-        sourceLabels: row.source_labels?.length ? row.source_labels : [row.source],
-        jobUrl: row.job_url,
-        hasDescription: Boolean(row.job_description && row.job_description.trim().length > 0),
+        sourceLabels: row.sourceLabels?.length ? row.sourceLabels : [row.source],
+        jobUrl: row.jobUrl,
+        hasDescription: Boolean(row.jobDescription && row.jobDescription.trim().length > 0),
       },
     ]),
   );
 
+  const results = await scrapeAll(payload);
   const sourceErrors: string[] = [];
   const successfulSources: string[] = [];
   const aggregatedJobs: ScrapedJob[] = [];
 
-  const franceTravailResult = await scrapeFranceTravailJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-    contract: payload.contract,
-    remoteOnly: payload.remoteOnly,
-    radiusKm: payload.radiusKm,
-  });
-
-  if (franceTravailResult.ok) {
-    aggregatedJobs.push(...franceTravailResult.jobs);
-    successfulSources.push("France Travail");
-  } else {
-    pushUnique(
-      sourceErrors,
-      normalizeSourceIssue(franceTravailResult.reason, "France Travail"),
-    );
-  }
-
-  const adzunaResult = await scrapeAdzunaJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-  });
-
-  if (adzunaResult.ok) {
-    aggregatedJobs.push(...adzunaResult.jobs);
-    successfulSources.push("Adzuna");
-  } else {
-    pushUnique(sourceErrors, normalizeSourceIssue(adzunaResult.reason, "Adzuna"));
-  }
-
-  const joobleResult = await scrapeJoobleJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-    radiusKm: payload.radiusKm,
-  });
-
-  if (joobleResult.ok) {
-    aggregatedJobs.push(...joobleResult.jobs);
-    successfulSources.push("Jooble");
-  } else {
-    pushUnique(sourceErrors, normalizeSourceIssue(joobleResult.reason, "Jooble"));
-  }
-
-  const greenhouseResult = await scrapeGreenhouseJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-  });
-
-  if (greenhouseResult.ok) {
-    aggregatedJobs.push(...greenhouseResult.jobs);
-    successfulSources.push("Greenhouse");
-    if (greenhouseResult.warnings?.length) {
-      greenhouseResult.warnings.forEach((warning) =>
-        pushUnique(sourceErrors, normalizeSourceIssue(warning, "Greenhouse")),
-      );
+  for (const result of results) {
+    if (result.ok) {
+      aggregatedJobs.push(...result.jobs);
+      successfulSources.push(result.source);
+      for (const warning of result.warnings) {
+        pushUnique(sourceErrors, normalizeSourceIssue(warning, result.source));
+      }
+    } else {
+      pushUnique(sourceErrors, normalizeSourceIssue(result.reason, result.source));
     }
-  } else {
-    pushUnique(sourceErrors, normalizeSourceIssue(greenhouseResult.reason, "Greenhouse"));
-  }
-
-  const laBonneAlternanceResult = await scrapeLaBonneAlternanceJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-    radiusKm: payload.radiusKm,
-  });
-
-  if (laBonneAlternanceResult.ok) {
-    aggregatedJobs.push(...laBonneAlternanceResult.jobs);
-    successfulSources.push("La bonne alternance");
-    if (laBonneAlternanceResult.warnings?.length) {
-      laBonneAlternanceResult.warnings.forEach((warning) =>
-        pushUnique(sourceErrors, normalizeSourceIssue(warning, "La bonne alternance")),
-      );
-    }
-  } else {
-    pushUnique(
-      sourceErrors,
-      normalizeSourceIssue(laBonneAlternanceResult.reason, "La bonne alternance"),
-    );
-  }
-
-  const leverResult = await scrapeLeverJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-  });
-
-  if (leverResult.ok) {
-    aggregatedJobs.push(...leverResult.jobs);
-    successfulSources.push("Lever");
-    if (leverResult.warnings?.length) {
-      leverResult.warnings.forEach((warning) =>
-        pushUnique(sourceErrors, normalizeSourceIssue(warning, "Lever")),
-      );
-    }
-  } else {
-    pushUnique(sourceErrors, normalizeSourceIssue(leverResult.reason, "Lever"));
-  }
-
-  const smartRecruitersResult = await scrapeSmartRecruitersJobs({
-    keywords: payload.keywords,
-    limit: payload.limit,
-    location: payload.location,
-  });
-
-  if (smartRecruitersResult.ok) {
-    aggregatedJobs.push(...smartRecruitersResult.jobs);
-    successfulSources.push("SmartRecruiters");
-    if (smartRecruitersResult.warnings?.length) {
-      smartRecruitersResult.warnings.forEach((warning) =>
-        pushUnique(sourceErrors, normalizeSourceIssue(warning, "SmartRecruiters")),
-      );
-    }
-  } else {
-    pushUnique(
-      sourceErrors,
-      normalizeSourceIssue(smartRecruitersResult.reason, "SmartRecruiters"),
-    );
   }
 
   if (!successfulSources.length) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: `Aucune source active. Détails: ${sourceErrors.join(" | ")}`,
-      },
+    return json(
+      { ok: false, error: `Aucune source active. Détails: ${sourceErrors.join(" | ")}` },
       { status: 502 },
     );
   }
@@ -409,26 +217,24 @@ export async function POST(request: Request) {
   const sourceMode = "multi-source-api";
   const scrapedFingerprints = new Set(scrapedJobs.map((job) => jobFingerprint(job)));
 
-  const jobsToInsert = scrapedJobs
+  const jobsToInsert: NewJobInput[] = scrapedJobs
     .filter((job) => !fingerprintToExisting.has(jobFingerprint(job)))
     .map((job) => ({
-      id: crypto.randomUUID(),
       title: job.title,
       company: job.company,
       location: job.location,
       contract: job.contract,
       source: job.source,
-      source_labels: [job.source],
-      job_url: job.jobUrl,
-      job_description: sanitizeJobDescription(job.jobDescription),
+      sourceLabels: [job.source],
+      jobUrl: job.jobUrl,
+      jobDescription: sanitizeJobDescription(job.jobDescription),
       score: job.score,
       status: job.status,
     }));
 
   const jobsToBackfill = scrapedJobs
-    .map((job) => {
-      const fingerprint = jobFingerprint(job);
-      const existing = fingerprintToExisting.get(fingerprint);
+    .map((job): JobBackfill | null => {
+      const existing = fingerprintToExisting.get(jobFingerprint(job));
       if (!existing) return null;
       const mergedSourceLabels = mergeSourceLabels(existing.sourceLabels, job.source);
       const sourceLabelsChanged = mergedSourceLabels.length !== existing.sourceLabels.length;
@@ -449,58 +255,35 @@ export async function POST(request: Request) {
       const primarySourceChanged = preferred.source !== existing.source;
       const shouldUpdateUrl = !existing.jobUrl && Boolean(job.jobUrl);
       const shouldUpdateDescription = !existing.hasDescription && Boolean(job.jobDescription);
-      if (
-        !sourceLabelsChanged &&
-        !primarySourceChanged &&
-        !shouldUpdateUrl &&
-        !shouldUpdateDescription
-      ) {
+      if (!sourceLabelsChanged && !primarySourceChanged && !shouldUpdateUrl && !shouldUpdateDescription) {
         return null;
       }
       return {
         id: existing.id,
         source: preferred.source,
-        source_labels: mergedSourceLabels,
-        job_url: job.jobUrl ?? existing.jobUrl,
-        job_description: shouldUpdateDescription ? sanitizeJobDescription(job.jobDescription) : null,
+        sourceLabels: mergedSourceLabels,
+        jobUrl: job.jobUrl ?? existing.jobUrl,
+        jobDescription: shouldUpdateDescription ? sanitizeJobDescription(job.jobDescription) : null,
       };
     })
-    .filter(
-      (
-        value,
-      ): value is {
-        id: string;
-        source: string;
-        source_labels: string[];
-        job_url: string | null;
-        job_description: string | null;
-      } =>
-        value !== null,
-    );
+    .filter((value): value is JobBackfill => value !== null);
 
+  // Nettoyage : une offre d'une source interrogée avec succès qui n'apparaît plus dans les résultats
+  // est retirée, sauf si l'utilisateur a déjà travaillé dessus (statut avancé ou clic "postuler").
   const refreshableSources = new Set(successfulSources);
-  const jobsToRemove = rows
+  const jobsToRemove = existingRows
     .filter((row) => {
-      const labels = row.source_labels?.length ? row.source_labels : [row.source];
+      const labels = row.sourceLabels?.length ? row.sourceLabels : [row.source];
       return labels.some((label) => refreshableSources.has(label));
     })
     .filter((row) => {
-      const fingerprint = jobFingerprint({
-        title: row.title,
-        company: row.company,
-        location: row.location,
-      });
-      const inCurrentResults = scrapedFingerprints.has(fingerprint);
-      if (inCurrentResults) return false;
-
-      const hasProgress = row.status !== "Nouveau";
-      const wasAppliedClicked = Boolean(row.applied_clicked_at);
-      return !hasProgress && !wasAppliedClicked;
+      if (scrapedFingerprints.has(jobFingerprint(row))) return false;
+      return row.status === "Nouveau" && !row.appliedClickedAt;
     })
     .map((row) => row.id);
 
   if (!jobsToInsert.length && !jobsToBackfill.length && !jobsToRemove.length) {
-    return NextResponse.json({
+    return json({
       ok: true,
       inserted: 0,
       backfilled: 0,
@@ -516,96 +299,43 @@ export async function POST(request: Request) {
 
   const scoringMode = getScoringMode();
   const maxOpenAIScores = getMaxOpenAIScoresPerRun(scoringMode);
-  const candidateProfile = await getActiveCandidateProfile();
+  const candidateProfile = await getActiveCandidateProfile(user.id);
 
   const scoredJobs = await Promise.all(
     jobsToInsert.map(async (job, index) => {
-      const allowOpenAI = index < maxOpenAIScores;
-
-      const scoring = await scoreJob({
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        contract: job.contract,
-        source: job.source,
-        description: job.job_description,
-      }, {
-        mode: scoringMode,
-        allowOpenAI,
-        candidateProfile,
-      });
-      return {
-        ...job,
-        score: scoring.score,
-      };
+      const scoring = await scoreJob(
+        {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          contract: job.contract,
+          source: job.source,
+          description: job.jobDescription,
+        },
+        { mode: scoringMode, allowOpenAI: index < maxOpenAIScores, candidateProfile },
+      );
+      return { ...job, score: scoring.score };
     }),
   );
 
-  if (scoredJobs.length > 0) {
-    const { error: insertError } = await jobsTable.insert(scoredJobs as never);
+  const inserted = await insertJobs(user.id, scoredJobs);
+  const backfilled = await backfillJobs(user.id, jobsToBackfill);
+  const removed = await deleteJobs(user.id, jobsToRemove);
 
-    if (insertError) {
-      return NextResponse.json(
-        { ok: false, error: `Échec de l'insertion des offres: ${insertError.message}` },
-        { status: 500 },
-      );
-    }
-  }
-
-  let backfilled = 0;
-  if (jobsToBackfill.length > 0) {
-    const updates = await Promise.all(
-      jobsToBackfill.map((job) =>
-        jobsTable
-          .update(
-            {
-              job_url: job.job_url || null,
-              job_description: job.job_description,
-              source: job.source,
-              source_labels: job.source_labels,
-              updated_at: new Date().toISOString(),
-            } as never,
-          )
-          .eq("id", job.id),
-      ),
-    );
-
-    const failedUpdate = updates.find((result) => result.error);
-    if (failedUpdate?.error) {
-      return NextResponse.json(
-        { ok: false, error: `Échec de la mise à jour des liens d'offres: ${failedUpdate.error.message}` },
-        { status: 500 },
-      );
-    }
-    backfilled = jobsToBackfill.length;
-  }
-
-  let removed = 0;
-  if (jobsToRemove.length > 0) {
-    const { error: removeError } = await jobsTable.delete().in("id", jobsToRemove);
-    if (removeError) {
-      return NextResponse.json(
-        { ok: false, error: `Échec du nettoyage des anciennes offres: ${removeError.message}` },
-        { status: 500 },
-      );
-    }
-    removed = jobsToRemove.length;
-  }
-
-  return NextResponse.json({
+  return json({
     ok: true,
-    inserted: scoredJobs.length,
+    inserted: inserted.length,
     backfilled,
     removed,
-    skipped: Math.max(0, scrapedJobs.length - scoredJobs.length - backfilled),
+    skipped: Math.max(0, scrapedJobs.length - inserted.length - backfilled),
     total: scrapedJobs.length,
     sourceMode,
     sourcesUsed: successfulSources,
     sourceErrors,
     scoringMode,
     message:
-      scoredJobs.length > 0 || backfilled > 0 || removed > 0
-        ? `${scoredJobs.length} offre(s) ajoutée(s), ${backfilled} lien(s) mis à jour, ${removed} offre(s) obsolète(s) retirée(s).`
+      inserted.length > 0 || backfilled > 0 || removed > 0
+        ? `${inserted.length} offre(s) ajoutée(s), ${backfilled} lien(s) mis à jour, ${removed} offre(s) obsolète(s) retirée(s).`
         : "Aucune nouvelle offre (déjà importées).",
   });
-}
+});
