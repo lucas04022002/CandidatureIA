@@ -32,4 +32,11 @@ describe("schéma", () => {
       db.insert(applications).values({ userId: user.id, jobId: job.id })
     ).rejects.toThrow();
   });
+  it("rejette une candidature sans jobId (job_id NOT NULL)", async () => {
+    const [user] = await db.insert(users).values({ email: "no-job-test@example.com", passwordHash: "x", role: "stagiaire" }).returning();
+    await expect(
+      // @ts-expect-error jobId est requis (job_id NOT NULL) : on vérifie ici le rejet en base sans lui.
+      db.insert(applications).values({ userId: user.id })
+    ).rejects.toThrow();
+  });
 });

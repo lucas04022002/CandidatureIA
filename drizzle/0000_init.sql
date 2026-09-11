@@ -3,7 +3,7 @@ CREATE TYPE "public"."user_role" AS ENUM('stagiaire', 'responsable', 'admin');--
 CREATE TABLE "applications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"job_id" uuid,
+	"job_id" uuid NOT NULL,
 	"status" "application_status" DEFAULT 'À valider' NOT NULL,
 	"letter_generated" boolean DEFAULT false NOT NULL,
 	"email_generated" boolean DEFAULT false NOT NULL,
@@ -111,8 +111,11 @@ ALTER TABLE "jobs" ADD CONSTRAINT "jobs_user_id_users_id_fk" FOREIGN KEY ("user_
 ALTER TABLE "search_runs" ADD CONSTRAINT "search_runs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_organisation_id_organisations_id_fk" FOREIGN KEY ("organisation_id") REFERENCES "public"."organisations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "applications_user_idx" ON "applications" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "applications_status_idx" ON "applications" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "applications_updated_at_idx" ON "applications" USING btree ("updated_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "jobs_user_idx" ON "jobs" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "jobs_created_idx" ON "jobs" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "jobs_status_idx" ON "jobs" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "login_attempts_email_idx" ON "login_attempts" USING btree ("email","attempted_at");--> statement-breakpoint
 CREATE INDEX "search_runs_user_idx" ON "search_runs" USING btree ("user_id","started_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_lower_idx" ON "users" USING btree (lower("email"));

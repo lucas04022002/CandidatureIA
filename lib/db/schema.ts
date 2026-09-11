@@ -71,13 +71,14 @@ export const jobs = pgTable("jobs", {
 }, (t) => [
   index("jobs_user_idx").on(t.userId),
   index("jobs_created_idx").on(t.createdAt),
+  index("jobs_status_idx").on(t.status),
   check("jobs_score_range", sql`${t.score} >= 0 and ${t.score} <= 100`),
 ]);
 
 export const applications = pgTable("applications", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  jobId: uuid("job_id").references(() => jobs.id, { onDelete: "cascade" }),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   status: applicationStatusEnum("status").notNull().default("À valider"),
   letterGenerated: boolean("letter_generated").notNull().default(false),
   emailGenerated: boolean("email_generated").notNull().default(false),
@@ -92,6 +93,8 @@ export const applications = pgTable("applications", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index("applications_user_idx").on(t.userId),
+  index("applications_status_idx").on(t.status),
+  index("applications_updated_at_idx").on(t.updatedAt.desc()),
   unique("applications_job_user_unique").on(t.jobId, t.userId),
 ]);
 
