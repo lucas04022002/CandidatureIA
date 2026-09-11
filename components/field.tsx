@@ -29,10 +29,12 @@ export function Field({ label, error, hint, className, children }: FieldProps) {
   const hintId = !error && hint ? `${reactId}-hint` : undefined;
   const describedBy = [errorId, hintId].filter(Boolean).join(" ") || undefined;
 
-  const childId = isValidElement(children) ? children.props.id : undefined;
+  const generatedChildId = `${reactId}-field`;
+  const childId = isValidElement(children) ? (children.props.id ?? generatedChildId) : undefined;
 
   const child = isValidElement(children)
     ? cloneElement(children, {
+        id: childId,
         "aria-describedby": describedBy,
         "aria-invalid": error ? true : undefined,
       })
@@ -66,7 +68,7 @@ export function Checkbox({ label, id, className, ...rest }: CheckboxProps) {
   const inputId = id ?? reactId;
   return (
     <label htmlFor={inputId} className={cn("inline-flex items-center gap-2 font-body text-[14px] text-ink", className)}>
-      <input id={inputId} type="checkbox" className="border-ink" {...rest} />
+      <input id={inputId} type="checkbox" className="border border-ink" {...rest} />
       {label}
     </label>
   );
@@ -90,7 +92,7 @@ export function Select({ label, options, id, className, ...rest }: SelectProps) 
       <label htmlFor={selectId} className="font-body text-[13px] font-medium text-ink">
         {label}
       </label>
-      <select id={selectId} className={cn("border-line rounded-tile bg-white text-ink font-body", className)} {...rest}>
+      <select id={selectId} className={cn("border border-line rounded-tile bg-white text-ink font-body", className)} {...rest}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

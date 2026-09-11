@@ -27,6 +27,7 @@ export function Table<Row extends Record<string, unknown>>({
           {columns.map((column) => (
             <th
               key={column.key}
+              scope="col"
               className="border-b border-line px-3 py-2 font-mono text-[12px] uppercase tracking-[0.06em] text-grey"
             >
               {column.label}

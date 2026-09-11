@@ -34,6 +34,18 @@ describe("Field", () => {
     );
     expect(screen.getByLabelText("Nom")).not.toHaveAttribute("aria-describedby");
   });
+
+  it("génère un id quand l'enfant n'en a pas, pour que htmlFor du label résolve", () => {
+    render(
+      <Field label="Poste">
+        <input name="poste" />
+      </Field>,
+    );
+    const input = screen.getByLabelText("Poste");
+    const label = document.querySelector("label") as HTMLLabelElement;
+    expect(input.id).toBeTruthy();
+    expect(label.htmlFor).toBe(input.id);
+  });
 });
 
 describe("Checkbox", () => {
@@ -41,6 +53,14 @@ describe("Checkbox", () => {
     render(<Checkbox label="J'accepte les CGU" checked readOnly />);
     const el = screen.getByRole("checkbox", { name: "J'accepte les CGU" });
     expect(el).toBeChecked();
+  });
+
+  it("a une largeur de bordure en plus de la couleur (sinon Preflight ne trace aucune bordure)", () => {
+    // Vérif par jeton exact plutôt que /\bborder\b/ : cette regex matche déjà "border-ink"
+    // seul (le "-" crée une frontière de mot), donc elle resterait verte même sans le
+    // correctif — elle ne détecterait jamais la régression qu'elle est censée garder.
+    render(<Checkbox label="J'accepte les CGU" checked readOnly />);
+    expect(screen.getByRole("checkbox").className.split(/\s+/)).toContain("border");
   });
 });
 
@@ -59,5 +79,11 @@ describe("Select", () => {
     expect(el.tagName).toBe("SELECT");
     expect(screen.getByRole("option", { name: "Stage" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Alternance" })).toBeInTheDocument();
+  });
+
+  it("a une largeur de bordure en plus de la couleur (sinon Preflight ne trace aucune bordure)", () => {
+    // Même remarque que pour Checkbox : jeton exact, pas /\bborder\b/ (faux positif sur "border-line").
+    render(<Select label="Contrat" options={[{ value: "stage", label: "Stage" }]} />);
+    expect(screen.getByLabelText("Contrat").className.split(/\s+/)).toContain("border");
   });
 });
