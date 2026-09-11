@@ -43,9 +43,14 @@ COPY . .
 # embarque pas dans le bundle (seules les variables NEXT_PUBLIC_* le sont), le serveur standalone les
 # relit depuis l'environnement du conteneur à l'exécution — les vraies valeurs, saisies par Lucas
 # dans Coolify (voir deploy/coolify.md), prennent le dessus au démarrage réel.
-ENV DATABASE_URL=postgres://build:build@localhost:5432/build
-ENV JWT_SECRET=build-time-placeholder-not-a-real-secret-000000
-RUN npm run build
+#
+# Passées en préfixe de la commande (pas en ENV de stage) : une ENV persiste dans les métadonnées de
+# l'image (visible via `docker history`/`docker inspect`) et déclenche l'avertissement BuildKit
+# SecretsUsedInArgOrEnv sur toute variable au nom qui ressemble à un secret — ici sans objet
+# puisqu'aucune vraie valeur n'y transite, mais autant ne pas laisser une fausse alerte dans l'image.
+RUN DATABASE_URL=postgres://build:build@localhost:5432/build \
+    JWT_SECRET=build-time-placeholder-not-a-real-secret-000000 \
+    npm run build
 
 # ---- runner : image finale ----
 FROM node:22-alpine AS runner
