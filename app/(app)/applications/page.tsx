@@ -32,6 +32,7 @@ function asJob(application: Application): Job {
     jobUrl: application.jobUrl,
     jobDescription: null,
     postedAt: application.updatedAt,
+    // Jamais lu quand `jobScore` est nul : `OfferTile` masque alors le score plutôt que d'afficher 0.
     score: application.jobScore ?? 0,
     status: application.status,
   };

@@ -28,6 +28,13 @@ describe("Button", () => {
     expect(screen.getByRole("button", { name: "Relancer" }).className).toMatch(/text-klein-deep\b/);
   });
 
+  it("danger : rouge sémantique, sans !important", () => {
+    render(<Button variant="danger">Supprimer</Button>);
+    const el = screen.getByRole("button", { name: "Supprimer" });
+    expect(el.className).toMatch(/\btext-bad\b/);
+    expect(el.className).not.toMatch(/!/);
+  });
+
   it("pending : désactive le bouton et affiche … après le libellé", () => {
     render(<Button variant="primary" pending>Envoyer</Button>);
     const el = screen.getByRole("button");

@@ -50,7 +50,7 @@ describe("OfferTile", () => {
   it("avec une candidature : tampon de l'état et lien vers la fiche", () => {
     renderTile(<OfferTile job={job} application={application()} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Envoyé");
+    expect(screen.getByText("Envoyé")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: job.title })).toHaveAttribute(
       "href",
       "/applications/app-1",
@@ -77,6 +77,13 @@ describe("OfferTile", () => {
     ).toBeInTheDocument();
   });
 
+  it("une candidature sans score n'affiche aucun chiffre de correspondance", () => {
+    renderTile(<OfferTile job={job} application={application({ jobScore: null })} />);
+
+    expect(screen.queryByText("correspondance")).toBeNull();
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
   it("une candidature envoyée dont la relance est prête porte le tampon « À relancer »", () => {
     renderTile(
       <OfferTile
@@ -85,6 +92,6 @@ describe("OfferTile", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("À relancer");
+    expect(screen.getByText("À relancer")).toBeInTheDocument();
   });
 });

@@ -42,11 +42,12 @@ function locationMatches(jobLocation: string, locationFilter: string) {
   );
 }
 
+// Les deux seuls filtres que `SearchControls` sait produire : le métier et le lieu. Les anciens
+// `contract` et `remoteOnly` n'ont plus de champ pour les écrire dans l'URL ; du code qui ne peut
+// plus s'exécuter se lit comme une fonctionnalité existante, donc il part.
 function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string[] | undefined>) {
   const keywords = normalizeParamValue(params.keywords).trim().toLowerCase();
   const location = normalizeParamValue(params.location).trim().toLowerCase();
-  const contract = normalizeParamValue(params.contract).trim().toLowerCase();
-  const remoteOnly = normalizeParamValue(params.remoteOnly) === "true";
   const keywordTokens = normalizeText(keywords)
     .split(" ")
     .map((token) => token.trim())
@@ -57,30 +58,12 @@ function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string
       const haystack = normalizeText(
         `${job.title} ${job.company} ${job.location} ${job.contract} ${job.jobDescription || ""}`,
       );
-      const matchesKeywords = keywordTokens.every((token) => haystack.includes(token));
-      if (!matchesKeywords) {
+      if (!keywordTokens.every((token) => haystack.includes(token))) {
         return false;
       }
     }
 
-    if (location && !locationMatches(job.location, location)) {
-      return false;
-    }
-
-    if (contract && contract !== "all" && !job.contract.toLowerCase().includes(contract)) {
-      return false;
-    }
-
-    if (remoteOnly) {
-      const jobLocation = job.location.toLowerCase();
-      const isRemote =
-        jobLocation.includes("remote") ||
-        jobLocation.includes("télétravail") ||
-        jobLocation.includes("teletravail");
-      if (!isRemote) return false;
-    }
-
-    return true;
+    return !location || locationMatches(job.location, location);
   });
 }
 

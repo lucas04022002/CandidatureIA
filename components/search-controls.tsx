@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RescoreJobsAction } from "@/components/actions/rescore-jobs";
-import { ScrapeJobsAction } from "@/components/actions/scrape-jobs";
+import { ScrapeJobsAction, type ScrapeJobsHandle } from "@/components/actions/scrape-jobs";
 import { Field, Select } from "@/components/field";
 import { cn } from "@/lib/cn";
 
@@ -42,6 +42,7 @@ export function SearchControls({
   const [keywords, setKeywords] = useState(searchParams.get("keywords") || defaultKeywords);
   const [location, setLocation] = useState(searchParams.get("location") || defaultLocation);
   const [radiusKm, setRadiusKm] = useState(searchParams.get("radiusKm") || "20");
+  const action = useRef<ScrapeJobsHandle>(null);
 
   const payload = useMemo(
     () => ({
@@ -54,7 +55,7 @@ export function SearchControls({
   );
 
   // Les mêmes valeurs pilotent l'affichage : la page serveur relit ces paramètres pour filtrer les
-  // offres déjà en base, sans attendre le résultat de la recherche.
+  // offres en base. Appliqué après une recherche réussie seulement.
   function applyToUrl() {
     const params = new URLSearchParams();
     if (keywords.trim()) params.set("keywords", keywords.trim());
@@ -67,8 +68,15 @@ export function SearchControls({
     router.replace(query ? `${pathname}?${query}` : pathname);
   }
 
+  // Un vrai formulaire : la touche Entrée dans « Métier » ou « Lieu » lance la recherche, comme
+  // dans n'importe quel champ de recherche. Le clic sur le bouton passe par le même `submit`.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    action.current?.search();
+  }
+
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <form onSubmit={handleSubmit} className={cn("flex flex-col gap-3", className)}>
       <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_150px_auto]">
         <Field label="Métier">
           <input
@@ -96,10 +104,10 @@ export function SearchControls({
           className="px-3 py-2.5 text-[14px]"
         />
 
-        <ScrapeJobsAction payload={payload} onBeforeRequest={applyToUrl} />
+        <ScrapeJobsAction ref={action} payload={payload} onSuccess={applyToUrl} />
       </div>
 
       <RescoreJobsAction />
-    </div>
+    </form>
   );
 }

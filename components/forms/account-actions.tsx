@@ -106,8 +106,7 @@ export function AccountActions({ email }: AccountActionsProps) {
         </Field>
         <div>
           <Button
-            variant="quiet"
-            className="text-bad!"
+            variant="danger"
             onClick={deleteAccount}
             disabled={!matches || deleting}
           >

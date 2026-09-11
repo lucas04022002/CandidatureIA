@@ -118,7 +118,7 @@ export function ApplicationStatusActions({ applicationId, status }: ApplicationS
           Marquer refusée
         </Button>
       )}
-      <Button variant="quiet" className="text-bad!" onClick={remove} disabled={disabled}>
+      <Button variant="danger" onClick={remove} disabled={disabled}>
         Supprimer
       </Button>
       {error ? (

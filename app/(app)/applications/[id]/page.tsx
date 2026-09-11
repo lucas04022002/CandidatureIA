@@ -8,6 +8,7 @@ import { Score } from "@/components/score";
 import { Stamp } from "@/components/stamp";
 import { getSession } from "@/lib/auth/session";
 import { getApplicationById, getApplicationRow } from "@/lib/db/queries/applications";
+import { getJobById } from "@/lib/db/queries/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,11 @@ const FOLLOWUP_DELAY_MS = 4 * 24 * 60 * 60 * 1000;
 type ApplicationDetailPageProps = {
   params: Promise<{ id: string }>;
 };
+
+function publishedLabel(date: Date | null | undefined) {
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return `publiée le ${date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`;
+}
 
 function dayLabel(date: Date | null | undefined) {
   if (!date || Number.isNaN(date.getTime())) return null;
@@ -53,18 +59,28 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   if (!session) redirect("/login");
 
   const { id } = await params;
-  // Deux lectures de la même candidature : la vue formatée pour l'affichage, la ligne brute pour les
-  // dates — `sentAt` n'existe qu'en libellé côté vue, impossible d'en déduire la date de relance.
-  const [application, row] = await Promise.all([
+  // La ligne brute d'abord : elle porte l'offre visée et les dates. `Application.sentAt` n'est qu'un
+  // libellé formaté, impossible d'en déduire la date de relance ; et `jobId` est nécessaire pour
+  // aller chercher l'offre.
+  const row = await getApplicationRow(session.id, id);
+  const [application, job] = await Promise.all([
     getApplicationById(session.id, id),
-    getApplicationRow(session.id, id),
+    row?.jobId ? getJobById(session.id, row.jobId) : Promise.resolve(null),
   ]);
 
   if (!application) {
     notFound();
   }
 
-  const meta = [application.company, application.updatedAt].filter(Boolean).join(" · ");
+  // Ligne mono de la maquette 04 : entreprise · lieu · contrat · source · publiée le JJ/MM. Quand
+  // l'offre n'est plus en base (purge, suppression), il reste l'entreprise et la date du dossier.
+  const meta = (
+    job
+      ? [job.company, job.location, job.contract, job.source, publishedLabel(job.createdAt)]
+      : [application.company, application.updatedAt]
+  )
+    .filter(Boolean)
+    .join(" · ");
   const sentLabel = dayLabel(row?.sentAt);
   const followupDue =
     row?.followupDueAt ??

@@ -31,6 +31,9 @@ function stampStatus(application: Application): StampStatus {
  */
 export function OfferTile({ job, application, className }: OfferTileProps) {
   const meta = [job.company, job.location, job.contract, job.source].filter(Boolean).join(" · ");
+  // Une candidature dont l'offre a disparu de la base n'a plus de score : « 0 correspondance »
+  // serait un jugement inventé. On n'affiche rien plutôt qu'un chiffre faux.
+  const hasScore = application ? application.jobScore !== null && application.jobScore !== undefined : true;
 
   return (
     <article
@@ -55,7 +58,7 @@ export function OfferTile({ job, application, className }: OfferTileProps) {
       <p className="font-mono text-[12.5px] leading-[1.5] text-grey">{meta}</p>
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2.5">
-        <Score value={job.score} size="tile" />
+        {hasScore ? <Score value={job.score} size="tile" /> : <span />}
         {application ? (
           <Stamp status={stampStatus(application)} />
         ) : (

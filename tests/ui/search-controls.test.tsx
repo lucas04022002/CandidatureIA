@@ -66,4 +66,21 @@ describe("SearchControls", () => {
     expect(Number.isInteger(body.radiusKm)).toBe(true);
     expect(Number.isInteger(body.limit)).toBe(true);
   });
+
+  it("la touche Entrée dans un champ lance la recherche (envoi du formulaire)", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, message: "Recherche terminée." }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderControls();
+    const form = document.querySelector("form") as HTMLFormElement;
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toBe("/api/scrape-jobs");
+  });
 });
