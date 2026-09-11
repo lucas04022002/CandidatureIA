@@ -105,8 +105,9 @@ describe("quotas et limite d'essais", () => {
     await expect(checkLoginAttempts(email)).rejects.toMatchObject({ status: 429 });
   });
 
-  it("IP : 30 requêtes / 15 min — la 31e depuis la même adresse → 429", async () => {
-    expect(IP_MAX).toBe(30);
+  // Volontairement large : une salle de formation entière partage une seule adresse publique.
+  it("IP : 200 requêtes / 15 min — la 201e depuis la même adresse → 429", async () => {
+    expect(IP_MAX).toBe(200);
     const ip = "203.0.113.7";
     for (let i = 0; i < IP_MAX; i++) {
       await expect(checkIpAttempts(ip)).resolves.toBeUndefined();

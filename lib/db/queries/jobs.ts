@@ -26,6 +26,24 @@ export interface JobBackfill {
   jobDescription: string | null;
 }
 
+// Un `jobUrl` vient d'une API externe et finit dans un `href` cliquable côté client. Une URL
+// `javascript:` (ou `data:`) y devient du code exécuté dans la session de l'utilisateur au moment
+// du clic : XSS stockée, franchie une fois pour toutes puisque l'URL est persistée. Seuls http et
+// https sont conservés ; tout le reste est ramené à `null` — l'offre reste, le lien disparaît.
+// Filtré ici, au point d'écriture, et pas dans la route : c'est le seul passage obligé vers la base.
+export function safeJobUrl(raw: string | null | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    // Ni URL absolue, ni rien d'exploitable : pas de lien plutôt qu'un lien douteux.
+    return null;
+  }
+  return parsed.protocol === "http:" || parsed.protocol === "https:" ? value : null;
+}
+
 // Empreinte de dédoublonnage : titre + entreprise + lieu, insensible à la casse et aux espaces de
 // bord. Identique à celle qu'utilisait l'ancienne route de scraping.
 export function jobFingerprint(job: Pick<NewJobInput, "title" | "company" | "location">) {
@@ -91,7 +109,7 @@ export async function insertJobs(userId: string, incoming: NewJobInput[]): Promi
       contract: job.contract,
       source: job.source,
       sourceLabels: job.sourceLabels?.length ? job.sourceLabels : [job.source],
-      jobUrl: job.jobUrl,
+      jobUrl: safeJobUrl(job.jobUrl),
       jobDescription: job.jobDescription,
       score: job.score,
       status: job.status ?? "Nouveau",
@@ -138,7 +156,7 @@ export async function backfillJobs(userId: string, patches: JobBackfill[]): Prom
       .set({
         source: patch.source,
         sourceLabels: patch.sourceLabels,
-        jobUrl: patch.jobUrl,
+        jobUrl: safeJobUrl(patch.jobUrl),
         ...(patch.jobDescription ? { jobDescription: patch.jobDescription } : {}),
         updatedAt: new Date(),
       })

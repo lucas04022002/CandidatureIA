@@ -38,18 +38,31 @@ function pushUnique(list: string[], value: string | null | undefined) {
 function normalizeText(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
-// Motifs d'échec sans intérêt pour l'utilisateur (connecteur non configuré, zéro résultat) : ils ne
-// remontent pas dans `sourceErrors`.
+// Message générique renvoyé au client quand une source tombe pour une raison qui ne lui apprend
+// rien d'actionnable. Le détail technique, lui, n'a rien à faire dans une réponse HTTP.
+const SOURCE_INDISPONIBLE = "Source indisponible pour le moment.";
+
+/**
+ * Traduit l'échec d'un connecteur en un message destiné à l'utilisateur — ou en `null` quand il n'y
+ * a rien à dire (connecteur non configuré, zéro résultat après filtrage : ce n'est pas une panne).
+ *
+ * Le message brut d'un connecteur n'est JAMAIS relayé tel quel. Celui de
+ * `lib/scrapers/france-travail.ts` ressemble à `url=… auth=… scope="…" status=401 body={…}` : il
+ * porte des URLs d'API internes, le mode d'authentification retenu, les codes HTTP et un extrait de
+ * la réponse de l'API tierce — parfois un fragment d'identifiant. C'est précieux pour diagnostiquer,
+ * et c'est exactement pour ça que ça reste dans les logs du serveur (`console.error`) au lieu de
+ * partir dans le navigateur d'un stagiaire.
+ */
 function normalizeSourceIssue(reason: string | undefined, source: string) {
   const message = reason?.trim();
   if (!message) {
-    return `${source} indisponible.`;
+    return `${source} : ${SOURCE_INDISPONIBLE}`;
   }
 
   const normalized = normalizeText(message);
@@ -62,11 +75,17 @@ function normalizeSourceIssue(reason: string | undefined, source: string) {
   if (normalized.includes("aucune offre smartrecruiters ne correspond aux filtres")) return null;
   if (normalized.includes("aucune offre la bonne alternance ne correspond aux filtres")) return null;
   if (normalized.includes("recruteur potentiel") && normalized.includes("non importe")) return null;
+
+  // Panne réelle : le diagnostic part dans les logs, l'utilisateur reçoit une phrase.
+  console.error(`[scrape-jobs] source="${source}" échec : ${message}`);
+
   if (
     source === "La bonne alternance" &&
     (normalized.includes("internal server error") ||
       normalized.includes("server was unable to complete your request") ||
-      normalized.includes("api la bonne alternance refusee (500"))
+      // `normalizeText` remplace toute ponctuation par une espace : chercher « (500 » ici ne
+      // pourrait jamais correspondre.
+      normalized.includes("api la bonne alternance refusee 500"))
   ) {
     return "La bonne alternance temporairement indisponible.";
   }
@@ -74,7 +93,7 @@ function normalizeSourceIssue(reason: string | undefined, source: string) {
     return "La bonne alternance refuse le jeton d'acces configure.";
   }
 
-  return message;
+  return `${source} : ${SOURCE_INDISPONIBLE}`;
 }
 
 const labelByScraperKey = new Map(SCRAPERS.map((scraper) => [scraper.key, scraper.label]));

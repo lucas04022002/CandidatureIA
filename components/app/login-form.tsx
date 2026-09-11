@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 type AuthMode = "signin" | "signup";
 
@@ -26,7 +27,8 @@ async function postJson(path: string, body: unknown) {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next");
+  // `next` vient de la barre d'adresse : jamais utilisé tel quel (open redirect), voir safeNextPath.
+  const next = safeNextPath(searchParams.get("next"));
 
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
@@ -48,7 +50,7 @@ export function LoginForm() {
         await postJson("/api/auth/register", { email, password, orgCode, acceptedTerms });
       }
 
-      router.push(next ?? "/dashboard");
+      router.push(next);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");

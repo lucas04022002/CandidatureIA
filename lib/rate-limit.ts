@@ -22,7 +22,12 @@ export const LOGIN_MAX = 10;
 // Anti-flood par IP, partagé entre register/register-organisation/login : réutilise la table
 // `login_attempts` avec un e-mail préfixé "ip:" pour ne pas ajouter de table dédiée.
 export const IP_WINDOW_MS = 15 * 60 * 1000;
-export const IP_MAX = 30;
+// 200 requêtes / 15 min, à ne pas confondre avec la limite par e-mail (LOGIN_MAX = 10), qui reste
+// la vraie protection contre le bourrage d'identifiants. Celle-ci n'est qu'un anti-flood grossier,
+// et le public du produit la rend nécessairement large : une classe entière d'un organisme de
+// formation s'inscrit depuis la même salle, donc derrière un seul NAT — 30 aurait bloqué la
+// deuxième moitié du groupe au motif qu'elle partage l'adresse de la première.
+export const IP_MAX = 200;
 
 function formatParisHHmm(d: Date) {
   return new Intl.DateTimeFormat("fr-FR", {

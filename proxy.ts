@@ -9,4 +9,12 @@ export function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
+// Les fichiers statiques servis depuis public/ (images, robots.txt, sitemap.xml…) sortent du
+// périmètre : sans cette exclusion, une requête non authentifiée sur /globe.svg est redirigée vers
+// /login et l'image renvoie du HTML — y compris sur la page de connexion elle-même, qui n'a pas de
+// cookie de session par définition.
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+  ],
+};
