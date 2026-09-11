@@ -18,7 +18,7 @@ export default function RegisterOrganisationPage() {
           <span className="block text-base font-semibold tracking-[-0.02em] text-white">
             ApplyBot
           </span>
-          <span className="block text-[11px] text-[var(--foreground-faint)]">AI Career OS</span>
+          <span className="block text-[11px] text-[var(--foreground-faint)]">Votre pilote de candidatures</span>
         </span>
       </Link>
 

@@ -34,23 +34,34 @@ cp .env.example .env
 
 Éditer `.env` :
 
-- `DATABASE_URL=pglite://./data/dev` : base Postgres locale, un fichier sous
-  `data/` (créé automatiquement, ignoré par Git). Pas d'installation Postgres
-  nécessaire pour développer.
+- `DATABASE_URL=pglite://./data/dev` : base Postgres locale, un dossier sous
+  `data/` (ignoré par Git). Pas d'installation Postgres nécessaire pour
+  développer. **Créer `data/` avant la première migration** : PGlite crée bien
+  `data/dev`, mais pas son dossier parent (`mkdir data`).
 - `JWT_SECRET` : générer une chaîne aléatoire d'au moins 32 caractères, par
   exemple `openssl rand -hex 32`.
+- `TRUSTED_PROXY_HOPS=0` en local (pas de reverse proxy devant l'appli : la
+  limite anti-flood par IP est alors désactivée plutôt que de regrouper tout le
+  monde sous une même adresse). `1` derrière Coolify/Traefik en production.
 - Les autres variables (`FRANCE_TRAVAIL_*`, `ADZUNA_*`, `JOOBLE_API_KEY`,
-  `LBA_API_KEY`, `GREENHOUSE_BOARD_TOKENS`, `LEVER_COMPANY_TOKENS`,
-  `SMARTRECRUITERS_COMPANY_TOKENS`) sont facultatives : une source sans clé
-  est simplement désactivée, sans erreur.
+  `LBA_API_KEY`, `SOURCE_LBA`, `GREENHOUSE_BOARD_TOKENS`,
+  `LEVER_COMPANY_TOKENS`, `SMARTRECRUITERS_COMPANY_TOKENS`) sont facultatives :
+  une source sans clé est simplement désactivée, sans erreur.
 
 Puis :
 
 ```bash
-npm run db:migrate    # applique les migrations Drizzle (drizzle/) sur DATABASE_URL
-npm run create-admin  # crée le premier compte administrateur (invite e-mail + mot de passe)
+mkdir data             # dossier parent de la base PGlite (une seule fois)
+npm run db:migrate     # applique les migrations Drizzle (drizzle/) sur DATABASE_URL
+npm run create-admin   # crée le premier compte administrateur (invite e-mail + mot de passe)
 npm run dev            # http://127.0.0.1:3000 — préférer 127.0.0.1 à localhost (voir note plus bas)
 ```
+
+> Les scripts `db:migrate`, `create-admin` et `purge-inactive` tournent sous
+> `tsx`, hors de Next.js : ils lisent `.env.local` puis `.env` eux-mêmes
+> (`scripts/load-env.ts`). Une variable déjà présente dans l'environnement
+> l'emporte sur le fichier, et l'absence de fichier n'est pas une erreur —
+> c'est le cas en production, où tout vient de l'environnement du conteneur.
 
 > Sur Windows, `http://localhost` peut ajouter plusieurs secondes de latence
 > par requête (résolution IPv6 avant repli IPv4) ; utiliser `127.0.0.1`

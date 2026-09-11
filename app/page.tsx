@@ -15,7 +15,7 @@ export default function Home() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">ApplyBot</p>
-            <p className="text-xs text-[var(--foreground-faint)]">AI Career OS</p>
+            <p className="text-xs text-[var(--foreground-faint)]">Votre pilote de candidatures</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

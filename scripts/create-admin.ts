@@ -1,3 +1,5 @@
+// En premier : peuple process.env depuis .env avant que lib/db/client.ts ne le lise.
+import "./load-env";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { eq } from "drizzle-orm";

@@ -1,3 +1,5 @@
+// En premier : peuple process.env depuis .env avant que lib/db/client.ts ne le lise.
+import "./load-env";
 import { db, closeDb, isPglite } from "../lib/db/client";
 
 async function main() {

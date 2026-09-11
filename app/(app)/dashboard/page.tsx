@@ -244,7 +244,7 @@ export default async function DashboardPage() {
                     <thead className="border-b border-[var(--border)] text-[10.5px] uppercase tracking-[0.16em] text-[var(--foreground-faint)]">
                       <tr>
                         <th className="px-4 py-3 font-medium">Poste</th>
-                        <th className="px-4 py-3 font-medium">Score IA</th>
+                        <th className="px-4 py-3 font-medium">Score</th>
                         <th className="px-4 py-3 font-medium">Statut</th>
                         <th className="px-4 py-3 font-medium text-right">Action</th>
                       </tr>

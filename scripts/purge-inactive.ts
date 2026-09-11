@@ -1,3 +1,5 @@
+// En premier : peuple process.env depuis .env avant que lib/db/client.ts ne le lise.
+import "./load-env";
 import { closeDb } from "../lib/db/client";
 import { listOrganisationsWithoutResponsable } from "../lib/db/queries/organisations";
 import { purgeInactiveUsers } from "../lib/db/queries/users";

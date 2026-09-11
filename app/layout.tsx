@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: "ApplyBot",
     template: "%s | ApplyBot",
   },
-  description: "Agent IA pour rechercher, préparer et suivre des candidatures pour tous les profils.",
+  description: "Rechercher, préparer et suivre ses candidatures, pour tous les profils.",
 };
 
 export default function RootLayout({

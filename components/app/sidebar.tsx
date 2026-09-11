@@ -26,7 +26,7 @@ export async function Sidebar({ userId, role }: { userId: string; role: Role }) 
               </span>
               <span>
                 <span className="block text-sm font-semibold tracking-[-0.02em]">ApplyBot</span>
-                <span className="block text-[11px] text-[var(--foreground-faint)]">AI Career OS</span>
+                <span className="block text-[11px] text-[var(--foreground-faint)]">Votre pilote de candidatures</span>
               </span>
             </Link>
             <ScoreGauge value={92} size={38} thickness={5} />

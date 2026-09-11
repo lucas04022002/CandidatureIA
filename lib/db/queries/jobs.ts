@@ -200,6 +200,6 @@ export async function getDashboardStats(userId: string): Promise<DashboardStat[]
     { label: "Offres suivies", value: String(jobCount), change: "Source: Postgres" },
     { label: "Candidatures générées", value: String(applicationCount), change: "Source: Postgres" },
     { label: "Taux d'envoi", value: `${sendRate}%`, change: "Calculé en direct" },
-    { label: "Score IA moyen", value: `${averageScore}/100`, change: "Calculé en direct" },
+    { label: "Score moyen", value: `${averageScore}/100`, change: "Calculé en direct" },
   ];
 }

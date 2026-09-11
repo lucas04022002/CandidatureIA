@@ -91,9 +91,14 @@ jobs:
 
       # Garde 2 : aucune trace d'IA (OpenAI) ou de Supabase (l'ancienne stack B2C) dans le code
       # applicatif — ApplyBot v2 est un SaaS B2B sans IA, Postgres + auth maison.
+      #
+      # Le périmètre couvre aussi scripts/, proxy.ts et drizzle/ : les scripts de maintenance
+      # tournent avec les mêmes accès que l'appli, proxy.ts voit passer chaque requête, et une
+      # migration est du code exécuté en production. Une garde qui s'arrête à app/lib/components
+      # laisse trois portes ouvertes sur quatre.
       - name: Garde — pas d'IA ni de Supabase dans le code
         run: |
-          ! grep -rniE "openai|supabase|sk-[a-z0-9]{20}" app lib components
+          ! grep -rniE "openai|supabase|sk-[a-z0-9]{20}" app lib components scripts proxy.ts drizzle
 
   # Job séparé : construit l'image Docker ET la fait vraiment tourner (conteneur Postgres +
   # conteneur applybot, healthcheck HTTP, en-têtes de sécurité, script de maintenance exécuté dans
