@@ -3,6 +3,7 @@ import { getApplications, getJobs } from "@/lib/supabase/queries";
 import { BoltIcon, UserIcon } from "@/components/app/icons";
 import { NavLinks } from "@/components/app/nav-links";
 import { ScoreGauge } from "@/components/app/score-gauge";
+import { SignOutButton } from "@/components/app/sign-out-button";
 
 export async function Sidebar() {
   const [jobsResult, applicationsResult] = await Promise.all([getJobs(), getApplications()]);
@@ -58,15 +59,7 @@ export async function Sidebar() {
               <UserIcon size={16} />
               <span>Profil & réglages</span>
             </Link>
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[var(--foreground-dim)] transition hover:bg-[var(--card-soft)] hover:text-[var(--foreground)]"
-              >
-                <span aria-hidden className="grid w-4 place-items-center">⏻</span>
-                <span>Se déconnecter</span>
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </div>
 

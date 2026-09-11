@@ -1,79 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type AuthMode = "signin" | "signup";
 
 const inputClasses =
   "w-full rounded-[11px] border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-faint)] focus:border-[var(--accent)] focus:outline-none";
 
+async function postJson(path: string, body: unknown) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(typeof data.error === "string" ? data.error : "Une erreur est survenue.");
+  }
+  return data;
+}
+
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
+
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [orgCode, setOrgCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setNotice(null);
-
-    const supabase = createSupabaseBrowserClient();
-    if (!supabase) {
-      setError("Supabase non configuré. Ajoute les variables d'environnement requises.");
-      return;
-    }
-
     setPending(true);
 
     try {
       if (mode === "signin") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) {
-          setError(
-            signInError.message === "Invalid login credentials"
-              ? "Email ou mot de passe incorrect."
-              : signInError.message,
-          );
-          return;
-        }
-
-        router.push("/dashboard");
-        router.refresh();
-        return;
+        await postJson("/api/auth/login", { email, password });
+      } else {
+        await postJson("/api/auth/register", { email, password, orgCode });
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (data.session) {
-        router.push("/dashboard");
-        router.refresh();
-        return;
-      }
-
-      setNotice("Compte créé. Vérifie ta boîte mail pour confirmer ton adresse avant de te connecter.");
-      setMode("signin");
+      router.push(next ?? "/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
       setPending(false);
     }
@@ -92,7 +69,6 @@ export function LoginForm() {
             onClick={() => {
               setMode(value);
               setError(null);
-              setNotice(null);
             }}
             className={
               mode === value
@@ -129,24 +105,37 @@ export function LoginForm() {
           id="password"
           type="password"
           required
-          minLength={8}
+          minLength={10}
           autoComplete={mode === "signin" ? "current-password" : "new-password"}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="8 caractères minimum"
+          placeholder="10 caractères minimum"
           className={inputClasses}
         />
       </div>
 
+      {mode === "signup" ? (
+        <div className="space-y-1.5">
+          <label htmlFor="orgCode" className="label-xs block">
+            Code d&apos;organisme
+          </label>
+          <input
+            id="orgCode"
+            type="text"
+            required
+            maxLength={8}
+            autoComplete="off"
+            value={orgCode}
+            onChange={(event) => setOrgCode(event.target.value.toUpperCase())}
+            placeholder="8 caractères"
+            className={`${inputClasses} uppercase tracking-[0.15em]`}
+          />
+        </div>
+      ) : null}
+
       {error ? (
         <p className="rounded-[11px] border border-[rgba(255,107,107,0.35)] bg-[rgba(255,107,107,0.08)] px-3 py-2 text-sm text-[#ff9c9c]">
           {error}
-        </p>
-      ) : null}
-
-      {notice ? (
-        <p className="rounded-[11px] border border-[var(--accent-line)] bg-[var(--accent-soft)] px-3 py-2 text-sm text-[var(--accent-text)]">
-          {notice}
         </p>
       ) : null}
 
@@ -157,6 +146,13 @@ export function LoginForm() {
             ? "Se connecter"
             : "Créer mon compte"}
       </Button>
+
+      <p className="text-center text-xs text-[var(--foreground-faint)]">
+        Vous êtes un organisme de formation ?{" "}
+        <Link href="/organisme/inscription" className="text-[var(--accent)] hover:underline">
+          Créer un organisme
+        </Link>
+      </p>
     </form>
   );
 }
