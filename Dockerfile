@@ -67,15 +67,29 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
-# Migration au démarrage (scripts/migrate.ts) : fichiers SQL + métadonnées Drizzle, le script
-# lui-même. node_modules complet copié en dernier, par-dessus celui de la sortie standalone : voir
-# le commentaire en tête de fichier (garantit tsx, drizzle-orm, pg et leurs dépendances hissées).
+# Migration au démarrage (scripts/migrate.ts, et scripts/create-admin.ts / purge-inactive.ts lancés
+# à la main depuis le terminal Coolify, voir deploy/coolify.md) : fichiers SQL + métadonnées Drizzle,
+# les scripts eux-mêmes, et TOUT ce qu'ils importent — scripts/*.ts importe lib/db/client.ts en
+# relatif (../lib/...), qui lui-même importe une partie de lib/ (queries, auth) via l'alias
+# TypeScript "@/..." (lib/db/queries/users.ts, lib/db/queries/organisations.ts, lib/auth/jwt.ts...).
+# Sans lib/ ici, ces imports relatifs échouent (module introuvable) ; sans tsconfig.json, tsx ne sait
+# pas résoudre "@/..." (il lit compilerOptions.paths via get-tsconfig) et échoue pareillement — les
+# deux sont nécessaires, pas seulement scripts/ et drizzle/. node_modules complet copié en dernier,
+# par-dessus celui de la sortie standalone : voir le commentaire en tête de fichier (garantit tsx,
+# drizzle-orm, pg et leurs dépendances hissées).
 COPY --from=build --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=build --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=build --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=build --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 EXPOSE 3000
+
+# Vérifie que le serveur répond réellement (pas seulement que le process tourne) : /login est une
+# page statique (pas de dépendance DB dans son rendu), donc ce healthcheck reste fiable même si la
+# base est momentanément indisponible après le démarrage.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD wget -qO- http://127.0.0.1:3000/login >/dev/null || exit 1
 
 # Migration Drizzle (idempotente : ne rejoue que les migrations non encore appliquées) puis
 # démarrage du serveur Next.js standalone. `&&` : si la migration échoue, le conteneur s'arrête au

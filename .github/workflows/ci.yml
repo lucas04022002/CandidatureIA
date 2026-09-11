@@ -95,11 +95,13 @@ jobs:
         run: |
           ! grep -rniE "openai|supabase|sk-[a-z0-9]{20}" app lib components
 
-  # Job séparé : construit l'image Docker pour détecter tôt une régression du Dockerfile (étape de
-  # build cassée, fichier copié manquant...). Ce n'est PAS le déploiement — Coolify reconstruit et
-  # déploie l'image lui-même depuis le dépôt (voir deploy/coolify.md) ; ce job ne fait que vérifier
-  # que `docker build` réussit, dans un job distinct pour qu'un échec soit visible séparément des
-  # `checks` applicatifs.
+  # Job séparé : construit l'image Docker ET la fait vraiment tourner (conteneur Postgres +
+  # conteneur applybot, healthcheck HTTP, en-têtes de sécurité, script de maintenance exécuté dans
+  # l'image) pour détecter tôt une régression du Dockerfile (étape de build cassée, fichier copié
+  # manquant, migration qui ne se lance pas...). Ce n'est PAS le déploiement — Coolify reconstruit et
+  # déploie l'image lui-même depuis le dépôt (voir deploy/coolify.md) ; ce job vérifie seulement que
+  # l'image se construit ET démarre correctement, dans un job distinct pour qu'un échec soit visible
+  # séparément des `checks` applicatifs.
   image:
     runs-on: ubuntu-latest
     steps:
@@ -110,4 +112,89 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: applybot:ci
+
+      # Fait tourner l'image pour de vrai : conteneur Postgres + conteneur applybot sur le même
+      # réseau Docker, attend que /login réponde (migration + démarrage du serveur inclus), vérifie
+      # les en-têtes de sécurité posés par next.config.ts, puis exécute scripts/purge-inactive.ts
+      # DANS le conteneur pour prouver que scripts/ + lib/ (imports relatifs ET alias "@/") se
+      # résolvent bien avec le node_modules et le tsconfig.json embarqués dans l'image — c'est
+      # exactement le genre de trou que `docker build` seul ne peut pas détecter (il compile
+      # server.js, mais scripts/migrate.ts n'est jamais exécuté pendant le build).
+      - name: docker run — smoke test (Postgres + healthcheck + scripts)
+        run: |
+          set -e
+          docker network create applybot-ci
+
+          docker run -d --name applybot-ci-db --network applybot-ci \
+            -e POSTGRES_USER=applybot -e POSTGRES_PASSWORD=applybot -e POSTGRES_DB=applybot \
+            postgres:16
+
+          echo "Attente de Postgres..."
+          for i in $(seq 1 30); do
+            if docker exec applybot-ci-db pg_isready -U applybot -d applybot >/dev/null 2>&1; then
+              echo "Postgres prêt."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Postgres jamais prêt après 60s." >&2
+              docker logs applybot-ci-db
+              exit 1
+            fi
+            sleep 2
+          done
+
+          docker run -d --name applybot-ci-app --network applybot-ci \
+            -e DATABASE_URL=postgres://applybot:applybot@applybot-ci-db:5432/applybot \
+            -e JWT_SECRET=test-secret-for-ci-not-a-real-secret-00000 \
+            -e TRUSTED_PROXY_HOPS=1 \
+            -e NODE_ENV=production \
+            -p 3000:3000 \
+            applybot:ci
+
+          echo "Attente du serveur (migration + démarrage)..."
+          ready=""
+          for i in $(seq 1 30); do
+            if headers=$(curl -fsSI http://localhost:3000/login 2>/dev/null); then
+              echo "Serveur prêt."
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$ready" ]; then
+            echo "Le serveur n'a jamais répondu sur /login après 60s." >&2
+            docker logs applybot-ci-app
+            exit 1
+          fi
+
+          echo "$headers"
+          normalized=$(printf '%s' "$headers" | tr -d '\r' | tr '[:upper:]' '[:lower:]')
+          echo "$normalized" | grep -qE '^x-frame-options: deny$' || {
+            echo "En-tête X-Frame-Options: DENY absent." >&2
+            docker logs applybot-ci-app
+            exit 1
+          }
+          echo "$normalized" | grep -qE '^x-content-type-options: nosniff$' || {
+            echo "En-tête X-Content-Type-Options: nosniff absent." >&2
+            docker logs applybot-ci-app
+            exit 1
+          }
+          echo "En-têtes de sécurité confirmés."
+
+          echo "Exécution de scripts/purge-inactive.ts dans le conteneur (preuve que lib/ et l'alias @/ se résolvent)..."
+          docker exec applybot-ci-app node node_modules/tsx/dist/cli.mjs scripts/purge-inactive.ts || {
+            echo "scripts/purge-inactive.ts a échoué dans le conteneur." >&2
+            docker logs applybot-ci-app
+            exit 1
+          }
+
+          echo "Smoke test OK."
+
+      - name: Nettoyage des conteneurs
+        if: always()
+        run: |
+          docker logs applybot-ci-app 2>&1 | tail -100 || true
+          docker rm -f applybot-ci-app applybot-ci-db 2>/dev/null || true
+          docker network rm applybot-ci 2>/dev/null || true
