@@ -20,7 +20,7 @@
 - Code d'organisme : 8 caractères parmi `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
 - Quotas : `scrape-jobs` 1/utilisateur/heure ; `import-cv` 10/jour et 5 Mo ; connexion 10 essais/e-mail/15 min.
 - La Bonne Alternance : `SOURCE_LBA=on` (défaut `on`).
-- Local : Postgres via `docker-compose.yml` (`postgres:16`, base `applybot`, port 5432), `DATABASE_URL=postgres://applybot:applybot@127.0.0.1:5432/applybot`. Tests d'intégration : même base, schéma recréé avant la suite (`tests/setup-db.ts`).
+- **Pas de Docker ni de Postgres sur le PC de Lucas** (Smart App Control bloque les installeurs). Local et tests : **PGlite** (`@electric-sql/pglite`, Postgres embarqué en WebAssembly, installé par npm) via `drizzle-orm/pglite`. `lib/db/client.ts` choisit le pilote d'après `DATABASE_URL` : `pglite://memory` (tests), `pglite://./data/dev` (dev, dossier ignoré par git), `postgres://…` (CI et production, pilote `pg`). Même schéma, mêmes migrations Drizzle, même SQL. Tests d'intégration : base mémoire recréée avant chaque fichier de test (`tests/setup-db.ts`). `docker-compose.yml` reste fourni pour qui a Docker, mais rien ne l'exige.
 - Scripts npm attendus à la fin : `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `db:generate`, `db:migrate`, `create-admin`, `purge-inactive`.
 
 ---
@@ -103,7 +103,8 @@ git rm --cached .env.local
 
 ```bash
 # Base de données (Postgres 16)
-DATABASE_URL=postgres://applybot:applybot@127.0.0.1:5432/applybot
+DATABASE_URL=pglite://./data/dev
+# (production : postgres://user:mdp@hote:5432/applybot)
 # Session : ≥ 32 caractères aléatoires, jamais commité
 JWT_SECRET=
 NODE_ENV=development
@@ -124,7 +125,7 @@ SMARTRECRUITERS_COMPANY_TOKENS=
 - [ ] **Step 5 : Dépendances et scripts**
 
 ```bash
-npm install drizzle-orm pg argon2 jose zod
+npm install drizzle-orm pg @electric-sql/pglite argon2 jose zod
 npm install -D drizzle-kit @types/pg vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/jest-dom tsx
 ```
 
@@ -164,7 +165,7 @@ export default defineConfig({
 
 ```ts
 process.env.JWT_SECRET ??= "test-secret-at-least-32-characters-long-000";
-process.env.DATABASE_URL ??= "postgres://applybot:applybot@127.0.0.1:5432/applybot";
+process.env.DATABASE_URL ??= "pglite://memory";
 process.env.NODE_ENV = "test";
 ```
 
@@ -189,7 +190,7 @@ services:
 volumes: { pgdata: {} }
 ```
 
-- [ ] **Step 8 : Vérifier** : `npm test` → 1 test vert ; `npm run typecheck` → 0 erreur (ou lister les erreurs préexistantes et les laisser telles quelles, elles seront résolues par le retrait de Supabase en tâche 4).
+- [ ] **Step 8 : Vérifier** : `npm test` → 1 test vert (`.env.example` : `DATABASE_URL=pglite://./data/dev` en local, et `data/` ajouté au `.gitignore`) ; `npm run typecheck` → 0 erreur (ou lister les erreurs préexistantes et les laisser telles quelles, elles seront résolues par le retrait de Supabase en tâche 4).
 
 - [ ] **Step 9 : Commit**
 
@@ -325,18 +326,36 @@ Si une colonne d'une migration Supabase n'est pas listée ici, l'ajouter (la sou
 
 - [ ] **Step 4 : Client et migration**
 
-`lib/db/client.ts` :
+`lib/db/client.ts` (deux pilotes, une seule API `db`) :
 
 ```ts
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 import * as schema from "./schema";
+import type { PgDatabase } from "drizzle-orm/pg-core";
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL manquante");
-export const pool = new Pool({ connectionString: url, max: 10 });
-export const db = drizzle(pool, { schema });
-export async function closeDb() { await pool.end(); }
+type Db = PgDatabase<any, typeof schema>;
+let closeFn: () => Promise<void> = async () => {};
+function open(): Db {
+  if (url.startsWith("pglite://")) {
+    const { PGlite } = require("@electric-sql/pglite") as typeof import("@electric-sql/pglite");
+    const { drizzle } = require("drizzle-orm/pglite") as typeof import("drizzle-orm/pglite");
+    const target = url.slice("pglite://".length);
+    const client = new PGlite(target === "memory" ? undefined : target);
+    closeFn = () => client.close();
+    return drizzle(client, { schema }) as unknown as Db;
+  }
+  const { Pool } = require("pg") as typeof import("pg");
+  const { drizzle } = require("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
+  const pool = new Pool({ connectionString: url, max: 10 });
+  closeFn = () => pool.end();
+  return drizzle(pool, { schema }) as unknown as Db;
+}
+export const db: Db = open();
+export const closeDb = () => closeFn();
+export const isPglite = url.startsWith("pglite://");
 ```
+
+Migrations : `scripts/migrate.ts` et `tests/setup-db.ts` importent le migrateur correspondant (`drizzle-orm/pglite/migrator` si `isPglite`, sinon `drizzle-orm/node-postgres/migrator`). `drizzle-kit generate` ne se connecte pas à la base : il fonctionne sans Postgres. Dépendances : `npm install @electric-sql/pglite` en plus de `pg`.
 
 `drizzle.config.ts` :
 
@@ -367,7 +386,7 @@ export async function resetDatabase() {
 
 Générer : `npx drizzle-kit generate --name init` → `drizzle/0000_init.sql`. Relire le SQL : les enums, les FK `on delete cascade`, l'index unique `lower(email)`.
 
-- [ ] **Step 5 : Lancer** `docker compose up -d db && npm test -- tests/db` → vert.
+- [ ] **Step 5 : Lancer** `npm test -- tests/db` → vert (PGlite en mémoire, sans Docker).
 
 - [ ] **Step 6 : Commit** `git add -A && git commit -m "feat(db): schéma Drizzle et migration initiale (organisations, users, profils, offres, candidatures, quotas)"`
 

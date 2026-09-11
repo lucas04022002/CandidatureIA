@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "profileId est requis." }, { status: 400 });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase non configuré côté serveur." },

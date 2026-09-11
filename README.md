@@ -6,11 +6,27 @@ ApplyBot est une base SaaS IA pour automatiser la préparation de candidatures:
 - pipeline d'offres (`/jobs`)
 - candidatures générées (`/applications`)
 
+Roadmap monétisation (plans, quotas, points de vigilance): voir [`docs/PRICING.md`](docs/PRICING.md).
+
 ## Stack
 
 - Next.js App Router + TypeScript
 - Tailwind CSS
-- Supabase (DB)
+- Supabase (DB + Auth)
+
+## Authentification
+
+L'app est protégée par Supabase Auth (email + mot de passe):
+
+- `/login`: connexion / inscription
+- `proxy.ts`: redirige les visiteurs non connectés et renvoie 401 sur `/api/*`
+- chaque table porte un `user_id` avec des policies RLS `auth.uid() = user_id`
+
+Configuration côté Supabase:
+
+1. activer le provider Email dans Authentication > Providers
+2. appliquer la migration `supabase/migrations/20260611_000012_add_user_auth_rls.sql`
+3. pour rattacher des données existantes à ton compte, suivre le bloc commenté de la migration (backfill `user_id`)
 
 ## Lancer le projet
 
@@ -53,13 +69,15 @@ Sans ces variables, l'UI ne peut pas lire/écrire les données.
 
 Exécuter le SQL de migration:
 
-- `supabase/migrations/20260519_000001_init_applybot.sql`
+- tous les fichiers de `supabase/migrations/` dans l'ordre
 
-Le script crée:
+Le script init crée:
 
 - `jobs`
 - `applications`
-- status enum + indexes + seed initial
+- status enum + indexes
+
+Les données de démonstration sont dans `supabase/seed.sql` (optionnel).
 
 ## Scraping MVP
 
@@ -126,6 +144,7 @@ Modes de scoring:
 
 - prend `jobId` en entrée
 - génère lettre, email et message LinkedIn personnalisés
+- utilise OpenAI si `OPENAI_API_KEY` est défini, sinon un mode heuristique local
 - crée ou met à jour la table `applications`
 
 `POST /api/rescore-jobs`:

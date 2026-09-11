@@ -15,7 +15,7 @@ interface JobRow {
 }
 
 export async function POST() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase non configuré côté serveur." },

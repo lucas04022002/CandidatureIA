@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { APPLICATION_STATUSES, type ApplicationStatus } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation";
 
 interface UpdateStatusPayload {
   applicationId?: string;
@@ -20,15 +21,15 @@ function isValidStatus(value: unknown): value is ApplicationStatus {
 export async function POST(request: Request) {
   const payload = (await request.json().catch(() => ({}))) as UpdateStatusPayload;
 
-  if (!payload.applicationId) {
-    return NextResponse.json({ ok: false, error: "applicationId est requis." }, { status: 400 });
+  if (!isUuid(payload.applicationId)) {
+    return NextResponse.json({ ok: false, error: "applicationId valide requis." }, { status: 400 });
   }
 
   if (!isValidStatus(payload.status)) {
     return NextResponse.json({ ok: false, error: "Statut invalide." }, { status: 400 });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase non configuré côté serveur." },

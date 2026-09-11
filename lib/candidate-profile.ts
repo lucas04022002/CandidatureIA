@@ -65,44 +65,23 @@ function isMissingCandidatePreferenceColumns(message: string) {
   );
 }
 
+// Profil neutre utilisé tant qu'aucun CV n'a été importé.
 export const fallbackCandidateProfile: CandidateProfile = {
   profileId: null,
-  fullName: "Lucas Guilhot",
-  role: "Developpeur web full stack junior",
-  targetRole: "Developpeur web full stack junior",
-  preferredKeywords: ["developpeur full stack"],
+  fullName: "Profil non configuré",
+  role: "Candidat",
+  targetRole: "",
+  preferredKeywords: [],
   baseLetterTemplate: "",
-  location: "Haute-Garonne (31)",
-  email: "lucasguilhot7@gmail.com",
-  phone: "06.25.90.84.11",
-  github: "https://github.com/lucas04022002",
-  linkedin: "https://www.linkedin.com/in/guilhot-lucas",
-  summary:
-    "Passionne par l'informatique depuis plus de 7 ans, j'ai commence par l'assemblage et la maintenance d'ordinateurs avant de me specialiser en developpement web. Je concois aujourd'hui des projets personnels full stack et je recherche un poste de developpeur.",
-  technicalSkills: [
-    "Node.js",
-    "FastAPI",
-    "React",
-    "Tailwind CSS",
-    "TypeScript",
-    "Python (pandas, NumPy)",
-    "MySQL",
-    "Git",
-    "GitHub Actions",
-  ],
-  softSkills: [
-    "Pensee analytique",
-    "Apprentissage autonome",
-    "Adaptabilite",
-    "Travail en equipe (Agile/Scrum)",
-    "Rigueur",
-  ],
-  experienceHighlights: [
-    "Coordinateur logistique / dispatcher manager (2023-2025): organisation des livraisons nationales et internationales, gestion des flux et management d'equipe.",
-    "Missions en interim en logistique et manutention (2020-2023).",
-    "Employe polyvalent (Castorama): preparation de commandes, mise en rayon, orientation clients.",
-    "Formation Developpeur Web (Wild Code School): interfaces, API Node.js/FastAPI, bases de donnees.",
-  ],
+  location: "Non renseigné",
+  email: "Non renseigné",
+  phone: "",
+  github: "",
+  linkedin: "",
+  summary: "Importe ton CV depuis l'onboarding pour personnaliser le scoring et les candidatures.",
+  technicalSkills: [],
+  softSkills: [],
+  experienceHighlights: [],
 };
 
 function normalizeImportedList(items: string[] | null | undefined) {
@@ -156,7 +135,7 @@ export async function getActiveCandidateProfile(): Promise<CandidateProfile> {
     return fallbackCandidateProfile;
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return fallbackCandidateProfile;
   }

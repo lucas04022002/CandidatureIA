@@ -1,4 +1,6 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 
 export type AppStatus = "Nouveau" | "À valider" | "Brouillon" | "Envoyé" | "Refusé";
 
@@ -98,17 +100,43 @@ export function hasSupabaseEnv() {
   return getSupabaseEnv() !== null;
 }
 
-export function createSupabaseServerClient(): SupabaseClient<Database> | null {
+export async function createSupabaseServerClient(): Promise<SupabaseClient<Database> | null> {
   const env = getSupabaseEnv();
 
   if (!env) {
     return null;
   }
 
-  return createClient<Database>(env.url, env.anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(env.url, env.anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        } catch {
+          // Appel depuis un Server Component: les cookies sont en lecture seule,
+          // le proxy se charge du rafraîchissement de session.
+        }
+      },
     },
   });
+}
+
+export async function getAuthenticatedUser(): Promise<User | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation";
 
 interface MarkJobAppliedPayload {
   jobId?: string;
@@ -9,11 +10,11 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => ({}))) as MarkJobAppliedPayload;
   const jobId = payload.jobId;
 
-  if (!jobId) {
-    return NextResponse.json({ ok: false, error: "jobId est requis." }, { status: 400 });
+  if (!isUuid(jobId)) {
+    return NextResponse.json({ ok: false, error: "jobId valide requis." }, { status: 400 });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase non configuré côté serveur." },

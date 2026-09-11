@@ -12,6 +12,7 @@ import { scrapeLaBonneAlternanceJobs } from "@/lib/scrapers/la-bonne-alternance"
 import { scrapeLeverJobs } from "@/lib/scrapers/lever";
 import { scrapeJoobleJobs } from "@/lib/scrapers/jooble";
 import { scrapeSmartRecruitersJobs } from "@/lib/scrapers/smartrecruiters";
+import { sanitizeJobDescription } from "@/lib/sanitize-text";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 interface ScrapedJob {
@@ -203,7 +204,7 @@ function mergeSourceLabels(current: string[] | null | undefined, incoming: strin
 
 export async function POST(request: Request) {
   const payload = (await request.json().catch(() => ({}))) as ScrapePayload;
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       {
@@ -419,7 +420,7 @@ export async function POST(request: Request) {
       source: job.source,
       source_labels: [job.source],
       job_url: job.jobUrl,
-      job_description: job.jobDescription,
+      job_description: sanitizeJobDescription(job.jobDescription),
       score: job.score,
       status: job.status,
     }));
@@ -461,7 +462,7 @@ export async function POST(request: Request) {
         source: preferred.source,
         source_labels: mergedSourceLabels,
         job_url: job.jobUrl ?? existing.jobUrl,
-        job_description: shouldUpdateDescription ? job.jobDescription : null,
+        job_description: shouldUpdateDescription ? sanitizeJobDescription(job.jobDescription) : null,
       };
     })
     .filter(

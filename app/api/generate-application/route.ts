@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import {
   getActiveCandidateProfile,
 } from "@/lib/candidate-profile";
-import { buildEmail, buildLetter, buildLinkedIn } from "@/lib/application-generation.js";
+import { generateApplicationTexts } from "@/lib/application-generation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation";
 
 interface GeneratePayload {
   jobId?: string;
@@ -27,11 +28,11 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => ({}))) as GeneratePayload;
   const jobId = payload.jobId;
 
-  if (!jobId) {
-    return NextResponse.json({ ok: false, error: "jobId est requis." }, { status: 400 });
+  if (!isUuid(jobId)) {
+    return NextResponse.json({ ok: false, error: "jobId valide requis." }, { status: 400 });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase non configuré côté serveur." },
@@ -60,9 +61,8 @@ export async function POST(request: Request) {
 
   const job = jobData as JobRow;
   const candidateProfile = await getActiveCandidateProfile();
-  const letterText = buildLetter(job, candidateProfile);
-  const emailText = buildEmail(job, candidateProfile);
-  const linkedInText = buildLinkedIn(job, candidateProfile);
+  const { letterText, emailText, linkedInText, source: generationSource } =
+    await generateApplicationTexts(job, candidateProfile);
 
   const { data: existingAppData, error: existingAppError } = await applicationsTable
     .select("id")
@@ -142,7 +142,11 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    message: "Candidature générée avec succès.",
+    message:
+      generationSource === "openai"
+        ? "Candidature générée avec succès (IA)."
+        : "Candidature générée avec succès (mode heuristique, configure OPENAI_API_KEY pour des textes personnalisés par IA).",
+    generationSource,
     letterText,
     emailText,
     linkedInText,

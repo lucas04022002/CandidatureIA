@@ -116,7 +116,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Fichier CV manquant." }, { status: 400 });
     }
 
-    const supabase = createSupabaseServerClient();
+    const MAX_CV_BYTES = 5 * 1024 * 1024;
+    if ("size" in file && typeof file.size === "number" && file.size > MAX_CV_BYTES) {
+      return NextResponse.json(
+        { ok: false, error: "Le CV dépasse la taille maximale de 5 Mo." },
+        { status: 400 },
+      );
+    }
+
+    const uploadName = String(file.name).toLowerCase();
+    const uploadType = "type" in file ? String(file.type) : "";
+    const isPdf = uploadType === "application/pdf" || uploadName.endsWith(".pdf");
+    const isText =
+      uploadType.startsWith("text/") || uploadName.endsWith(".txt") || uploadName.endsWith(".md");
+    if (!isPdf && !isText) {
+      return NextResponse.json(
+        { ok: false, error: "Format non supporté : utilise un CV en PDF ou en texte brut." },
+        { status: 400 },
+      );
+    }
+
+    const supabase = await createSupabaseServerClient();
     if (!supabase) {
       return NextResponse.json(
         { ok: false, error: "Supabase non configure cote serveur." },

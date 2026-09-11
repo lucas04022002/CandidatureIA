@@ -172,7 +172,7 @@ export async function getJobs(): Promise<DataResult<Job[]>> {
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return { data: [], source: "supabase", error: "Configuration Supabase invalide." };
   }
@@ -230,7 +230,7 @@ export async function getApplications(): Promise<DataResult<Application[]>> {
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return { data: [], source: "supabase", error: "Configuration Supabase invalide." };
   }
@@ -288,7 +288,7 @@ export async function getApplicationById(id: string): Promise<DataResult<Applica
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return { data: null, source: "supabase", error: "Configuration Supabase invalide." };
   }
@@ -406,7 +406,7 @@ export async function getCandidateProfileSummary(): Promise<DataResult<Candidate
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return {
       data: {
