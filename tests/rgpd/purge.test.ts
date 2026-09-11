@@ -6,6 +6,7 @@ import { users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import type { Role } from "@/lib/auth/jwt";
 import { createUser, findUserById, purgeInactiveUsers } from "@/lib/db/queries/users";
+import { createOrganisation, listOrganisationsWithoutResponsable } from "@/lib/db/queries/organisations";
 import { getJobs, insertJobs } from "@/lib/db/queries/jobs";
 
 function moisAvant(mois: number) {
@@ -14,12 +15,17 @@ function moisAvant(mois: number) {
   return d;
 }
 
-async function seedUser(email: string, role: Role, dates: { lastLoginAt: Date | null; createdAt: Date }) {
+async function seedUser(
+  email: string,
+  role: Role,
+  dates: { lastLoginAt: Date | null; createdAt: Date },
+  organisationId: string | null = null,
+) {
   const user = await createUser({
     email,
     passwordHash: await hashPassword("motdepasse-correct"),
     role,
-    organisationId: null,
+    organisationId,
   });
   await db
     .update(users)
@@ -29,6 +35,7 @@ async function seedUser(email: string, role: Role, dates: { lastLoginAt: Date | 
 }
 
 const ids: Record<string, string> = {};
+const orgs: Record<string, { id: string; name: string }> = {};
 
 describe("purge des comptes inactifs", () => {
   beforeAll(async () => {
@@ -38,6 +45,14 @@ describe("purge des comptes inactifs", () => {
     ids.jamais = (await seedUser("jamais@ex.fr", "stagiaire", { lastLoginAt: null, createdAt: moisAvant(13) })).id;
     ids.jamaisRecent = (await seedUser("jamais-recent@ex.fr", "stagiaire", { lastLoginAt: null, createdAt: moisAvant(2) })).id;
     ids.admin = (await seedUser("admin-purge@ex.fr", "admin", { lastLoginAt: moisAvant(20), createdAt: moisAvant(30) })).id;
+
+    // Trois organismes : l'un perd son responsable à la purge, l'autre le garde, le dernier n'en a
+    // jamais eu (espace créé puis abandonné).
+    orgs.orphelin = await createOrganisation({ name: "AFPA Orpheline" });
+    orgs.suivi = await createOrganisation({ name: "AFPA Suivie" });
+    orgs.sansResponsable = await createOrganisation({ name: "AFPA Sans Responsable" });
+    await seedUser("resp-dormant@ex.fr", "responsable", { lastLoginAt: moisAvant(14), createdAt: moisAvant(20) }, orgs.orphelin.id);
+    await seedUser("resp-actif@ex.fr", "responsable", { lastLoginAt: moisAvant(1), createdAt: moisAvant(20) }, orgs.suivi.id);
 
     await insertJobs(ids.vieux, [
       {
@@ -55,7 +70,7 @@ describe("purge des comptes inactifs", () => {
 
   it("purge les comptes sans connexion depuis 12 mois, jamais l'admin", async () => {
     const purges = await purgeInactiveUsers(moisAvant(12));
-    expect(purges).toBe(2);
+    expect(purges).toBe(3);
 
     // −13 mois de dernière connexion : purgé, e-mail libéré, données effacées.
     const vieux = await findUserById(ids.vieux);
@@ -82,5 +97,17 @@ describe("purge des comptes inactifs", () => {
 
   it("une seconde purge ne touche plus rien", async () => {
     expect(await purgeInactiveUsers(moisAvant(12))).toBe(0);
+  });
+
+  it("signale les organismes restés sans responsable, sans les désactiver", async () => {
+    const orphelins = await listOrganisationsWithoutResponsable();
+    const noms = orphelins.map((o) => o.name).sort();
+    expect(noms).toEqual(["AFPA Orpheline", "AFPA Sans Responsable"]);
+    expect(noms).not.toContain("AFPA Suivie");
+
+    // Aucune désactivation automatique : l'organisme signalé reste dans l'état où il était.
+    const orphelin = orphelins.find((o) => o.id === orgs.orphelin.id);
+    expect(orphelin?.active).toBe(false);
+    expect(orphelin?.code).toHaveLength(8);
   });
 });

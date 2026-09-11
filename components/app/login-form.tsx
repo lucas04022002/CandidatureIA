@@ -32,6 +32,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [orgCode, setOrgCode] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +45,7 @@ export function LoginForm() {
       if (mode === "signin") {
         await postJson("/api/auth/login", { email, password });
       } else {
-        await postJson("/api/auth/register", { email, password, orgCode });
+        await postJson("/api/auth/register", { email, password, orgCode, acceptedTerms });
       }
 
       router.push(next ?? "/dashboard");
@@ -131,6 +132,25 @@ export function LoginForm() {
             className={`${inputClasses} uppercase tracking-[0.15em]`}
           />
         </div>
+      ) : null}
+
+      {mode === "signup" ? (
+        <label className="flex items-start gap-2 text-xs leading-5 text-[var(--foreground-dim)]">
+          <input
+            type="checkbox"
+            required
+            checked={acceptedTerms}
+            onChange={(event) => setAcceptedTerms(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+          />
+          <span>
+            J&apos;ai lu et j&apos;accepte les{" "}
+            <Link href="/cgu" className="text-[var(--accent)] hover:underline">
+              CGU
+            </Link>
+            .
+          </span>
+        </label>
       ) : null}
 
       {error ? (

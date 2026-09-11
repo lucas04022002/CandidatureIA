@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
+import { LegalFooter } from "@/components/app/legal-footer";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <Topbar />
         <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-5 md:px-8 md:py-8">
           <div className="rise">{children}</div>
+          <LegalFooter />
         </main>
       </div>
     </div>

@@ -191,3 +191,20 @@ export async function setOrganisationStatus(id: string, p: { active: boolean; se
     .returning();
   return org ?? null;
 }
+
+// Organismes dont plus aucun responsable n'est actif : la purge des comptes dormants peut laisser
+// un organisme orphelin, personne ne pouvant plus régénérer son code ni gérer ses places. Signalé
+// par `scripts/purge-inactive.ts`, jamais désactivé automatiquement : couper l'accès des stagiaires
+// d'un organisme est une décision commerciale, pas une conséquence d'un script de maintenance.
+export async function listOrganisationsWithoutResponsable() {
+  const [orgs, responsables] = await Promise.all([
+    db.select().from(organisations).orderBy(desc(organisations.createdAt)),
+    db
+      .select({ organisationId: users.organisationId })
+      .from(users)
+      .where(and(eq(users.role, "responsable"), isNull(users.deletedAt))),
+  ]);
+
+  const couverts = new Set(responsables.map((r) => r.organisationId).filter(Boolean));
+  return orgs.filter((org) => !couverts.has(org.id));
+}

@@ -10,6 +10,9 @@ const Body = z.object({
   organisationName: z.string().min(2).max(120),
   email: z.string().email().max(200),
   password: z.string().min(10).max(200),
+  // Acceptation des CGU : refusée par le schéma si absente ou fausse (400), pour que le
+  // consentement soit exigé côté serveur et pas seulement par la case à cocher du formulaire.
+  acceptedTerms: z.literal(true),
 });
 
 export const POST = handle(async (req) => {

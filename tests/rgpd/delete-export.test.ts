@@ -6,7 +6,7 @@ import { cvImports, searchRuns } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import { signSession, type Role } from "@/lib/auth/jwt";
 import { createOrganisation, registerTraineeWithCode, setOrganisationStatus } from "@/lib/db/queries/organisations";
-import { findUserByEmail } from "@/lib/db/queries/users";
+import { createUser, findUserByEmail, findUserById } from "@/lib/db/queries/users";
 import { getProfile, upsertProfile } from "@/lib/db/queries/profiles";
 import { getJobs, insertJobs } from "@/lib/db/queries/jobs";
 import { createApplication, getApplications } from "@/lib/db/queries/applications";
@@ -122,6 +122,12 @@ describe("RGPD : export et suppression de compte", () => {
 
     expect(await findUserByEmail(EMAIL)).toBeNull();
 
+    // La ligne anonymisée ne garde ni secret ni rattachement : le hash de mot de passe est vidé et
+    // le lien vers l'organisme coupé.
+    const anonyme = await findUserById(userId);
+    expect(anonyme?.passwordHash).toBe("");
+    expect(anonyme?.organisationId).toBeNull();
+
     const reinscrit = await registerTraineeWithCode({
       email: EMAIL,
       passwordHash: await hashPassword("motdepasse-correct"),
@@ -136,6 +142,47 @@ describe("RGPD : export et suppression de compte", () => {
     expect(await getJobs(autreId)).toHaveLength(1);
     expect(await getApplications(autreId)).toHaveLength(1);
     expect((await findUserByEmail(AUTRE))?.id).toBe(autreId);
+  });
+
+  it("le dernier administrateur ne peut pas supprimer son compte → 409", async () => {
+    const admin = await createUser({
+      email: "admin-seul@ex.fr",
+      passwordHash: await hashPassword("motdepasse-correct"),
+      role: "admin",
+      organisationId: null,
+    });
+
+    await asUser({ id: admin.id, role: "admin" });
+    const res = await deleteAccount(
+      new Request("http://localhost/api/account", {
+        method: "DELETE",
+        headers: { host: "localhost", "sec-fetch-site": "same-origin" },
+      }),
+      {},
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("Le dernier compte administrateur ne peut pas être supprimé");
+
+    const relu = await findUserById(admin.id);
+    expect(relu?.deletedAt).toBeNull();
+    expect(relu?.email).toBe("admin-seul@ex.fr");
+
+    // Dès qu'un second administrateur existe, le premier redevient supprimable.
+    await createUser({
+      email: "admin-second@ex.fr",
+      passwordHash: await hashPassword("motdepasse-correct"),
+      role: "admin",
+      organisationId: null,
+    });
+    const res2 = await deleteAccount(
+      new Request("http://localhost/api/account", {
+        method: "DELETE",
+        headers: { host: "localhost", "sec-fetch-site": "same-origin" },
+      }),
+      {},
+    );
+    expect(res2.status).toBe(200);
+    expect((await findUserById(admin.id))?.deletedAt).not.toBeNull();
   });
 
   it("la session d'un compte supprimé ne donne plus accès à l'export", async () => {

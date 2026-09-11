@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "@/components/app/login-form";
+import { LegalFooter } from "@/components/app/legal-footer";
 
 export const metadata = {
   title: "Connexion — ApplyBot",
@@ -35,6 +36,8 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+
+      <LegalFooter />
     </div>
   );
 }

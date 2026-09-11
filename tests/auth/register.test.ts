@@ -57,31 +57,31 @@ describe("inscription par code", () => {
   });
 
   it("code inconnu → 400", async () => {
-    const r = await post({ email: "a@ex.fr", password: "0123456789", orgCode: "ZZZZZZZZ" });
+    const r = await post({ email: "a@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: "ZZZZZZZZ" });
     expect(r.status).toBe(400);
     expect((await r.json()).error).toMatch(/inconnu/);
   });
 
   it("ok → 201 + cookie", async () => {
-    const r = await post({ email: "a@ex.fr", password: "0123456789", orgCode: code });
+    const r = await post({ email: "a@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: code });
     expect(r.status).toBe(201);
     expect(r.headers.get("set-cookie")).toMatch(/ab_session=/);
   });
 
   it("plus de place → 400", async () => {
-    const r = await post({ email: "b@ex.fr", password: "0123456789", orgCode: code });
+    const r = await post({ email: "b@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: code });
     expect(r.status).toBe(400);
     expect((await r.json()).error).toMatch(/place/);
   });
 
   it("mot de passe court → 400", async () => {
-    const r = await post({ email: "c@ex.fr", password: "court", orgCode: code });
+    const r = await post({ email: "c@ex.fr", password: "court", acceptedTerms: true, orgCode: code });
     expect(r.status).toBe(400);
   });
 
   it("origine cross-site (sec-fetch-site) → 403", async () => {
     const r = await postWithHeaders(
-      { email: "cross-site@ex.fr", password: "0123456789", orgCode: conflictCode },
+      { email: "cross-site@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: conflictCode },
       { "sec-fetch-site": "cross-site" },
     );
     expect(r.status).toBe(403);
@@ -89,22 +89,35 @@ describe("inscription par code", () => {
 
   it("origine différente du host → 403", async () => {
     const r = await postWithHeaders(
-      { email: "origin-mismatch@ex.fr", password: "0123456789", orgCode: conflictCode },
+      { email: "origin-mismatch@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: conflictCode },
       { origin: "https://evil.example" },
     );
     expect(r.status).toBe(403);
   });
 
   it("e-mail déjà utilisé → 409", async () => {
-    const first = await post({ email: "conflit@ex.fr", password: "0123456789", orgCode: conflictCode });
+    const first = await post({ email: "conflit@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: conflictCode });
     expect(first.status).toBe(201);
-    const second = await post({ email: "conflit@ex.fr", password: "0123456789", orgCode: conflictCode });
+    const second = await post({ email: "conflit@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: conflictCode });
     expect(second.status).toBe(409);
     expect((await second.json()).error).toMatch(/existe déjà/);
   });
 
+  it("CGU non acceptées → 400", async () => {
+    const sans = await post({ email: "sans-cgu@ex.fr", password: "0123456789", orgCode: conflictCode });
+    expect(sans.status).toBe(400);
+
+    const refus = await post({
+      email: "refus-cgu@ex.fr",
+      password: "0123456789",
+      acceptedTerms: false,
+      orgCode: conflictCode,
+    });
+    expect(refus.status).toBe(400);
+  });
+
   it("organisme inactif → 400", async () => {
-    const r = await post({ email: "inactif@ex.fr", password: "0123456789", orgCode: inactiveCode });
+    const r = await post({ email: "inactif@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: inactiveCode });
     expect(r.status).toBe(400);
     expect((await r.json()).error).toMatch(/inactif/);
   });

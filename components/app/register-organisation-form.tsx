@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,7 @@ export function RegisterOrganisationForm() {
   const [organisationName, setOrganisationName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function RegisterOrganisationForm() {
       const res = await fetch("/api/auth/register-organisation", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ organisationName, email, password }),
+        body: JSON.stringify({ organisationName, email, password, acceptedTerms }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -97,6 +99,23 @@ export function RegisterOrganisationForm() {
           className={inputClasses}
         />
       </div>
+
+      <label className="flex items-start gap-2 text-xs leading-5 text-[var(--foreground-dim)]">
+        <input
+          type="checkbox"
+          required
+          checked={acceptedTerms}
+          onChange={(event) => setAcceptedTerms(event.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+        />
+        <span>
+          J&apos;ai lu et j&apos;accepte les{" "}
+          <Link href="/cgu" className="text-[var(--accent)] hover:underline">
+            CGU
+          </Link>
+          .
+        </span>
+      </label>
 
       {error ? (
         <p className="rounded-[11px] border border-[rgba(255,107,107,0.35)] bg-[rgba(255,107,107,0.08)] px-3 py-2 text-sm text-[#ff9c9c]">

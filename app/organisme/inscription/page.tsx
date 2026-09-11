@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegisterOrganisationForm } from "@/components/app/register-organisation-form";
+import { LegalFooter } from "@/components/app/legal-footer";
 
 export const metadata = {
   title: "Créer un organisme — ApplyBot",
@@ -39,6 +40,8 @@ export default function RegisterOrganisationPage() {
           </p>
         </CardContent>
       </Card>
+
+      <LegalFooter />
     </div>
   );
 }

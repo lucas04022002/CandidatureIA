@@ -28,7 +28,7 @@ describe("création d'organisme", () => {
   beforeAll(resetDatabase);
 
   it("ok → 201, organisme inactif à 0 place, responsable créé", async () => {
-    const r = await post({ organisationName: "AFPA Nouvelle", email: "resp@ex.fr", password: "0123456789" });
+    const r = await post({ organisationName: "AFPA Nouvelle", email: "resp@ex.fr", password: "0123456789", acceptedTerms: true });
     expect(r.status).toBe(201);
 
     const body = await r.json();
@@ -45,9 +45,14 @@ describe("création d'organisme", () => {
     expect(user.organisationId).toBe(org.id);
   });
 
+  it("CGU non acceptées → 400", async () => {
+    const r = await post({ organisationName: "AFPA Sans CGU", email: "sans-cgu-org@ex.fr", password: "0123456789" });
+    expect(r.status).toBe(400);
+  });
+
   it("origine cross-site (sec-fetch-site) → 403", async () => {
     const r = await post(
-      { organisationName: "AFPA Cross", email: "cross@ex.fr", password: "0123456789" },
+      { organisationName: "AFPA Cross", email: "cross@ex.fr", password: "0123456789", acceptedTerms: true },
       { "sec-fetch-site": "cross-site" },
     );
     expect(r.status).toBe(403);
@@ -55,7 +60,7 @@ describe("création d'organisme", () => {
 
   it("origine différente du host → 403", async () => {
     const r = await post(
-      { organisationName: "AFPA Origin", email: "origin@ex.fr", password: "0123456789" },
+      { organisationName: "AFPA Origin", email: "origin@ex.fr", password: "0123456789", acceptedTerms: true },
       { origin: "https://evil.example" },
     );
     expect(r.status).toBe(403);

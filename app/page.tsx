@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { Chip } from "@/components/ui/chip";
+import { LegalFooter } from "@/components/app/legal-footer";
 
 export default function Home() {
   return (
@@ -121,6 +122,8 @@ export default function Home() {
           ))}
         </section>
       </main>
+
+      <LegalFooter />
     </div>
   );
 }

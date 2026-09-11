@@ -33,8 +33,10 @@ export async function touchLogin(userId: string) {
 // Suppression RGPD : les données produites par l'utilisateur partent vraiment (DELETE), la ligne
 // `users` reste mais anonymisée. Elle reste parce que d'autres lignes peuvent la référencer et
 // parce que `deleted_at` sert de trace d'exécution du droit à l'effacement ; plus rien d'identifiant
-// n'y subsiste. L'e-mail est remplacé par `deleted-<uuid>@invalid` : l'index unique portant sur
-// `lower(email)`, l'adresse d'origine redevient disponible pour une nouvelle inscription.
+// n'y subsiste : l'e-mail est remplacé par `deleted-<uuid>@invalid` (l'index unique portant sur
+// `lower(email)`, l'adresse d'origine redevient disponible pour une nouvelle inscription), le hash
+// du mot de passe est vidé — plus rien à casser, et aucune session ne peut renaître — et le
+// rattachement à l'organisme est coupé.
 export async function deleteUserAndData(userId: string) {
   await db.transaction(async (tx) => {
     await tx.delete(applications).where(eq(applications.userId, userId));
@@ -44,9 +46,24 @@ export async function deleteUserAndData(userId: string) {
     await tx.delete(cvImports).where(eq(cvImports.userId, userId));
     await tx
       .update(users)
-      .set({ deletedAt: new Date(), email: `deleted-${randomUUID()}@invalid` })
+      .set({
+        deletedAt: new Date(),
+        email: `deleted-${randomUUID()}@invalid`,
+        passwordHash: "",
+        organisationId: null,
+      })
       .where(and(eq(users.id, userId), isNull(users.deletedAt)));
   });
+}
+
+// Compte les administrateurs encore actifs : sert à refuser la suppression du dernier d'entre eux,
+// qui fermerait l'administration du service à double tour.
+export async function countActiveAdmins(): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(users)
+    .where(and(eq(users.role, "admin"), isNull(users.deletedAt)));
+  return (row?.count as number | undefined) ?? 0;
 }
 
 export interface UserDataExport {

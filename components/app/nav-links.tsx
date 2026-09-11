@@ -8,7 +8,7 @@ import type { Role } from "@/lib/auth/jwt";
 
 interface NavLinksProps {
   mobile?: boolean;
-  role?: Role;
+  role: Role;
   counts?: {
     jobs: number;
     applications: number;
@@ -19,7 +19,7 @@ interface NavLinksProps {
 // Navigation propre à chaque rôle : le pipeline de candidature n'existe que pour le stagiaire,
 // « Mon organisme » que pour le responsable, « Admin » que pour l'admin. « Profil » reste commun :
 // c'est de là que tout compte s'exporte et se supprime.
-function linksFor(role: Role | undefined) {
+function linksFor(role: Role) {
   const candidate = [
     { href: "/jobs", label: "Offres", icon: BriefcaseIcon, countKey: "jobs" as const },
     { href: "/applications", label: "Candidatures", icon: FileTextIcon, countKey: "applications" as const },
