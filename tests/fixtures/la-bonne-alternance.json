@@ -1,0 +1,38 @@
+{
+  "jobs": [
+    {
+      "identifier": { "id": "job-001", "partner_label": "matcha" },
+      "workplace": {
+        "name": "Atelier Theta",
+        "brand": "Atelier Theta",
+        "legal_name": "Atelier Theta SAS",
+        "description": "PME du bâtiment.",
+        "location": { "address": "12 rue Exemple, 44000 Nantes" }
+      },
+      "apply": { "url": "https://labonnealternance.apprentissage.beta.gouv.fr/emplois/job-001" },
+      "contract": { "type": ["Apprentissage"], "remote": "onsite" },
+      "offer": {
+        "title": "Alternance - Assistant chargé d'affaires bâtiment",
+        "description": "Suivi de chantiers et relation client.",
+        "desired_skills": ["Rigueur", "Sens du contact"],
+        "to_be_acquired_skills": ["Lecture de plans"]
+      }
+    },
+    {
+      "identifier": { "id": "job-002", "partner_label": "matcha" },
+      "workplace": {
+        "name": "Studio Iota",
+        "brand": "Studio Iota",
+        "location": { "address": "5 avenue Exemple, 33000 Bordeaux" }
+      },
+      "apply": { "url": "https://labonnealternance.apprentissage.beta.gouv.fr/emplois/job-002" },
+      "contract": { "type": ["Apprentissage"], "remote": "hybrid" },
+      "offer": {
+        "title": "Alternance - Community manager",
+        "description": "Animation des réseaux sociaux de la marque.",
+        "desired_skills": ["Créativité"],
+        "to_be_acquired_skills": ["Stratégie de contenu"]
+      }
+    }
+  ]
+}

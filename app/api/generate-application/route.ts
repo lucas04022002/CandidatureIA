@@ -17,7 +17,7 @@ export const POST = handle(async (req) => {
   if (!job) return json({ ok: false, error: "Offre introuvable." }, { status: 404 });
 
   const candidateProfile = await getActiveCandidateProfile(user.id);
-  const { letterText, emailText, linkedInText, source: generationSource } = await generateApplicationTexts(
+  const { letterText, emailText, linkedInText } = generateApplicationTexts(
     {
       title: job.title,
       company: job.company,
@@ -36,11 +36,7 @@ export const POST = handle(async (req) => {
 
   return json({
     ok: true,
-    message:
-      generationSource === "openai"
-        ? "Candidature générée avec succès (IA)."
-        : "Candidature générée avec succès (mode heuristique, configure OPENAI_API_KEY pour des textes personnalisés par IA).",
-    generationSource,
+    message: "Candidature générée avec succès.",
     letterText,
     emailText,
     linkedInText,

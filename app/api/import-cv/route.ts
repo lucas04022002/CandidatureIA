@@ -23,68 +23,22 @@ async function extractTextFromFile(file: UploadedFileLike) {
   const buffer = Buffer.from(arrayBuffer);
 
   if (file.type === "application/pdf" || fileName.endsWith(".pdf")) {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+
     try {
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-
+      const parsed = await parser.getText();
+      return parsed.text.trim();
+    } finally {
       try {
-        const parsed = await parser.getText();
-        const text = parsed.text.trim();
-        if (text) {
-          return text;
-        }
-      } finally {
-        try {
-          await parser.destroy();
-        } catch {
-          // Certains PDF déclenchent une erreur de nettoyage dans pdf.js : on privilégie le texte extrait.
-        }
+        await parser.destroy();
+      } catch {
+        // Certains PDF déclenchent une erreur de nettoyage dans pdf.js : on privilégie le texte extrait.
       }
-    } catch (error) {
-      const fallbackText = await extractPdfTextWithPdf2Json(buffer);
-      if (fallbackText) {
-        return fallbackText;
-      }
-
-      throw error;
     }
   }
 
   return buffer.toString("utf8").trim();
-}
-
-async function extractPdfTextWithPdf2Json(buffer: Buffer) {
-  const { default: PDFParser } = await import("pdf2json");
-
-  return await new Promise<string>((resolve, reject) => {
-    const parser = new PDFParser(null, true);
-
-    parser.on("pdfParser_dataReady", () => {
-      try {
-        resolve(parser.getRawTextContent().trim());
-      } catch (error) {
-        reject(error);
-      } finally {
-        parser.destroy();
-      }
-    });
-
-    parser.on("pdfParser_dataError", (error) => {
-      try {
-        const parserError = "parserError" in error ? error.parserError : error;
-        reject(parserError);
-      } finally {
-        parser.destroy();
-      }
-    });
-
-    try {
-      parser.parseBuffer(buffer);
-    } catch (error) {
-      parser.destroy();
-      reject(error);
-    }
-  });
 }
 
 export const POST = handle(async (req) => {
@@ -170,7 +124,7 @@ export const POST = handle(async (req) => {
   let rescored = 0;
 
   for (const job of jobs) {
-    const scoring = await scoreJob(
+    const scoring = scoreJob(
       {
         title: job.title,
         company: job.company,
@@ -179,7 +133,7 @@ export const POST = handle(async (req) => {
         source: job.source,
         description: job.jobDescription,
       },
-      { mode: "heuristic", allowOpenAI: false, candidateProfile: profile },
+      { candidateProfile: profile },
     );
 
     if (scoring.score !== job.score && (await updateJobScore(user.id, job.id, scoring.score))) {

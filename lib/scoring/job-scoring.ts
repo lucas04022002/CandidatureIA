@@ -17,10 +17,8 @@ interface JobForScoring {
 interface ScoreResult {
   score: number;
   reason: string;
-  source: "openai" | "heuristic";
+  source: "heuristic";
 }
-
-export type ScoringMode = "heuristic" | "hybrid" | "openai";
 
 function clampScore(value: number) {
   if (!Number.isFinite(value)) return 50;
@@ -185,112 +183,11 @@ function heuristicScoreForProfile(job: JobForScoring, candidateProfile: Candidat
   };
 }
 
-function extractJsonFromText(text: string) {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return null;
-  try {
-    return JSON.parse(match[0]) as { score?: number; reason?: string };
-  } catch {
-    return null;
-  }
-}
-
-async function scoreWithOpenAIForProfile(
-  job: JobForScoring,
-  candidateProfile: CandidateProfile,
-): Promise<ScoreResult | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
-
-  const model = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
-  const prompt = [
-    "Tu notes la compatibilite d'une offre pour un candidat.",
-    "Reponds en JSON strict: {\"score\": number, \"reason\": string}.",
-    "score: entier 0-100.",
-    `Profil candidat: role="${getEffectiveCandidateRole(candidateProfile)}".`,
-    `Resume: ${candidateProfile.summary}.`,
-    `Competences: ${candidateProfile.technicalSkills.join(", ") || "Aucune precisee"}.`,
-    `Soft skills: ${candidateProfile.softSkills.join(", ") || "Aucune precisee"}.`,
-    `Experience: ${candidateProfile.experienceHighlights.join(" | ") || "Aucune precisee"}.`,
-    `Offre: titre="${job.title}", entreprise="${job.company}", lieu="${job.location}", contrat="${job.contract}", source="${job.source}".`,
-    `Description: ${compactText(job.description) || "Aucune description fournie."}`,
-  ].join("\n");
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un evaluateur de matching emploi multi-metier. Reponds uniquement en JSON valide.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) return null;
-
-  const parsed = extractJsonFromText(content);
-  if (!parsed || typeof parsed.score !== "number") return null;
-
-  return {
-    score: clampScore(parsed.score),
-    reason: parsed.reason?.toString() || "Scoring OpenAI",
-    source: "openai",
-  };
-}
-
-export function getScoringMode(): ScoringMode {
-  const raw = (process.env.SCORING_MODE || "heuristic").trim().toLowerCase();
-  if (raw === "openai" || raw === "hybrid" || raw === "heuristic") return raw;
-  return "heuristic";
-}
-
-export function getMaxOpenAIScoresPerRun(mode: ScoringMode): number {
-  const parsed = Number(process.env.MAX_OPENAI_SCORES_PER_RUN ?? "");
-  if (Number.isFinite(parsed) && parsed >= 0) return Math.floor(parsed);
-  if (mode === "openai") return 50;
-  if (mode === "hybrid") return 5;
-  return 0;
-}
-
 interface ScoreJobOptions {
-  mode?: ScoringMode;
-  allowOpenAI?: boolean;
   candidateProfile?: CandidateProfile;
 }
 
-export async function scoreJob(job: JobForScoring, options: ScoreJobOptions = {}): Promise<ScoreResult> {
-  const mode = options.mode ?? getScoringMode();
-  const allowOpenAI = options.allowOpenAI ?? mode !== "heuristic";
+export function scoreJob(job: JobForScoring, options: ScoreJobOptions = {}): ScoreResult {
   const candidateProfile = options.candidateProfile ?? fallbackCandidateProfile;
-
-  if (mode === "heuristic" || !allowOpenAI) {
-    return heuristicScoreForProfile(job, candidateProfile);
-  }
-
-  try {
-    const ai = await scoreWithOpenAIForProfile(job, candidateProfile);
-    if (ai) return ai;
-    return heuristicScoreForProfile(job, candidateProfile);
-  } catch {
-    return heuristicScoreForProfile(job, candidateProfile);
-  }
+  return heuristicScoreForProfile(job, candidateProfile);
 }

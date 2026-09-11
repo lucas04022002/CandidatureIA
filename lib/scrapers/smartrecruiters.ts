@@ -92,7 +92,7 @@ function parseCompanyTokens() {
   );
 }
 
-function isConfigured() {
+export function isConfigured() {
   return parseCompanyTokens().length > 0;
 }
 

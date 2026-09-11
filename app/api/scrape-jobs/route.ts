@@ -4,8 +4,8 @@ import { requireUser } from "@/lib/auth/session";
 import { checkSearchQuota } from "@/lib/rate-limit";
 import { recordSearchRun } from "@/lib/db/queries/quotas";
 import { getActiveCandidateProfile } from "@/lib/candidate-profile";
-import { getMaxOpenAIScoresPerRun, getScoringMode, scoreJob } from "@/lib/scoring/job-scoring";
-import { scrapeAll, type ScrapedJob } from "@/lib/scrapers/registry";
+import { scoreJob } from "@/lib/scoring/job-scoring";
+import { SCRAPERS, scrapeAll, type ScrapedJob } from "@/lib/scrapers/registry";
 import { sanitizeJobDescription } from "@/lib/sanitize-text";
 import {
   backfillJobs,
@@ -76,6 +76,8 @@ function normalizeSourceIssue(reason: string | undefined, source: string) {
 
   return message;
 }
+
+const labelByScraperKey = new Map(SCRAPERS.map((scraper) => [scraper.key, scraper.label]));
 
 function normalizeFilterValue(value: string | undefined) {
   return value?.trim().toLowerCase() || "";
@@ -178,28 +180,22 @@ export const POST = handle(async (req) => {
     ]),
   );
 
-  const results = await scrapeAll(payload);
+  const { jobs: aggregatedJobs, sources } = await scrapeAll(payload);
   const sourceErrors: string[] = [];
   const successfulSources: string[] = [];
-  const aggregatedJobs: ScrapedJob[] = [];
 
-  for (const result of results) {
-    if (result.ok) {
-      aggregatedJobs.push(...result.jobs);
-      successfulSources.push(result.source);
-      for (const warning of result.warnings) {
-        pushUnique(sourceErrors, normalizeSourceIssue(warning, result.source));
-      }
+  for (const outcome of sources) {
+    const label = labelByScraperKey.get(outcome.key) ?? outcome.key;
+    if (outcome.error) {
+      pushUnique(sourceErrors, normalizeSourceIssue(outcome.error, label));
     } else {
-      pushUnique(sourceErrors, normalizeSourceIssue(result.reason, result.source));
+      successfulSources.push(label);
     }
   }
 
   if (!successfulSources.length) {
-    return json(
-      { ok: false, error: `Aucune source active. Détails: ${sourceErrors.join(" | ")}` },
-      { status: 502 },
-    );
+    const details = sourceErrors.length ? ` Détails: ${sourceErrors.join(" | ")}` : "";
+    return json({ ok: false, error: `Aucune source active.${details}` }, { status: 502 });
   }
 
   const uniqueJobsByFingerprint = new Map<string, ScrapedJob>();
@@ -297,26 +293,22 @@ export const POST = handle(async (req) => {
     });
   }
 
-  const scoringMode = getScoringMode();
-  const maxOpenAIScores = getMaxOpenAIScoresPerRun(scoringMode);
   const candidateProfile = await getActiveCandidateProfile(user.id);
 
-  const scoredJobs = await Promise.all(
-    jobsToInsert.map(async (job, index) => {
-      const scoring = await scoreJob(
-        {
-          title: job.title,
-          company: job.company,
-          location: job.location,
-          contract: job.contract,
-          source: job.source,
-          description: job.jobDescription,
-        },
-        { mode: scoringMode, allowOpenAI: index < maxOpenAIScores, candidateProfile },
-      );
-      return { ...job, score: scoring.score };
-    }),
-  );
+  const scoredJobs = jobsToInsert.map((job) => {
+    const scoring = scoreJob(
+      {
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        contract: job.contract,
+        source: job.source,
+        description: job.jobDescription,
+      },
+      { candidateProfile },
+    );
+    return { ...job, score: scoring.score };
+  });
 
   const inserted = await insertJobs(user.id, scoredJobs);
   const backfilled = await backfillJobs(user.id, jobsToBackfill);
@@ -332,7 +324,6 @@ export const POST = handle(async (req) => {
     sourceMode,
     sourcesUsed: successfulSources,
     sourceErrors,
-    scoringMode,
     message:
       inserted.length > 0 || backfilled > 0 || removed > 0
         ? `${inserted.length} offre(s) ajoutée(s), ${backfilled} lien(s) mis à jour, ${removed} offre(s) obsolète(s) retirée(s).`

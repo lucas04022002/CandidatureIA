@@ -2,7 +2,7 @@ import { assertSameOrigin, handle, json } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { getActiveCandidateProfile } from "@/lib/candidate-profile";
 import { getJobRows, updateJobScore } from "@/lib/db/queries/jobs";
-import { getScoringMode, scoreJob } from "@/lib/scoring/job-scoring";
+import { scoreJob } from "@/lib/scoring/job-scoring";
 
 export const POST = handle(async (req) => {
   assertSameOrigin(req);
@@ -13,7 +13,7 @@ export const POST = handle(async (req) => {
   let updated = 0;
 
   for (const job of jobs) {
-    const scoring = await scoreJob(
+    const scoring = scoreJob(
       {
         title: job.title,
         company: job.company,
@@ -22,7 +22,7 @@ export const POST = handle(async (req) => {
         source: job.source,
         description: job.jobDescription,
       },
-      { mode: "heuristic", allowOpenAI: false, candidateProfile },
+      { candidateProfile },
     );
 
     if (job.score !== scoring.score && (await updateJobScore(user.id, job.id, scoring.score))) {
@@ -32,7 +32,6 @@ export const POST = handle(async (req) => {
 
   return json({
     ok: true,
-    scoringMode: getScoringMode(),
     total: jobs.length,
     updated,
     message: `${updated} offre(s) rescorrée(s).`,

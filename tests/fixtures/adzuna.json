@@ -1,0 +1,31 @@
+{
+  "results": [
+    {
+      "title": "Développeur Full Stack",
+      "description": "Poste au sein d'une équipe produit, stack Node.js et React.",
+      "redirect_url": "https://www.adzuna.fr/land/ad/1000001",
+      "contract_type": "permanent",
+      "contract_time": "full_time",
+      "company": { "display_name": "Entreprise Alpha" },
+      "location": { "display_name": "Lyon, Rhône" }
+    },
+    {
+      "title": "Chargé de communication",
+      "description": "Gestion des réseaux sociaux et du contenu éditorial.",
+      "redirect_url": "https://www.adzuna.fr/land/ad/1000002",
+      "contract_type": "contract",
+      "contract_time": "full_time",
+      "company": { "display_name": "Entreprise Beta" },
+      "location": { "display_name": "Bordeaux, Gironde" }
+    },
+    {
+      "title": "Assistant marketing",
+      "description": "Support aux campagnes marketing digitales.",
+      "redirect_url": "https://www.adzuna.fr/land/ad/1000003",
+      "contract_type": "permanent",
+      "contract_time": "part_time",
+      "company": { "display_name": "Entreprise Gamma" },
+      "location": { "display_name": "Nantes, Loire-Atlantique" }
+    }
+  ]
+}

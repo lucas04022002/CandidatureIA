@@ -72,7 +72,7 @@ function withTimeoutSignal(timeoutMs: number) {
   return { signal: controller.signal, clear: () => clearTimeout(timeout) };
 }
 
-function isConfigured() {
+export function isConfigured() {
   return Boolean(process.env.FRANCE_TRAVAIL_CLIENT_ID && process.env.FRANCE_TRAVAIL_CLIENT_SECRET);
 }
 

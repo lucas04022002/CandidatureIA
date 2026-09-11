@@ -111,7 +111,7 @@ function parseApiKey() {
   );
 }
 
-function isConfigured() {
+export function isConfigured() {
   return Boolean(parseApiKey());
 }
 

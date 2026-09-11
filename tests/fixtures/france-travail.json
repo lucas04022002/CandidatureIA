@@ -1,0 +1,24 @@
+{
+  "resultats": [
+    {
+      "id": "OFFRE0001",
+      "intitule": "Développeur backend Python",
+      "typeContrat": "CDI",
+      "typeContratLibelle": "Contrat à durée indéterminée",
+      "lieuTravail": { "libelle": "75 - Paris", "commune": "75056" },
+      "entreprise": { "nom": "Société Delta" },
+      "origineOffre": { "urlOrigine": "https://candidat.francetravail.fr/offres/recherche/detail/OFFRE0001" },
+      "description": "Développement et maintenance d'API internes."
+    },
+    {
+      "id": "OFFRE0002",
+      "intitule": "Technicien support informatique",
+      "typeContrat": "CDD",
+      "typeContratLibelle": "Contrat à durée déterminée",
+      "lieuTravail": { "libelle": "69 - Lyon", "commune": "69123" },
+      "entreprise": { "nom": "Société Epsilon" },
+      "origineOffre": { "urlOrigine": "https://candidat.francetravail.fr/offres/recherche/detail/OFFRE0002" },
+      "description": "Support utilisateurs et gestion du parc informatique."
+    }
+  ]
+}

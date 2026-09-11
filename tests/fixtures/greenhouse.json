@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "id": 111,
+      "title": "Ingénieur QA",
+      "absolute_url": "https://boards.greenhouse.io/exemple/jobs/111",
+      "content": "<p>Tests automatisés et manuels sur la plateforme.</p>",
+      "location": { "name": "Remote France" },
+      "metadata": [{ "name": "Type de contrat", "value": "CDI" }]
+    },
+    {
+      "id": 112,
+      "title": "Stage - Data analyst",
+      "absolute_url": "https://boards.greenhouse.io/exemple/jobs/112",
+      "content": "<p>Analyse des données produit, stage de 6 mois.</p>",
+      "location": { "name": "Paris" },
+      "metadata": []
+    }
+  ]
+}

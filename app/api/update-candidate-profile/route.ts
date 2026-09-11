@@ -41,7 +41,7 @@ export const POST = handle(async (req) => {
   let rescored = 0;
 
   for (const job of jobs) {
-    const scoring = await scoreJob(
+    const scoring = scoreJob(
       {
         title: job.title,
         company: job.company,
@@ -50,7 +50,7 @@ export const POST = handle(async (req) => {
         source: job.source,
         description: job.jobDescription,
       },
-      { mode: "heuristic", allowOpenAI: false, candidateProfile },
+      { candidateProfile },
     );
 
     if (scoring.score !== job.score && (await updateJobScore(user.id, job.id, scoring.score))) {

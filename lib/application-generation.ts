@@ -14,7 +14,7 @@ export interface GeneratedApplicationTexts {
   letterText: string;
   emailText: string;
   linkedInText: string;
-  source: "openai" | "heuristic";
+  source: "heuristic";
 }
 
 function toAsciiLower(value: unknown) {
@@ -455,7 +455,7 @@ export function buildLinkedIn(job: JobForGeneration, candidateProfile: Candidate
   return `Bonjour, je me permets de vous contacter pour le poste ${job.title} chez ${job.company}. Je recherche actuellement ${contractProfile.article} ${contractProfile.label} cohérent${contractProfile.article === "une" ? "e" : ""} avec mon projet, je suis ${effectiveRole.toLowerCase()} et je pense pouvoir être utile notamment grâce à ${firstAngle}. Seriez-vous disponible pour un court échange ?`;
 }
 
-function buildHeuristicTexts(
+export function generateApplicationTexts(
   job: JobForGeneration,
   candidateProfile: CandidateProfile,
 ): GeneratedApplicationTexts {
@@ -465,123 +465,4 @@ function buildHeuristicTexts(
     linkedInText: buildLinkedIn(job, candidateProfile),
     source: "heuristic",
   };
-}
-
-interface OpenAIGenerationPayload {
-  letter?: string;
-  email?: string;
-  linkedin?: string;
-}
-
-async function generateWithOpenAI(
-  rawJob: JobForGeneration,
-  candidateProfile: CandidateProfile,
-): Promise<GeneratedApplicationTexts | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
-
-  const job = normalizeJobForGeneration(rawJob);
-
-  const model = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
-  const effectiveRole = getEffectiveRole(candidateProfile);
-  const template = candidateProfile.baseLetterTemplate?.trim();
-
-  const prompt = [
-    "Rédige trois textes de candidature en français, personnalisés pour l'offre ci-dessous.",
-    'Réponds en JSON strict : {"letter": string, "email": string, "linkedin": string}.',
-    "",
-    "Contraintes :",
-    "- letter : lettre de motivation complète (250-350 mots), commençant par une ligne « Objet : ... », ton professionnel et naturel, sans flatterie excessive, qui relie concrètement les expériences du candidat aux missions de l'offre. Termine par une formule de politesse, le nom, l'email et le téléphone du candidat.",
-    "- email : email de candidature court (120-180 mots), direct, qui mentionne où l'offre a été vue et donne 2-3 arguments concrets.",
-    "- linkedin : message LinkedIn de 3-4 phrases maximum, qui propose un court échange.",
-    "- N'invente aucune expérience, aucun diplôme, aucun chiffre : utilise uniquement les informations du profil.",
-    "- Orthographe et accents français irréprochables.",
-    template ? "- Inspire-toi du style et des éléments de la lettre de base du candidat fournie ci-dessous, sans la recopier telle quelle." : "",
-    "",
-    `Profil candidat :`,
-    `- Nom : ${candidateProfile.fullName}`,
-    `- Poste recherché : ${effectiveRole}`,
-    `- Localisation : ${candidateProfile.location}`,
-    `- Email : ${candidateProfile.email}`,
-    `- Téléphone : ${candidateProfile.phone || "non renseigné"}`,
-    `- Résumé : ${candidateProfile.summary}`,
-    `- Compétences techniques : ${candidateProfile.technicalSkills.join(", ") || "non renseignées"}`,
-    `- Soft skills : ${candidateProfile.softSkills.join(", ") || "non renseignés"}`,
-    `- Expériences : ${candidateProfile.experienceHighlights.join(" | ") || "non renseignées"}`,
-    template ? `- Lettre de base du candidat : ${template}` : "",
-    "",
-    `Offre :`,
-    `- Titre : ${job.title}`,
-    `- Entreprise : ${job.company}`,
-    `- Lieu : ${job.location}`,
-    `- Contrat : ${job.contract}`,
-    `- Source : ${job.source}`,
-    `- Description : ${compactText(job.job_description) || "Aucune description fournie."}`,
-  ]
-    .filter((line) => line !== "")
-    .join("\n");
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.6,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un assistant de rédaction de candidatures en français. Réponds uniquement en JSON valide.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) return null;
-
-  let parsed: OpenAIGenerationPayload | null = null;
-  try {
-    parsed = JSON.parse(content) as OpenAIGenerationPayload;
-  } catch {
-    return null;
-  }
-
-  const letterText = parsed.letter?.trim();
-  const emailText = parsed.email?.trim();
-  const linkedInText = parsed.linkedin?.trim();
-
-  if (!letterText || !emailText || !linkedInText) {
-    return null;
-  }
-
-  return { letterText, emailText, linkedInText, source: "openai" };
-}
-
-export async function generateApplicationTexts(
-  job: JobForGeneration,
-  candidateProfile: CandidateProfile,
-): Promise<GeneratedApplicationTexts> {
-  try {
-    const generated = await generateWithOpenAI(job, candidateProfile);
-    if (generated) {
-      return generated;
-    }
-  } catch {
-    // Fallback heuristique ci-dessous.
-  }
-
-  return buildHeuristicTexts(job, candidateProfile);
 }

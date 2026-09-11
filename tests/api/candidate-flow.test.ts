@@ -37,20 +37,22 @@ vi.mock("@/lib/scrapers/registry", () => {
     score: 70,
     status: "Nouveau" as const,
   });
+  const jobs = [
+    job("Developpeur frontend", "Alpha"),
+    job("Developpeur backend", "Beta"),
+    job("Data analyst", "Gamma"),
+  ];
+  const testScraper = {
+    key: "test",
+    label: "Test",
+    isConfigured: () => true,
+    enabled: () => true,
+    scrape: async () => jobs,
+  };
   return {
-    SCRAPERS: [{ source: "Test", run: async () => ({ ok: true as const, jobs: [] }) }],
-    scrapeAll: async () => [
-      {
-        source: "Test",
-        ok: true,
-        jobs: [
-          job("Developpeur frontend", "Alpha"),
-          job("Developpeur backend", "Beta"),
-          job("Data analyst", "Gamma"),
-        ],
-        warnings: [],
-      },
-    ],
+    SCRAPERS: [testScraper],
+    activeScrapers: () => [testScraper],
+    scrapeAll: async () => ({ jobs, sources: [{ key: "test", count: jobs.length }] }),
   };
 });
 
