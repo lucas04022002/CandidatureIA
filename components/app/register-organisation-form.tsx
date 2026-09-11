@@ -40,6 +40,8 @@ export function RegisterOrganisationForm() {
         router.push("/dashboard");
         router.refresh();
       }, 1500);
+    } catch {
+      setError("Une erreur est survenue.");
     } finally {
       setPending(false);
     }

@@ -11,8 +11,8 @@ export class OrgCodeError extends Error {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- exécuteur partagé entre `db` et une transaction (`tx`), dont les types génériques diffèrent selon le pilote.
-type Executor = any;
+// Exécuteur partagé entre `db` et une transaction (`tx`) : les deux exposent `.select`/`.insert`/…
+type Executor = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
 
 async function countActiveTraineesWith(executor: Executor, organisationId: string) {
   const [row] = await executor

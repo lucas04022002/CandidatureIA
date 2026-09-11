@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { signSession } from "@/lib/auth/jwt";
 import { setSessionCookie } from "@/lib/auth/session";
 import { registerResponsableWithNewOrganisation } from "@/lib/db/queries/organisations";
+import { checkIpAttempts, getClientIp, recordIpAttempt } from "@/lib/rate-limit";
 
 const Body = z.object({
   organisationName: z.string().min(2).max(120),
@@ -13,6 +14,11 @@ const Body = z.object({
 
 export const POST = handle(async (req) => {
   assertSameOrigin(req);
+
+  const ip = getClientIp(req);
+  await checkIpAttempts(ip);
+  await recordIpAttempt(ip);
+
   const b = await readJson(req, Body);
   try {
     const { organisation, user } = await registerResponsableWithNewOrganisation({

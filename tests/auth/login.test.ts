@@ -40,14 +40,41 @@ describe("connexion, session, déconnexion", () => {
     });
   });
 
-  it("bon mot de passe → 200 + cookie", async () => {
+  it("bon mot de passe → 200 + cookie (flags conformes)", async () => {
     const r = await login(
       request("/api/auth/login", { body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }) }),
       {},
     );
     expect(r.status).toBe(200);
-    expect(r.headers.get("set-cookie")).toMatch(/ab_session=/);
+    const setCookie = r.headers.get("set-cookie") ?? "";
+    expect(setCookie).toMatch(/ab_session=/);
+    expect(setCookie).toMatch(/HttpOnly/i);
+    expect(setCookie).toMatch(/SameSite=Lax/i);
+    expect(setCookie).toMatch(/Path=\//);
+    expect(setCookie).toMatch(/Max-Age=604800/);
     setSessionCookieFromResponse(r);
+  });
+
+  it("origine cross-site (sec-fetch-site) → 403", async () => {
+    const r = await login(
+      request("/api/auth/login", {
+        headers: { "sec-fetch-site": "cross-site" },
+        body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }),
+      }),
+      {},
+    );
+    expect(r.status).toBe(403);
+  });
+
+  it("origine différente du host → 403", async () => {
+    const r = await login(
+      request("/api/auth/login", {
+        headers: { origin: "https://evil.example" },
+        body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }),
+      }),
+      {},
+    );
+    expect(r.status).toBe(403);
   });
 
   it("mauvais mot de passe → 401", async () => {

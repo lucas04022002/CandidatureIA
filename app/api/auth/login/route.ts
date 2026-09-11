@@ -4,8 +4,8 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { signSession } from "@/lib/auth/jwt";
 import { setSessionCookie } from "@/lib/auth/session";
 import { findUserByEmail, touchLogin } from "@/lib/db/queries/users";
-import { recordLoginAttempt } from "@/lib/db/queries/quotas";
-import { checkLoginAttempts } from "@/lib/rate-limit";
+import { deleteLoginAttempts, recordLoginAttempt } from "@/lib/db/queries/quotas";
+import { checkIpAttempts, checkLoginAttempts, getClientIp, recordIpAttempt } from "@/lib/rate-limit";
 
 const Body = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 
@@ -20,6 +20,11 @@ function dummyHash() {
 
 export const POST = handle(async (req) => {
   assertSameOrigin(req);
+
+  const ip = getClientIp(req);
+  await checkIpAttempts(ip);
+  await recordIpAttempt(ip);
+
   const b = await readJson(req, Body);
   const email = b.email.toLowerCase();
 
@@ -31,6 +36,9 @@ export const POST = handle(async (req) => {
   if (!user || !ok) throw new HttpError(401, "E-mail ou mot de passe incorrect");
 
   await touchLogin(user.id);
+  // Une connexion réussie efface les essais précédents : un utilisateur légitime qui s'est trompé
+  // quelques fois ne doit jamais finir bloqué par ses propres erreurs passées.
+  await deleteLoginAttempts(email);
 
   const res = json({ id: user.id, email: user.email, role: user.role, organisationId: user.organisationId });
   setSessionCookie(res, await signSession({ userId: user.id, role: user.role }));

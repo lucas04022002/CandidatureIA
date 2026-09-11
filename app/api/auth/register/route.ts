@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { signSession } from "@/lib/auth/jwt";
 import { setSessionCookie } from "@/lib/auth/session";
 import { registerTraineeWithCode, OrgCodeError } from "@/lib/db/queries/organisations";
+import { checkIpAttempts, getClientIp, recordIpAttempt } from "@/lib/rate-limit";
 
 const Body = z.object({
   email: z.string().email().max(200),
@@ -19,6 +20,11 @@ const MESSAGES = {
 
 export const POST = handle(async (req) => {
   assertSameOrigin(req);
+
+  const ip = getClientIp(req);
+  await checkIpAttempts(ip);
+  await recordIpAttempt(ip);
+
   const b = await readJson(req, Body);
   try {
     const user = await registerTraineeWithCode({
