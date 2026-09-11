@@ -1,31 +1,11 @@
-import { NextResponse } from "next/server";
-import { getActiveCandidateProfile } from "@/lib/candidate-profile";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { z } from "zod";
+import { assertSameOrigin, handle, json, readJson } from "@/lib/http";
+import { requireUser } from "@/lib/auth/session";
+import { getActiveCandidateProfile, type CandidateProfile } from "@/lib/candidate-profile";
+import { getApplicationRow, setFollowup } from "@/lib/db/queries/applications";
+import { getJobById, type JobRow } from "@/lib/db/queries/jobs";
 
-interface GenerateFollowupPayload {
-  applicationId?: string;
-}
-
-interface ApplicationWithJobRow {
-  id: string;
-  status: string;
-  sent_at: string | null;
-  email_text: string | null;
-  jobs:
-    | {
-        title: string;
-        company: string;
-        location: string;
-        contract: string;
-      }
-    | {
-        title: string;
-        company: string;
-        location: string;
-        contract: string;
-      }[]
-    | null;
-}
+const Body = z.object({ applicationId: z.string().uuid() });
 
 function addDays(date: Date, days: number) {
   const copy = new Date(date);
@@ -34,19 +14,10 @@ function addDays(date: Date, days: number) {
 }
 
 function asDateLabel(date: Date) {
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function buildFollowupEmail(
-  row: ApplicationWithJobRow,
-  sendDateHint: string,
-  candidateProfile: Awaited<ReturnType<typeof getActiveCandidateProfile>>,
-) {
-  const job = Array.isArray(row.jobs) ? row.jobs[0] : row.jobs;
+function buildFollowupEmail(job: JobRow | null, sendDateHint: string, candidateProfile: CandidateProfile) {
   const title = job?.title ?? "votre offre";
   const company = job?.company ?? "votre entreprise";
   const location = job?.location ?? "";
@@ -67,70 +38,31 @@ ${candidateProfile.phone}
 Relance conseillée à partir du ${sendDateHint}.`;
 }
 
-export async function POST(request: Request) {
-  const payload = (await request.json().catch(() => ({}))) as GenerateFollowupPayload;
+export const POST = handle(async (req) => {
+  assertSameOrigin(req);
+  const user = await requireUser();
+  const b = await readJson(req, Body);
 
-  if (!payload.applicationId) {
-    return NextResponse.json({ ok: false, error: "applicationId est requis." }, { status: 400 });
-  }
+  const application = await getApplicationRow(user.id, b.applicationId);
+  if (!application) return json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
 
-  const supabase = createSupabaseServerClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { ok: false, error: "Supabase non configuré côté serveur." },
-      { status: 500 },
-    );
-  }
-
-  const applicationsTable = supabase.from("applications");
-
-  const { data, error } = await applicationsTable
-    .select(
-      "id,status,sent_at,email_text,jobs!applications_job_id_fkey(title,company,location,contract)",
-    )
-    .eq("id", payload.applicationId)
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json(
-      { ok: false, error: `Lecture candidature impossible: ${error.message}` },
-      { status: 500 },
-    );
-  }
-
-  if (!data) {
-    return NextResponse.json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
-  }
-
-  const row = data as ApplicationWithJobRow;
-  const candidateProfile = await getActiveCandidateProfile();
-  const sentReference = row.sent_at ? new Date(row.sent_at) : new Date();
-  const suggestedDate = addDays(sentReference, 4);
+  const job = await getJobById(user.id, application.jobId);
+  const candidateProfile = await getActiveCandidateProfile(user.id);
+  const suggestedDate = addDays(application.sentAt ?? new Date(), 4);
   const suggestedDateLabel = asDateLabel(suggestedDate);
+  const followupEmailText = buildFollowupEmail(job, suggestedDateLabel, candidateProfile);
 
-  const followupEmailText = buildFollowupEmail(row, suggestedDateLabel, candidateProfile);
+  const updated = await setFollowup(user.id, application.id, followupEmailText, suggestedDate);
+  if (!updated) return json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
 
-  const { error: updateError } = await applicationsTable
-    .update({
-      followup_email_text: followupEmailText,
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq("id", row.id);
-
-  if (updateError) {
-    return NextResponse.json(
-      { ok: false, error: `Sauvegarde de la relance impossible: ${updateError.message}` },
-      { status: 500 },
-    );
-  }
-
-  const warning = row.status !== "Envoyé" ? "Relance générée: pense à marquer la candidature comme 'Envoyé'." : undefined;
-
-  return NextResponse.json({
+  return json({
     ok: true,
     message: "Relance J+4 générée.",
-    warning,
+    warning:
+      application.status !== "Envoyé"
+        ? "Relance générée: pense à marquer la candidature comme 'Envoyé'."
+        : undefined,
     suggestedDate: suggestedDateLabel,
     followupEmailText,
   });
-}
+});

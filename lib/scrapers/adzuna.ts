@@ -44,7 +44,7 @@ function withTimeoutSignal(timeoutMs: number) {
   return { signal: controller.signal, clear: () => clearTimeout(timeout) };
 }
 
-function isConfigured() {
+export function isConfigured() {
   return Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY);
 }
 

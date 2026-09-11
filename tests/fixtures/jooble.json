@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "title": "Vendeur en boutique",
+      "company": "Boutique Zeta",
+      "location": "Marseille",
+      "type": "CDI",
+      "link": "https://jooble.org/desc/1",
+      "snippet": "Accueil et conseil client en magasin."
+    },
+    {
+      "title": "Alternant assistant RH",
+      "company": "Groupe Eta",
+      "location": "Lille",
+      "type": "Alternance",
+      "link": "https://jooble.org/desc/2",
+      "snippet": "Support aux recrutements et à l'administration du personnel."
+    }
+  ]
+}

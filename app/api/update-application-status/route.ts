@@ -1,98 +1,25 @@
-import { NextResponse } from "next/server";
-import { APPLICATION_STATUSES, type ApplicationStatus } from "@/lib/types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { z } from "zod";
+import { assertSameOrigin, handle, json, readJson } from "@/lib/http";
+import { requireUser } from "@/lib/auth/session";
+import { updateApplicationStatus } from "@/lib/db/queries/applications";
+import { updateJobStatus } from "@/lib/db/queries/jobs";
+import { APPLICATION_STATUSES } from "@/lib/types";
 
-interface UpdateStatusPayload {
-  applicationId?: string;
-  status?: ApplicationStatus;
-}
+const Body = z.object({
+  applicationId: z.string().uuid(),
+  status: z.enum(APPLICATION_STATUSES),
+});
 
-interface ApplicationLinkRow {
-  id: string;
-  job_id: string;
-  sent_at: string | null;
-}
+export const POST = handle(async (req) => {
+  assertSameOrigin(req);
+  const user = await requireUser();
+  const b = await readJson(req, Body);
 
-function isValidStatus(value: unknown): value is ApplicationStatus {
-  return typeof value === "string" && APPLICATION_STATUSES.includes(value as ApplicationStatus);
-}
+  const application = await updateApplicationStatus(user.id, b.applicationId, b.status);
+  if (!application) return json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
 
-export async function POST(request: Request) {
-  const payload = (await request.json().catch(() => ({}))) as UpdateStatusPayload;
+  // L'offre suit le statut de sa candidature : même filtre `userId`, jamais l'id brut du corps.
+  if (application.jobId) await updateJobStatus(user.id, application.jobId, b.status);
 
-  if (!payload.applicationId) {
-    return NextResponse.json({ ok: false, error: "applicationId est requis." }, { status: 400 });
-  }
-
-  if (!isValidStatus(payload.status)) {
-    return NextResponse.json({ ok: false, error: "Statut invalide." }, { status: 400 });
-  }
-
-  const supabase = createSupabaseServerClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { ok: false, error: "Supabase non configuré côté serveur." },
-      { status: 500 },
-    );
-  }
-
-  const applicationsTable = supabase.from("applications");
-  const jobsTable = supabase.from("jobs");
-
-  const { data: appLinkData, error: appLinkError } = await applicationsTable
-    .select("id,job_id,sent_at")
-    .eq("id", payload.applicationId)
-    .maybeSingle();
-
-  if (appLinkError) {
-    return NextResponse.json(
-      { ok: false, error: `Impossible de lire la candidature: ${appLinkError.message}` },
-      { status: 500 },
-    );
-  }
-
-  if (!appLinkData) {
-    return NextResponse.json({ ok: false, error: "Candidature introuvable." }, { status: 404 });
-  }
-
-  const appLink = appLinkData as ApplicationLinkRow;
-  const shouldSetSentAt = payload.status === "Envoyé" && !appLink.sent_at;
-  const nowIso = new Date().toISOString();
-
-  const { error: appUpdateError } = await applicationsTable
-    .update({
-      status: payload.status,
-      updated_at: nowIso,
-      ...(shouldSetSentAt ? { sent_at: nowIso } : {}),
-    } as never)
-    .eq("id", appLink.id);
-
-  if (appUpdateError) {
-    return NextResponse.json(
-      { ok: false, error: `Impossible de mettre à jour la candidature: ${appUpdateError.message}` },
-      { status: 500 },
-    );
-  }
-
-  const { error: jobUpdateError } = await jobsTable
-    .update({
-      status: payload.status,
-      updated_at: nowIso,
-    } as never)
-    .eq("id", appLink.job_id);
-
-  if (jobUpdateError) {
-    return NextResponse.json(
-      {
-        ok: true,
-        warning: `Statut candidature mis à jour, mais pas celui de l'offre: ${jobUpdateError.message}`,
-      },
-      { status: 200 },
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    message: `Statut mis à jour: ${payload.status}`,
-  });
-}
+  return json({ ok: true, message: `Statut mis à jour: ${b.status}` });
+});

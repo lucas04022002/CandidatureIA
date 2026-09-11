@@ -1,0 +1,16 @@
+.git
+node_modules
+.next
+.env
+.env.*
+!.env.example
+tests
+docs
+*.md
+.superpowers
+.claude
+coverage
+*.tsbuildinfo
+data
+tmp
+.vscode

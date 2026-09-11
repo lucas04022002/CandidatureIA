@@ -1,0 +1,16 @@
+[
+  {
+    "text": "Ingénieur logiciel Node.js",
+    "descriptionPlain": "Développement de services backend en Node.js et TypeScript.",
+    "hostedUrl": "https://jobs.lever.co/exemple/kappa",
+    "categories": { "location": "Paris", "commitment": "Full-time", "team": "Engineering" },
+    "workplaceType": "hybrid"
+  },
+  {
+    "text": "Stage - Chargé de projet marketing",
+    "descriptionPlain": "Participation aux campagnes marketing et au reporting.",
+    "hostedUrl": "https://jobs.lever.co/exemple/lambda",
+    "categories": { "location": "Remote", "commitment": "Internship", "team": "Marketing" },
+    "workplaceType": "remote"
+  }
+]

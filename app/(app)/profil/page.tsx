@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { FileTextIcon, MapPinIcon, TargetIcon, UserIcon } from "@/components/app/icons";
+import { AccountActions } from "@/components/app/account-actions";
 import { PageHeader } from "@/components/app/page-header";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
-import {
-  getApplications,
-  getCandidateProfileSummary,
-  getJobs,
-} from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getApplications } from "@/lib/db/queries/applications";
+import { getJobs } from "@/lib/db/queries/jobs";
+import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
 import {
   getActiveCandidateProfile,
   getCandidateSearchKeywords,
@@ -32,14 +32,17 @@ function computeProfileReadiness(profile: Awaited<ReturnType<typeof getActiveCan
 }
 
 export default async function ProfilPage() {
-  const [profileSummaryResult, profile, jobsResult, applicationsResult] = await Promise.all([
-    getCandidateProfileSummary(),
-    getActiveCandidateProfile(),
-    getJobs(),
-    getApplications(),
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const [profileSummary, profile, jobs, applications] = await Promise.all([
+    getCandidateProfileSummary(session.id),
+    getActiveCandidateProfile(session.id),
+    getJobs(session.id),
+    getApplications(session.id),
   ]);
 
-  const sourceCounts = jobsResult.data.reduce<Record<string, number>>((accumulator, job) => {
+  const sourceCounts = jobs.reduce<Record<string, number>>((accumulator, job) => {
     for (const label of job.sourceLabels) {
       accumulator[label] = (accumulator[label] ?? 0) + 1;
     }
@@ -49,11 +52,8 @@ export default async function ProfilPage() {
   const effectiveRole = getEffectiveCandidateRole(profile);
   const searchKeywords = getCandidateSearchKeywords(profile);
   const readiness = computeProfileReadiness(profile);
-  const sentCount = applicationsResult.data.filter((application) => application.status === "Envoyé").length;
-  const draftCount = applicationsResult.data.filter((application) => application.status === "Brouillon").length;
-  const sourceError = [profileSummaryResult.error, jobsResult.error, applicationsResult.error]
-    .filter(Boolean)
-    .join(" ");
+  const sentCount = applications.filter((application) => application.status === "Envoyé").length;
+  const draftCount = applications.filter((application) => application.status === "Brouillon").length;
 
   return (
     <div className="space-y-6">
@@ -72,8 +72,6 @@ export default async function ProfilPage() {
         }
       />
 
-      <DataSourceBanner source={profileSummaryResult.source} error={sourceError || undefined} />
-
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card>
           <CardContent className="space-y-5 p-6">
@@ -82,7 +80,7 @@ export default async function ProfilPage() {
               <div className="min-w-[260px] flex-1 space-y-3">
                 <div>
                   <p className="label-xs">
-                    Profil actif · {profileSummaryResult.data.source === "imported" ? "CV importe" : "profil par defaut"}
+                    Profil actif · {profileSummary.source === "imported" ? "CV importe" : "profil par defaut"}
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
                     {profile.fullName}
@@ -117,7 +115,7 @@ export default async function ProfilPage() {
                   Offres suivies
                 </p>
                 <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
-                  {jobsResult.data.length}
+                  {jobs.length}
                 </p>
               </div>
               <div className="rounded-[18px] border border-[var(--border)] bg-[var(--card-soft)]/55 p-4">
@@ -311,6 +309,27 @@ export default async function ProfilPage() {
                 </Link>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Mes données</CardTitle>
+              <p className="mt-1 text-sm text-[var(--foreground-dim)]">
+                Export au format JSON et suppression définitive du compte (RGPD).
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-6 text-[var(--foreground-dim)]">
+              L&apos;export contient ton profil, tes offres et tes candidatures. La suppression
+              efface immédiatement ces mêmes données, libère ton adresse e-mail et, si tu es
+              rattaché à un organisme, libère ta place.
+            </p>
+            <AccountActions />
           </CardContent>
         </Card>
       </section>

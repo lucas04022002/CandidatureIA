@@ -58,7 +58,6 @@ export function ScrapeJobsButton({
         message?: string;
         error?: string;
         sourceMode?: string;
-        scoringMode?: string;
         sourcesUsed?: string[];
         sourceErrors?: string[];
       };
@@ -74,17 +73,12 @@ export function ScrapeJobsButton({
           : typedPayload.sourceMode === "multi-source-api"
             ? "Sources: multi-source."
             : "Source: inconnue.";
-      const scoringLabel = typedPayload.scoringMode
-        ? ` Scoring: ${typedPayload.scoringMode}.`
-        : "";
       const warningsLabel =
         typedPayload.sourceErrors && typedPayload.sourceErrors.length > 0
           ? ` Avertissements: ${typedPayload.sourceErrors.slice(0, 2).join(" | ")}`
           : "";
 
-      setFeedback(
-        `${typedPayload.message ?? "Scraping terminé."} ${sourceLabel}${scoringLabel}${warningsLabel}`,
-      );
+      setFeedback(`${typedPayload.message ?? "Scraping terminé."} ${sourceLabel}${warningsLabel}`);
       startTransition(() => {
         router.refresh();
       });

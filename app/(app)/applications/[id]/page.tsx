@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationStatusActions } from "@/components/app/application-status-actions";
 import { CopyTextButton } from "@/components/app/copy-text-button";
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { GenerateFollowupButton } from "@/components/app/generate-followup-button";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getApplicationById } from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getApplicationById } from "@/lib/db/queries/applications";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +54,11 @@ function DraftSection({
 }
 
 export default async function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { id } = await params;
-  const applicationResult = await getApplicationById(id);
-  const application = applicationResult.data;
+  const application = await getApplicationById(session.id, id);
 
   if (!application) {
     notFound();
@@ -94,8 +97,6 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
           </div>
         </div>
       </section>
-
-      <DataSourceBanner source={applicationResult.source} error={applicationResult.error} />
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card>

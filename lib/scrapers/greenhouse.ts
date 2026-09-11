@@ -70,7 +70,7 @@ function parseBoardTokens() {
   );
 }
 
-function isConfigured() {
+export function isConfigured() {
   return parseBoardTokens().length > 0;
 }
 

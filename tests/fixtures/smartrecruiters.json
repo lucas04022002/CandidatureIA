@@ -1,0 +1,53 @@
+{
+  "list": {
+    "totalFound": 2,
+    "content": [
+      {
+        "id": "posting-1",
+        "name": "Chef de projet digital",
+        "company": { "name": "Groupe Mu" },
+        "location": { "city": "Toulouse", "country": "France", "fullLocation": "Toulouse, France" },
+        "typeOfEmployment": { "label": "Full-time" }
+      },
+      {
+        "id": "posting-2",
+        "name": "Alternant développeur mobile",
+        "company": { "name": "Groupe Mu" },
+        "location": { "city": "Toulouse", "country": "France", "fullLocation": "Toulouse, France" },
+        "typeOfEmployment": { "label": "Apprenticeship" }
+      }
+    ]
+  },
+  "details": {
+    "posting-1": {
+      "id": "posting-1",
+      "name": "Chef de projet digital",
+      "postingUrl": "https://careers.smartrecruiters.com/GroupeMu/posting-1",
+      "company": { "name": "Groupe Mu" },
+      "location": { "city": "Toulouse", "country": "France", "fullLocation": "Toulouse, France" },
+      "jobAd": {
+        "sections": {
+          "jobDescription": {
+            "title": "Description",
+            "text": "<p>Pilotage de projets digitaux pour des clients grands comptes.</p>"
+          }
+        }
+      }
+    },
+    "posting-2": {
+      "id": "posting-2",
+      "name": "Alternant développeur mobile",
+      "postingUrl": "https://careers.smartrecruiters.com/GroupeMu/posting-2",
+      "company": { "name": "Groupe Mu" },
+      "location": { "city": "Toulouse", "country": "France", "fullLocation": "Toulouse, France" },
+      "jobAd": {
+        "sections": {
+          "jobDescription": {
+            "title": "Description",
+            "text": "<p>Développement d'applications mobiles iOS et Android.</p>"
+          }
+        }
+      }
+    }
+  }
+}

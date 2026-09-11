@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScoreGauge } from "@/components/app/score-gauge";
 import { Chip } from "@/components/ui/chip";
+import { LegalFooter } from "@/components/app/legal-footer";
 
 export default function Home() {
   return (
@@ -14,14 +15,14 @@ export default function Home() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">ApplyBot</p>
-            <p className="text-xs text-[var(--foreground-faint)]">AI Career OS</p>
+            <p className="text-xs text-[var(--foreground-faint)]">Votre pilote de candidatures</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/onboarding">
+          <Link href="/login">
             <Button variant="ghost">Se connecter</Button>
           </Link>
-          <Link href="/onboarding">
+          <Link href="/login">
             <Button>Commencer</Button>
           </Link>
         </div>
@@ -121,6 +122,8 @@ export default function Home() {
           ))}
         </section>
       </main>
+
+      <LegalFooter />
     </div>
   );
 }

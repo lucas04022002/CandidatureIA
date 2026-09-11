@@ -54,7 +54,7 @@ export function JobsTable({ jobs, limit }: JobsTableProps) {
             <tr>
               <th className="px-4 py-3 font-medium">Poste</th>
               <th className="px-4 py-3 font-medium">Source</th>
-              <th className="px-4 py-3 font-medium">Score IA</th>
+              <th className="px-4 py-3 font-medium">Score</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Action</th>
             </tr>

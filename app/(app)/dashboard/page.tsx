@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BriefcaseIcon, BoltIcon, FileTextIcon, UserIcon } from "@/components/app/icons";
 import { CvUploadCard } from "@/components/app/cv-upload-card";
-import { DataSourceBanner } from "@/components/app/data-source-banner";
 import { EmptyState } from "@/components/app/empty-state";
 import { GenerateApplicationButton } from "@/components/app/generate-application-button";
 import { ScoreGauge } from "@/components/app/score-gauge";
@@ -10,12 +9,11 @@ import { StatusBadge } from "@/components/app/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import type { Application, CandidateProfileSummary, Job } from "@/lib/types";
-import {
-  getApplications,
-  getCandidateProfileSummary,
-  getDashboardStats,
-  getJobs,
-} from "@/lib/supabase/queries";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getApplications } from "@/lib/db/queries/applications";
+import { getDashboardStats, getJobs } from "@/lib/db/queries/jobs";
+import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
 
 export const dynamic = "force-dynamic";
 
@@ -77,23 +75,18 @@ function getPriorityJobs(jobs: Job[]) {
 }
 
 export default async function DashboardPage() {
-  const [jobsResult, applicationsResult, statsResult, candidateProfileResult] = await Promise.all([
-    getJobs(),
-    getApplications(),
-    getDashboardStats(),
-    getCandidateProfileSummary(),
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const [jobs, applications, stats, profile] = await Promise.all([
+    getJobs(session.id),
+    getApplications(session.id),
+    getDashboardStats(session.id),
+    getCandidateProfileSummary(session.id),
   ]);
 
-  const jobs = jobsResult.data;
-  const applications = applicationsResult.data;
-  const stats = statsResult.data;
-  const profile = candidateProfileResult.data;
   const priorityJobs = getPriorityJobs(jobs);
   const activity = buildActivity(jobs, applications, profile);
-  const source = jobsResult.source === "supabase" ? "supabase" : applicationsResult.source;
-  const error = [jobsResult.error, applicationsResult.error, statsResult.error, candidateProfileResult.error]
-    .filter(Boolean)
-    .join(" ");
 
   return (
     <div className="space-y-6">
@@ -128,8 +121,6 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </section>
-
-      <DataSourceBanner source={source} error={error || undefined} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
@@ -253,7 +244,7 @@ export default async function DashboardPage() {
                     <thead className="border-b border-[var(--border)] text-[10.5px] uppercase tracking-[0.16em] text-[var(--foreground-faint)]">
                       <tr>
                         <th className="px-4 py-3 font-medium">Poste</th>
-                        <th className="px-4 py-3 font-medium">Score IA</th>
+                        <th className="px-4 py-3 font-medium">Score</th>
                         <th className="px-4 py-3 font-medium">Statut</th>
                         <th className="px-4 py-3 font-medium text-right">Action</th>
                       </tr>
