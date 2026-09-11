@@ -1,160 +1,98 @@
 # ApplyBot
 
-ApplyBot est une base SaaS IA pour automatiser la préparation de candidatures:
+ApplyBot est un SaaS **B2B** pour organismes de formation : chaque organisme
+inscrit ses stagiaires, qui utilisent l'outil pour préparer leurs
+candidatures. Pas d'IA (aucun appel OpenAI ni équivalent) : la génération de
+lettres/e-mails/messages LinkedIn et le scoring des offres sont **heuristiques**,
+pas de dépendance à une API tierce payante pour la partie génération.
 
-- dashboard (`/dashboard`)
-- pipeline d'offres (`/jobs`)
-- candidatures générées (`/applications`)
+- `/dashboard` : tableau de bord du stagiaire
+- `/jobs` : pipeline d'offres collectées
+- `/applications` : candidatures générées, suivi de statut
+- `/organisme` : espace responsable d'organisme (activation, places, membres)
+- `/admin` : administration ApplyBot (validation des organismes)
 
-Roadmap monétisation (plans, quotas, points de vigilance): voir [`docs/PRICING.md`](docs/PRICING.md).
+Roadmap monétisation (plans, quotas, points de vigilance) : voir
+[`docs/PRICING.md`](docs/PRICING.md).
 
 ## Stack
 
-- Next.js App Router + TypeScript
-- Tailwind CSS
-- Supabase (DB + Auth)
+- Next.js App Router + TypeScript, Tailwind CSS
+- **Postgres** (Drizzle ORM) — [`drizzle-orm/node-postgres`](https://orm.drizzle.team/)
+  en production, [PGlite](https://pglite.dev/) (Postgres compilé en WASM, un
+  fichier local) en développement — même schéma, même SQL, deux pilotes
+  interchangeables via `DATABASE_URL` (voir `lib/db/client.ts`)
+- Authentification maison (pas de service tiers) : mot de passe haché
+  (`hash-wasm`), session signée en JWT (`jose`) — voir `lib/auth/`
 
-## Authentification
-
-L'app est protégée par Supabase Auth (email + mot de passe):
-
-- `/login`: connexion / inscription
-- `proxy.ts`: redirige les visiteurs non connectés et renvoie 401 sur `/api/*`
-- chaque table porte un `user_id` avec des policies RLS `auth.uid() = user_id`
-
-Configuration côté Supabase:
-
-1. activer le provider Email dans Authentication > Providers
-2. appliquer la migration `supabase/migrations/20260611_000012_add_user_auth_rls.sql`
-3. pour rattacher des données existantes à ton compte, suivre le bloc commenté de la migration (backfill `user_id`)
-
-## Lancer le projet
+## Lancer le projet en local
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env
 ```
 
-## Configurer Supabase
+Éditer `.env` :
 
-Créer un fichier `.env.local`:
+- `DATABASE_URL=pglite://./data/dev` : base Postgres locale, un fichier sous
+  `data/` (créé automatiquement, ignoré par Git). Pas d'installation Postgres
+  nécessaire pour développer.
+- `JWT_SECRET` : générer une chaîne aléatoire d'au moins 32 caractères, par
+  exemple `openssl rand -hex 32`.
+- Les autres variables (`FRANCE_TRAVAIL_*`, `ADZUNA_*`, `JOOBLE_API_KEY`,
+  `LBA_API_KEY`, `GREENHOUSE_BOARD_TOKENS`, `LEVER_COMPANY_TOKENS`,
+  `SMARTRECRUITERS_COMPANY_TOKENS`) sont facultatives : une source sans clé
+  est simplement désactivée, sans erreur.
+
+Puis :
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-FRANCE_TRAVAIL_CLIENT_ID=...
-FRANCE_TRAVAIL_CLIENT_SECRET=...
-# optionnel:
-FRANCE_TRAVAIL_TOKEN_URL=https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=/partenaire
-FRANCE_TRAVAIL_API_BASE_URL=https://api.francetravail.io/partenaire/offresdemploi/v2
-FRANCE_TRAVAIL_SCOPE=api_offresdemploiv2 o2dsoffre
-ADZUNA_APP_ID=...
-ADZUNA_APP_KEY=...
-ADZUNA_COUNTRY=fr
-JOOBLE_API_KEY=...
-LBA_API_KEY=...
-LBA_API_BASE_URL=https://api.apprentissage.beta.gouv.fr/api
-GREENHOUSE_BOARD_TOKENS=acme,another-company
-LEVER_COMPANY_TOKENS=plaid,company-two
-SMARTRECRUITERS_COMPANY_TOKENS=Believe,AccorCorpo,KIABI
-OPENAI_API_KEY=...
-OPENAI_MODEL=gpt-4.1-mini
-SCORING_MODE=heuristic
-MAX_OPENAI_SCORES_PER_RUN=5
+npm run db:migrate    # applique les migrations Drizzle (drizzle/) sur DATABASE_URL
+npm run create-admin  # crée le premier compte administrateur (invite e-mail + mot de passe)
+npm run dev            # http://127.0.0.1:3000 — préférer 127.0.0.1 à localhost (voir note plus bas)
 ```
 
-Sans ces variables, l'UI ne peut pas lire/écrire les données.
+> Sur Windows, `http://localhost` peut ajouter plusieurs secondes de latence
+> par requête (résolution IPv6 avant repli IPv4) ; utiliser `127.0.0.1`
+> directement.
 
-## Créer la base Supabase
+## Scripts
 
-Exécuter le SQL de migration:
+| Commande | Rôle |
+| --- | --- |
+| `npm run dev` | serveur de développement |
+| `npm run build` | build de production (`output: "standalone"`, voir `next.config.ts`) |
+| `npm run start` | démarre le build de production |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | suite de tests (Vitest) |
+| `npm run db:generate` | génère une migration Drizzle à partir de `lib/db/schema.ts` |
+| `npm run db:migrate` | applique les migrations sur `DATABASE_URL` |
+| `npm run create-admin` | crée le compte administrateur (un seul, refuse si un existe déjà) |
+| `npm run purge-inactive` | purge RGPD des comptes sans connexion depuis 12 mois (`lib/legal.ts`, `RETENTION_MONTHS`) — cron en production, voir `deploy/crontab.txt` |
 
-- tous les fichiers de `supabase/migrations/` dans l'ordre
-
-Le script init crée:
-
-- `jobs`
-- `applications`
-- status enum + indexes
-
-Les données de démonstration sont dans `supabase/seed.sql` (optionnel).
-
-## Scraping MVP
-
-Endpoint disponible:
-
-- `POST /api/scrape-jobs`
-- `POST /api/generate-application`
-- `POST /api/rescore-jobs`
-
-Comportement:
-
-- tente un scraping réel via France Travail, Adzuna, Jooble, La bonne alternance, Greenhouse, Lever et SmartRecruiters (si configurés)
-- renvoie une erreur explicite si credentials absents/erreur API
-- évite les doublons (titre + entreprise + lieu)
-- insère les nouvelles offres dans `jobs`
-- met à jour les anciennes offres avec les nouveaux liens/descriptions quand possible
-- accepte des filtres (`keywords`, `location`, `contract`, `limit`, `remoteOnly`)
-- score chaque offre automatiquement (OpenAI si configuré, sinon heuristique locale)
-
-Configuration Greenhouse:
-
-- `GREENHOUSE_BOARD_TOKENS` accepte une liste séparée par virgules de `board tokens`
-- exemple: `GREENHOUSE_BOARD_TOKENS=doctolib,alan,backmarket`
-- chaque token correspond au segment `{board_token}` de l'API publique Greenhouse  
-  Source: [Greenhouse Job Board API](https://developers.greenhouse.io/job-board.html)
-
-Configuration Lever:
-
-- `LEVER_COMPANY_TOKENS` accepte une liste séparée par virgules de `company tokens`
-- exemple: `LEVER_COMPANY_TOKENS=plaid,convex`
-- le scraper utilise l'endpoint public `https://api.lever.co/v0/postings/{company}?mode=json`
-
-Configuration SmartRecruiters:
-
-- `SMARTRECRUITERS_COMPANY_TOKENS` accepte une liste séparée par virgules de `company tokens`
-- exemple orienté profils non-tech / mass market:
-  `SMARTRECRUITERS_COMPANY_TOKENS=Believe,AccorCorpo,KIABI`
-- le scraper utilise les endpoints publics :
-  `https://api.smartrecruiters.com/v1/companies/{company}/postings`
-  et `https://api.smartrecruiters.com/v1/companies/{company}/postings/{id}`
-
-Exemples de packs de tokens utiles:
-
-- Greenhouse: `doctolib,mirakl`
-- Lever: `malt,aircall,spendesk`
-- SmartRecruiters: `Believe,AccorCorpo,KIABI`
-
-Configuration La bonne alternance:
-
-- `LBA_API_KEY` accepte le jeton obtenu sur l'espace développeurs officiel
-- optionnel: `LBA_API_BASE_URL=https://api.apprentissage.beta.gouv.fr/api`
-- le scraper utilise `GET /job/v1/search`
-- source officielle: [API Apprentissage](https://api.apprentissage.beta.gouv.fr/)
-- cette source est particulièrement utile pour l'alternance
-- l'API est annoncée comme réservée aux usages non lucratifs dans la documentation officielle
-
-Modes de scoring:
-
-- `SCORING_MODE=heuristic`: gratuit, aucun appel OpenAI
-- `SCORING_MODE=hybrid`: scoring mixte (OpenAI limité par `MAX_OPENAI_SCORES_PER_RUN`)
-- `SCORING_MODE=openai`: OpenAI prioritaire (fallback heuristique si échec OpenAI)
-
-`POST /api/generate-application`:
-
-- prend `jobId` en entrée
-- génère lettre, email et message LinkedIn personnalisés
-- utilise OpenAI si `OPENAI_API_KEY` est défini, sinon un mode heuristique local
-- crée ou met à jour la table `applications`
-
-`POST /api/rescore-jobs`:
-
-- recalcule les scores des offres déjà en base
-- utile après changement de logique de scoring
-
-## Vérification
+## Tests
 
 ```bash
-npm run lint
-npm run build
+npm test
 ```
+
+Vitest, environnement Node. Les tests qui touchent la base utilisent PGlite
+par défaut (`tests/setup.ts` fixe `DATABASE_URL=pglite://memory` si elle
+n'est pas déjà définie) — aucune base à installer pour lancer la suite. La CI
+(`.github/workflows/ci.yml`) exécute en plus la même suite sur un vrai
+Postgres 16, pour couvrir les deux pilotes de `lib/db/client.ts`.
+
+## Sources d'offres
+
+`POST /api/scrape-jobs` interroge, selon les clés configurées : France
+Travail, Adzuna, Jooble, La Bonne Alternance, Greenhouse, Lever et
+SmartRecruiters. Détail de configuration de chaque source (tokens, formats,
+liens vers les API publiques) : voir les commentaires de `.env.example` et
+`lib/scrapers/`.
+
+## Déploiement
+
+Guide complet (Hetzner + Coolify, variables d'environnement, migration
+automatique au démarrage, cron de purge RGPD, étapes avant ouverture au
+public) : [`deploy/coolify.md`](deploy/coolify.md).

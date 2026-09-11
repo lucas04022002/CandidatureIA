@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: applybot
+          POSTGRES_PASSWORD: applybot
+          POSTGRES_DB: applybot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U applybot -d applybot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Secret de test, jamais utilisé ailleurs qu'en CI (≥ 32 caractères, imposé par lib/auth/session.ts).
+      JWT_SECRET: test-secret-for-ci-not-a-real-secret-00000
+      TRUSTED_PROXY_HOPS: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      # Suite de tests sur Postgres réel (le pilote de production, lib/db/client.ts branche
+      # drizzle-orm/node-postgres quand DATABASE_URL commence par postgres://).
+      #
+      # --no-file-parallelism : chaque fichier de test qui touche la base (tests/setup-db.ts,
+      # resetDatabase) fait `drop schema public cascade` puis remigre avant ses propres tests. Avec
+      # Postgres, cette base est un service PARTAGÉ entre tous les fichiers de test du job : les
+      # exécuter en parallèle les ferait courir les uns sur les autres (un fichier droppe le schéma
+      # pendant qu'un autre est en plein test) — pas juste plus lent, réellement incorrect. Avec
+      # PGlite (ci-dessous), chaque processus de test ouvre sa propre base en mémoire
+      # (DATABASE_URL=pglite://memory) : l'isolation est automatique, mais on garde le même
+      # flag par cohérence et parce que ça a aussi éliminé des timeouts de hook observés en local
+      # sous forte contention (nombreuses instances PGlite lancées en même temps).
+      - name: Tests (Postgres)
+        run: npx vitest run --no-file-parallelism
+        env:
+          DATABASE_URL: postgres://applybot:applybot@localhost:5432/applybot
+
+      # Même suite sur PGlite (le pilote par défaut en dev et dans .env.example), pour exercer les
+      # deux branches de lib/db/client.ts.
+      - name: Tests (PGlite)
+        run: npx vitest run --no-file-parallelism
+        env:
+          DATABASE_URL: pglite://memory
+
+      # DATABASE_URL et JWT_SECRET sont nécessaires même ici : lib/db/client.ts et lib/auth/session.ts
+      # lisent process.env dès l'import (effet de bord au chargement du module, pas seulement à l'appel),
+      # et Next.js importe les modules de toutes les routes API pendant le build (phase « Collecting page
+      # data ») pour les analyser — sans ces variables `npm run build` échoue (vérifié en local : retrait
+      # de DATABASE_URL/JWT_SECRET fait échouer le build avec « DATABASE_URL manquante »). On utilise ici
+      # l'URL Postgres du service (pas pglite://memory comme pour les tests) : constaté en local que
+      # pglite://memory pendant le build fait remonter des erreurs Turbopack sans gravité mais bruyantes
+      # (résolution du chemin du binaire wasm de PGlite pendant le traçage des assets) ; aucune requête
+      # n'est réellement exécutée à cette étape (open() ne fait que construire un `Pool` `pg`, sans
+      # connexion immédiate), donc l'URL n'a pas besoin d'être joignable au sens strict — elle l'est de
+      # toute façon ici, le service `postgres` tourne pendant tout le job.
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgres://applybot:applybot@localhost:5432/applybot
+
+      # Garde 1 : aucun fichier .env (autre que .env.example) ne doit jamais être commité.
+      - name: Garde — pas de .env commité
+        run: |
+          ! git ls-files | grep -E '^\.env($|\.)' | grep -v '^\.env\.example$'
+
+      # Garde 2 : aucune trace d'IA (OpenAI) ou de Supabase (l'ancienne stack B2C) dans le code
+      # applicatif — ApplyBot v2 est un SaaS B2B sans IA, Postgres + auth maison.
+      - name: Garde — pas d'IA ni de Supabase dans le code
+        run: |
+          ! grep -rniE "openai|supabase|sk-[a-z0-9]{20}" app lib components
+
+  # Job séparé : construit l'image Docker pour détecter tôt une régression du Dockerfile (étape de
+  # build cassée, fichier copié manquant...). Ce n'est PAS le déploiement — Coolify reconstruit et
+  # déploie l'image lui-même depuis le dépôt (voir deploy/coolify.md) ; ce job ne fait que vérifier
+  # que `docker build` réussit, dans un job distinct pour qu'un échec soit visible séparément des
+  # `checks` applicatifs.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: docker build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: applybot:ci
