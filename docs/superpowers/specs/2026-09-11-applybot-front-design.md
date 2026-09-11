@@ -19,9 +19,25 @@
 | `--color-ink` | `#101226` | texte principal |
 | `--color-grey` | `#6B6D7C` | texte secondaire (AA sur paper et white) |
 | `--color-line` | `#E2E0D8` | filets |
-| `--color-good` / `--color-warn` / `--color-bad` | `#1E7F4F` / `#B5730A` / `#B3261E` | sémantique des états, jamais décoratif |
+| `--color-good` / `--color-warn` / `--color-bad` | `#176A42` / `#8A5606` / `#B3261E` | sémantique des états, jamais décoratif (AA sur `paper`, `white` **et** leur fond `-soft`) |
 
 Règle : **aucune couleur hors jetons** dans `app/`, `components/` (test de grep, comme RushPlay), et test de contraste des paires texte/fond (AA 4,5:1).
+
+`good` et `warn` ont été assombris le 12/09 (`#1E7F4F` → `#176A42`, `#B5730A` → `#8A5606`) : la garde
+de contraste ne couvrait que les fonds `paper` et `white`, et les deux jetons sortaient à 4,35:1 et
+3,45:1 sur leur propre fond `-soft` — le bandeau « CV importé » et les messages d'avertissement
+étaient sous AA depuis le début. Les paires `warn`/`warn-soft`, `good`/`good-soft`, `bad`/`bad-soft`,
+`klein-deep`/`klein-soft` et `good`/`paper` sont désormais dans la garde.
+
+`grey` sur `klein-soft` (4,26:1) reste **hors garde** et le jeton `--color-grey` est inchangé : la
+combinaison n'existe sur aucun écran (toutes les surfaces `bg-klein-soft` portent `text-klein-deep`
+ou `text-klein`), et assombrir le gris secondaire de toute l'interface pour elle serait payer un
+coût de design réel pour un gain nul. À la place, un grep dédié interdit de l'écrire
+(`tests/ui/contrast.test.ts`, « gris sur bleu clair »).
+
+Focus : le contour global est `2px solid var(--color-klein)`, repassé en **blanc** pour tout élément
+focalisable descendant d'une surface `.bg-klein` (barres, accueil) où le bleu se confondait avec le
+fond — et remis en bleu sur un panneau `.bg-white` imbriqué dans le bleu (menu mobile du `Shell`).
 
 Typographie (Google Fonts via `next/font/google`, `display: swap`) : **Syne** (titres, 700/800, interlettrage −0,02 à −0,04 em), **Instrument Sans** (texte, 400/500/600), **JetBrains Mono** (métadonnées d'offre, horodatages, codes d'organisme), **Barlow Condensed** (tampon uniquement). Échelle : 13 / 15 / 17 / 22 / 28 / 40 / 64 px, interligne 1,55 pour le texte, 0,95 pour les titres. `tabular-nums` partout où des chiffres s'alignent.
 

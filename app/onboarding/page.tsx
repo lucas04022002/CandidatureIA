@@ -12,8 +12,8 @@ export default async function OnboardingPage() {
   const profile = await getCandidateProfileSummary(session.id);
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
       <OnboardingWizard initialProfile={profile} />
-    </div>
+    </main>
   );
 }

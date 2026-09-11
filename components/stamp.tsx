@@ -27,7 +27,6 @@ export function Stamp({ status, className }: StampProps) {
   const config = STAMP_CONFIG[status];
   return (
     <span
-      aria-label={status}
       className={cn(
         "font-stamp uppercase tracking-[0.14em] border-[2.5px] rounded-stamp px-2.5 py-1.5 inline-block stamp-mask",
         config.color,

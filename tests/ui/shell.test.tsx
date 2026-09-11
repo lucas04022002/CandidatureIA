@@ -137,3 +137,38 @@ describe("Shell — marque, compte et contenu", () => {
     }
   });
 });
+
+describe("Shell — lien d'évitement", () => {
+  it("premier élément focalisable de l'en-tête, il pointe sur le <main>", () => {
+    const { container } = render(
+      <Shell user={user("stagiaire")}>
+        <p>contenu</p>
+      </Shell>,
+    );
+
+    const link = screen.getByRole("link", { name: "Aller au contenu" });
+    expect(link).toHaveAttribute("href", "#contenu");
+
+    // « Premier » au sens du clavier : c'est bien le premier lien rencontré dans l'en-tête,
+    // avant la marque et les liens de navigation — sinon il n'évite rien.
+    const header = container.querySelector("header") as HTMLElement;
+    expect(header.querySelector("a")).toBe(link);
+
+    // La cible existe vraiment : un lien d'évitement qui pointe dans le vide est pire que rien.
+    const main = container.querySelector("main") as HTMLElement;
+    expect(main).toHaveAttribute("id", "contenu");
+    expect(container.querySelector("#contenu")).toBe(main);
+  });
+
+  it("caché à l'œil, rendu visible au focus (et non `hidden`, qui le sortirait du parcours)", () => {
+    render(
+      <Shell user={user("stagiaire")}>
+        <p>contenu</p>
+      </Shell>,
+    );
+    const link = screen.getByRole("link", { name: "Aller au contenu" });
+    const classes = link.className.split(/\s+/);
+    expect(classes).toContain("sr-only");
+    expect(classes).toContain("focus:not-sr-only");
+  });
+});

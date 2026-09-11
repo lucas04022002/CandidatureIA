@@ -25,9 +25,18 @@ describe("Stamp", () => {
 
   it("n'est pas une région live : un tampon décrit un état déjà à l'écran", () => {
     // `role="status"` promettait une annonce à chaque apparition — six tuiles d'offres en
-    // annonçaient six. Le tampon reste un simple texte, nommé pour les lecteurs d'écran.
+    // annonçaient six. Le tampon reste un simple texte.
     render(<Stamp status="Envoyé" />);
     expect(screen.queryAllByRole("status")).toHaveLength(0);
-    expect(screen.getByText("Envoyé")).toHaveAttribute("aria-label", "Envoyé");
+  });
+
+  it("pas d'`aria-label` : il redoublait le texte visible, mot pour mot", () => {
+    // Un `aria-label` égal au contenu ne nomme rien de plus — il remplace le texte par une copie
+    // du texte, et détache l'accessible name de ce qui est à l'écran (rien ne garantit plus qu'ils
+    // restent d'accord). Le texte visible suffit à nommer le tampon.
+    render(<Stamp status="Refusé" />);
+    const el = screen.getByText("Refusé");
+    expect(el).not.toHaveAttribute("aria-label");
+    expect(el.textContent).toBe("Refusé");
   });
 });

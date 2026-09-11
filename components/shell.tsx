@@ -78,7 +78,16 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-paper">
-      <header className="bg-klein text-white">
+      <header className="relative bg-klein text-white">
+        {/* Premier élément focalisable de la page : au clavier, il évite la barre entière (jusqu'à
+            sept liens plus la déconnexion) pour aller au contenu. Invisible tant qu'il n'a pas le
+            focus — `sr-only` et non `hidden`, qui le sortirait du parcours de tabulation. */}
+        <a
+          href="#contenu"
+          className="sr-only rounded-full bg-white px-4 py-2 font-body text-[13.5px] font-semibold text-klein focus:not-sr-only focus:absolute focus:left-6 focus:top-3 focus:z-50"
+        >
+          Aller au contenu
+        </a>
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
           <Link href="/" className="font-display text-[20px] font-extrabold tracking-[-0.01em] text-white">
             ApplyBot
@@ -150,7 +159,9 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      <main id="contenu" className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        {children}
+      </main>
 
       <LegalFooter />
     </div>

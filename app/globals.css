@@ -9,8 +9,8 @@
   --color-ink: #101226;
   --color-grey: #6b6d7c;
   --color-line: #e2e0d8;
-  --color-good: #1e7f4f;
-  --color-warn: #b5730a;
+  --color-good: #176A42;
+  --color-warn: #8A5606;
   --color-bad: #b3261e;
   --color-good-soft: #e3f3ea;
   --color-warn-soft: #fbf1dc;
@@ -50,6 +50,21 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-klein);
   outline-offset: 2px;
+}
+
+/* Sur les surfaces bleues (barre de l'application et barre publique, accueil), le contour bleu Klein
+ * du focus se confond avec le fond : au clavier, le lien actif n'était signalé par rien. On repasse
+ * le contour en blanc pour tout élément focalisable descendant d'un `.bg-klein`. Règle sur le
+ * descendant et non sur l'élément lui-même : les liens de la barre n'ont pas de classe de fond. */
+.bg-klein :focus-visible {
+  outline-color: var(--color-white);
+}
+
+/* …sauf sur un panneau clair posé à l'intérieur du bleu — le menu mobile du `Shell` est un
+ * `<details>` blanc rendu DANS l'en-tête bleu. Sans cette règle, ses liens et son bouton auraient
+ * hérité du contour blanc, invisible sur le blanc : on aurait déplacé le défaut, pas corrigé. */
+.bg-klein .bg-white :focus-visible {
+  outline-color: var(--color-klein);
 }
 
 .stamp-mask {

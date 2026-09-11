@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/button";
 import { Field, Select } from "@/components/field";
@@ -61,6 +61,22 @@ export function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Changer d'étape ne change pas de page : sans cela, le focus reste sur le bouton qu'on vient de
+  // presser (ou revient au début du document), et un lecteur d'écran n'annonce rien de la nouvelle
+  // étape. On le pose sur le titre de l'étape, qui est aussi ce qu'on lirait à voix haute.
+  // `tabIndex={-1}` rend le titre focalisable par programme sans l'ajouter au parcours de tabulation.
+  const heading = useRef<HTMLHeadingElement | null>(null);
+  const mounted = useRef(false);
+  useEffect(() => {
+    // Pas au premier rendu : voler le focus au chargement de la page déplacerait le lecteur
+    // d'écran hors du début du document sans que l'utilisateur ait rien demandé.
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    heading.current?.focus();
+  }, [step]);
 
   async function importCv(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -181,7 +197,7 @@ export function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
           className="h-2 w-full overflow-hidden rounded-full bg-klein-soft"
         >
           <div
-            className="h-full rounded-full bg-klein transition-[width] duration-150"
+            className="h-full rounded-full bg-klein motion-safe:transition-[width] motion-safe:duration-150"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -190,7 +206,11 @@ export function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
       <div className="rounded-tile border border-line bg-white p-6">
         {step === 0 ? (
           <div className="flex flex-col items-start gap-4">
-            <h1 className="font-display text-[28px] font-extrabold leading-none text-ink">
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="font-display text-[28px] font-extrabold leading-none text-ink"
+            >
               On commence par ton CV
             </h1>
             <p className="font-body text-[15px] text-grey">
@@ -217,7 +237,11 @@ export function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
 
         {step === 1 ? (
           <div className="flex flex-col items-start gap-4">
-            <h1 className="font-display text-[28px] font-extrabold leading-none text-ink">
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="font-display text-[28px] font-extrabold leading-none text-ink"
+            >
               Voilà ce qu&apos;on a lu
             </h1>
             <dl className="grid w-full gap-3 sm:grid-cols-2">
@@ -267,7 +291,11 @@ export function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
 
         {step === 2 ? (
           <div className="flex flex-col gap-4">
-            <h1 className="font-display text-[28px] font-extrabold leading-none text-ink">
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="font-display text-[28px] font-extrabold leading-none text-ink"
+            >
               Ton métier et ton lieu
             </h1>
             <div className="grid gap-4 sm:grid-cols-2">
