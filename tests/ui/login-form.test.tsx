@@ -41,11 +41,26 @@ afterEach(() => {
 });
 
 describe("LoginForm — onglet inscription", () => {
+  it("expose l'onglet actif par aria-pressed, sans rôle ARIA d'onglet", () => {
+    // Deux boutons, pas un vrai motif « tablist » : sans tabindex mobile ni navigation aux flèches,
+    // annoncer role="tab" promettrait au lecteur d'écran un clavier qui n'existe pas.
+    render(<LoginForm />);
+    const signin = screen.getByRole("button", { name: "Connexion" });
+    const signup = screen.getByRole("button", { name: "Inscription" });
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(signin).toHaveAttribute("aria-pressed", "true");
+    expect(signup).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(signup);
+    expect(signup).toHaveAttribute("aria-pressed", "true");
+    expect(signin).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("montre le code d'organisme en mono majuscules, limité à 8 caractères, et la case CGU", () => {
     render(<LoginForm />);
     expect(screen.queryByLabelText("Code d'organisme")).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Inscription" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
 
     const code = screen.getByLabelText("Code d'organisme") as HTMLInputElement;
     expect(code).toHaveAttribute("maxLength", "8");
@@ -62,7 +77,7 @@ describe("LoginForm — onglet inscription", () => {
 
   it("met le code en majuscules à la saisie", () => {
     render(<LoginForm />);
-    fireEvent.click(screen.getByRole("tab", { name: "Inscription" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
     const code = screen.getByLabelText("Code d'organisme") as HTMLInputElement;
     fireEvent.change(code, { target: { value: "k7mz4p2r" } });
     expect(code.value).toBe("K7MZ4P2R");
@@ -73,7 +88,7 @@ describe("LoginForm — erreurs de l'API", () => {
   it("affiche la phrase d'aide quand l'API renvoie « Code d'organisme inconnu »", async () => {
     mockFetch(400, { error: "Code d'organisme inconnu" });
     render(<LoginForm />);
-    fireEvent.click(screen.getByRole("tab", { name: "Inscription" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
     fill("E-mail", "camille.test@mail.fr");
     fill("Mot de passe", "motdepasse10");
     fill("Code d'organisme", "K7MZ4P2R");
@@ -122,7 +137,7 @@ describe("LoginForm — corps envoyés à l'API", () => {
   it("inscription : POST /api/auth/register avec { email, password, orgCode, acceptedTerms }", async () => {
     const fetchMock = mockFetch(201, {});
     render(<LoginForm />);
-    fireEvent.click(screen.getByRole("tab", { name: "Inscription" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
     fill("E-mail", "camille.test@mail.fr");
     fill("Mot de passe", "motdepasse10");
     fill("Code d'organisme", "K7MZ4P2R");

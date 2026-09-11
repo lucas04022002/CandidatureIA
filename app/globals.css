@@ -167,23 +167,4 @@ h3 {
   }
 }
 
-.rise {
-  animation: rise-in 0.55s cubic-bezier(0.22, 0.8, 0.25, 1);
-}
-
-@keyframes rise-in {
-  from {
-    transform: translateY(12px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rise {
-    animation: none;
-  }
-}
-
 /* fin du bloc LEGACY */

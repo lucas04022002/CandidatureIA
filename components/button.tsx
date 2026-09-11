@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "onBlue" | "quiet";
@@ -60,10 +61,12 @@ export function Button({
   );
 
   if (href !== undefined) {
+    // `Link` et non `<a>` : un bouton d'action qui recharge toute la page fait perdre la navigation
+    // client de l'App Router (et le préchargement au survol). Le rendu reste une balise <a>.
     return (
-      <a href={href} className={classes} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
+      <Link href={href} className={classes} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
         {content}
-      </a>
+      </Link>
     );
   }
 

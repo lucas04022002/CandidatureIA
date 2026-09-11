@@ -47,7 +47,9 @@ export function Field({ label, error, hint, className, children }: FieldProps) {
       </label>
       {child}
       {error ? (
-        <p id={errorId} className="font-body text-[13px] text-bad">
+        // role="alert" : aria-describedby ne serait lu qu'au focus du champ, donc une erreur
+        // apparue après l'envoi du formulaire passerait inaperçue.
+        <p id={errorId} role="alert" className="font-body text-[13px] text-bad">
           {error}
         </p>
       ) : hint ? (

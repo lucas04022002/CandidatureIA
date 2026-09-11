@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/button";
@@ -45,10 +45,6 @@ export function LoginForm() {
   // `next` vient de la barre d'adresse : jamais utilisé tel quel (open redirect), voir safeNextPath.
   const next = safeNextPath(searchParams.get("next"));
 
-  const reactId = useId();
-  const panelId = `${reactId}-panel`;
-  const tabId = (value: AuthMode) => `${reactId}-${value}`;
-
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -84,15 +80,15 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col">
-      <div role="tablist" aria-label="Connexion ou inscription" className="mb-6 flex gap-5 border-b border-line">
+      {/* Deux boutons, pas un motif ARIA « tablist » : sans tabindex mobile ni navigation aux
+          flèches, annoncer role="tab" promettrait au lecteur d'écran un clavier qui n'existe pas.
+          `aria-pressed` dit exactement ce que fait le bouton — l'un des deux est enfoncé. */}
+      <div className="mb-6 flex gap-5 border-b border-line">
         {MODES.map(([value, label]) => (
           <button
             key={value}
-            id={tabId(value)}
             type="button"
-            role="tab"
-            aria-selected={mode === value}
-            aria-controls={panelId}
+            aria-pressed={mode === value}
             onClick={() => {
               setMode(value);
               setError(null);
@@ -107,7 +103,7 @@ export function LoginForm() {
         ))}
       </div>
 
-      <div id={panelId} role="tabpanel" aria-labelledby={tabId(mode)} className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3.5">
         <Field label="E-mail">
           <input
             type="email"

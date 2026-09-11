@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -14,13 +14,15 @@ interface NavLink {
 }
 
 /**
- * Navigation propre à chaque rôle. Le stagiaire est le seul à avoir un parcours de candidature ;
+ * Navigation propre à chaque rôle. Le stagiaire est le seul à avoir un tableau de bord et un parcours
+ * de candidature ;
  * le responsable ne voit que son organisme (jamais les CV ni les candidatures de ses stagiaires) ;
  * l'admin ne voit que l'administration. « Profil » est commun : c'est de là que tout compte
  * s'exporte et se supprime.
  */
 const LINKS: Record<Role, NavLink[]> = {
   stagiaire: [
+    { href: "/dashboard", label: "Tableau de bord" },
     { href: "/jobs", label: "Offres" },
     { href: "/applications", label: "Candidatures" },
     { href: "/suivi", label: "Suivi" },
@@ -67,6 +69,13 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
   const links = LINKS[user.role];
   const { pending, signOut } = useSignOut();
 
+  // Un `<details>` natif reste ouvert quand le lien qu'il contient navigue : sans cela, le panneau
+  // du menu mobile recouvrirait la page d'arrivée. On le referme à chaque changement de chemin.
+  const menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname]);
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-paper">
       <header className="bg-klein text-white">
@@ -75,14 +84,14 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
             ApplyBot
           </Link>
 
-          <nav aria-label="Navigation principale" className="ml-auto hidden items-center gap-6 md:flex">
+          <nav aria-label="Navigation principale" className="ml-auto hidden items-center gap-5 md:flex lg:gap-6">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={isActive(pathname, link.href) ? "page" : undefined}
                 className={cn(
-                  "font-body text-[13.5px] text-white transition duration-150",
+                  "whitespace-nowrap font-body text-[13.5px] text-white transition duration-150",
                   isActive(pathname, link.href)
                     ? "border-b-2 border-white pb-[3px] font-semibold"
                     : "opacity-90 hover:opacity-100",
@@ -93,26 +102,36 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
             ))}
           </nav>
 
-          <div className="ml-6 hidden items-center gap-4 md:flex">
-            <span className="font-body text-[12.5px] text-white opacity-90">{user.email}</span>
+          <div className="ml-5 hidden items-center gap-4 md:flex">
+            <span className="hidden whitespace-nowrap font-body text-[12.5px] text-white opacity-90 lg:inline">
+              {user.email}
+            </span>
             <button
               type="button"
               onClick={signOut}
               disabled={pending}
-              className="rounded-full border border-white px-3.5 py-1.5 font-body text-[13px] font-medium text-white transition duration-150 hover:bg-white hover:text-klein disabled:opacity-50"
+              className="whitespace-nowrap rounded-full border border-white px-3.5 py-1.5 font-body text-[13px] font-medium text-white transition duration-150 hover:bg-white hover:text-klein disabled:opacity-50"
             >
               Se déconnecter
             </button>
           </div>
 
-          <details className="relative ml-auto md:hidden">
+          <details ref={menu} className="relative ml-auto md:hidden">
             <summary className="cursor-pointer list-none rounded-full border border-white px-3.5 py-1.5 font-body text-[13px] font-medium text-white">
               Menu
             </summary>
             <div className="absolute right-0 z-50 mt-3 flex w-64 flex-col gap-3 rounded-tile border border-line bg-white p-4 text-ink">
               <nav aria-label="Navigation principale (mobile)" className="flex flex-col gap-2">
                 {links.map((link) => (
-                  <Link key={link.href} href={link.href} className="font-body text-[15px] text-ink">
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={isActive(pathname, link.href) ? "page" : undefined}
+                    className={cn(
+                      "font-body text-[15px] text-ink",
+                      isActive(pathname, link.href) ? "font-semibold" : null,
+                    )}
+                  >
                     {link.label}
                   </Link>
                 ))}
