@@ -1,49 +1,46 @@
 import { HttpError } from "@/lib/http";
 import { countCvImportsSince, countLoginAttemptsSince, countSearchRunsSince } from "@/lib/db/queries/quotas";
 
-// Quotas quotidiens (calés sur minuit local) : valeurs par défaut raisonnables, ajustables sans
-// changer de logique tant qu'un besoin produit plus précis n'est pas formulé.
-export const SEARCH_QUOTA_PER_DAY = Number(process.env.SEARCH_QUOTA_PER_DAY ?? 5);
-export const IMPORT_QUOTA_PER_DAY = Number(process.env.IMPORT_QUOTA_PER_DAY ?? 3);
+// Quotas fixés par la spec (contraintes globales du plan) : pas de surcharge par variable
+// d'environnement.
+export const SEARCH_WINDOW_MS = 60 * 60 * 1000; // 1 recherche / utilisateur / heure
+export const SEARCH_MAX = 1;
 
-// Fenêtre glissante anti-bruteforce sur la connexion.
-export const LOGIN_ATTEMPTS_LIMIT = 10;
-export const LOGIN_ATTEMPTS_WINDOW_MS = 15 * 60 * 1000;
+export const IMPORT_WINDOW_MS = 24 * 60 * 60 * 1000; // 10 imports / utilisateur / 24 h glissantes
+export const IMPORT_MAX = 10;
 
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 10 essais / e-mail / 15 min glissantes
+export const LOGIN_MAX = 10;
 
-function startOfTomorrow() {
-  const d = startOfToday();
-  d.setDate(d.getDate() + 1);
-  return d;
-}
-
-function formatHHmm(d: Date) {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function formatParisHHmm(d: Date) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
 }
 
 export async function checkSearchQuota(userId: string) {
-  const count = await countSearchRunsSince(userId, startOfToday());
-  if (count >= SEARCH_QUOTA_PER_DAY) {
-    throw new HttpError(429, `Prochaine recherche possible à ${formatHHmm(startOfTomorrow())}`);
+  const since = new Date(Date.now() - SEARCH_WINDOW_MS);
+  const count = await countSearchRunsSince(userId, since);
+  if (count >= SEARCH_MAX) {
+    throw new HttpError(429, `Prochaine recherche possible à ${formatParisHHmm(new Date(Date.now() + SEARCH_WINDOW_MS))}`);
   }
 }
 
 export async function checkImportQuota(userId: string) {
-  const count = await countCvImportsSince(userId, startOfToday());
-  if (count >= IMPORT_QUOTA_PER_DAY) {
-    throw new HttpError(429, `Prochain import possible à ${formatHHmm(startOfTomorrow())}`);
+  const since = new Date(Date.now() - IMPORT_WINDOW_MS);
+  const count = await countCvImportsSince(userId, since);
+  if (count >= IMPORT_MAX) {
+    throw new HttpError(429, `Prochain import possible à ${formatParisHHmm(new Date(Date.now() + IMPORT_WINDOW_MS))}`);
   }
 }
 
 export async function checkLoginAttempts(email: string) {
-  const since = new Date(Date.now() - LOGIN_ATTEMPTS_WINDOW_MS);
+  const since = new Date(Date.now() - LOGIN_WINDOW_MS);
   const count = await countLoginAttemptsSince(email, since);
-  if (count >= LOGIN_ATTEMPTS_LIMIT) {
+  if (count >= LOGIN_MAX) {
     throw new HttpError(429, "Trop de tentatives de connexion, réessayez dans quelques minutes");
   }
 }

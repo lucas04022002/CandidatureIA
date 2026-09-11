@@ -7,9 +7,9 @@ import {
   checkSearchQuota,
   checkImportQuota,
   checkLoginAttempts,
-  SEARCH_QUOTA_PER_DAY,
-  IMPORT_QUOTA_PER_DAY,
-  LOGIN_ATTEMPTS_LIMIT,
+  SEARCH_MAX,
+  IMPORT_MAX,
+  LOGIN_MAX,
 } from "@/lib/rate-limit";
 import { HttpError } from "@/lib/http";
 
@@ -29,9 +29,10 @@ describe("quotas et limite d'essais", () => {
     return user.id;
   }
 
-  it("recherche : passe sous le quota, refuse au quota atteint", async () => {
+  it("recherche : 1/heure — la 2e recherche dans l'heure → 429", async () => {
+    expect(SEARCH_MAX).toBe(1);
     const userId = await makeUser("quota-recherche@ex.fr");
-    for (let i = 0; i < SEARCH_QUOTA_PER_DAY; i++) {
+    for (let i = 0; i < SEARCH_MAX; i++) {
       await expect(checkSearchQuota(userId)).resolves.toBeUndefined();
       await recordSearchRun(userId);
     }
@@ -42,9 +43,10 @@ describe("quotas et limite d'essais", () => {
     });
   });
 
-  it("import CV : passe sous le quota, refuse au quota atteint", async () => {
+  it("import CV : 10/24h — le 11e import en 24h → 429", async () => {
+    expect(IMPORT_MAX).toBe(10);
     const userId = await makeUser("quota-import@ex.fr");
-    for (let i = 0; i < IMPORT_QUOTA_PER_DAY; i++) {
+    for (let i = 0; i < IMPORT_MAX; i++) {
       await expect(checkImportQuota(userId)).resolves.toBeUndefined();
       await recordCvImport(userId);
     }
@@ -54,9 +56,10 @@ describe("quotas et limite d'essais", () => {
     });
   });
 
-  it("connexion : refuse au-delà de la limite d'essais sur la fenêtre", async () => {
+  it("connexion : 10 essais / e-mail / 15 min — le 11e → 429", async () => {
+    expect(LOGIN_MAX).toBe(10);
     const email = "brute@ex.fr";
-    for (let i = 0; i < LOGIN_ATTEMPTS_LIMIT; i++) {
+    for (let i = 0; i < LOGIN_MAX; i++) {
       await expect(checkLoginAttempts(email)).resolves.toBeUndefined();
       await recordLoginAttempt(email);
     }
