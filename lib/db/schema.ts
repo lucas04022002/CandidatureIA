@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, pgEnum, uuid, text, integer, boolean, timestamp, char, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, text, integer, boolean, timestamp, char, index, uniqueIndex, check, unique } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 const sqlLower = (c: AnyPgColumn) => sql`lower(${c})`;
@@ -68,7 +68,11 @@ export const jobs = pgTable("jobs", {
   appliedClickedAt: timestamp("applied_clicked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("jobs_user_idx").on(t.userId), index("jobs_created_idx").on(t.createdAt)]);
+}, (t) => [
+  index("jobs_user_idx").on(t.userId),
+  index("jobs_created_idx").on(t.createdAt),
+  check("jobs_score_range", sql`${t.score} >= 0 and ${t.score} <= 100`),
+]);
 
 export const applications = pgTable("applications", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -86,7 +90,10 @@ export const applications = pgTable("applications", {
   sentAt: timestamp("sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("applications_user_idx").on(t.userId)]);
+}, (t) => [
+  index("applications_user_idx").on(t.userId),
+  unique("applications_job_user_unique").on(t.jobId, t.userId),
+]);
 
 export const searchRuns = pgTable("search_runs", {
   id: uuid("id").primaryKey().defaultRandom(),

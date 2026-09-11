@@ -1,5 +1,5 @@
 {
-  "id": "96ba0f96-1bc9-4ad5-b9cf-90d27eaa3072",
+  "id": "95c2b8d3-2112-461e-a982-7e45b1ab6097",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -153,7 +153,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "applications_job_user_unique": {
+          "name": "applications_job_user_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "job_id",
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -534,7 +543,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "jobs_score_range": {
+          "name": "jobs_score_range",
+          "value": "\"jobs\".\"score\" >= 0 and \"jobs\".\"score\" <= 100"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.login_attempts": {

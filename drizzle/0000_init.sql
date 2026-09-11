@@ -15,7 +15,8 @@ CREATE TABLE "applications" (
 	"followup_due_at" timestamp with time zone,
 	"sent_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "applications_job_user_unique" UNIQUE("job_id","user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "candidate_profiles" (
@@ -64,7 +65,8 @@ CREATE TABLE "jobs" (
 	"status" "application_status" DEFAULT 'Nouveau' NOT NULL,
 	"applied_clicked_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "jobs_score_range" CHECK ("jobs"."score" >= 0 and "jobs"."score" <= 100)
 );
 --> statement-breakpoint
 CREATE TABLE "login_attempts" (
