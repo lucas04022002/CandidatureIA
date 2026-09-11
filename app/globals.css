@@ -34,11 +34,17 @@ body {
   line-height: 1.55;
 }
 
-h1,
-h2,
-h3 {
-  @apply font-display;
-  text-wrap: balance;
+/* Dans `@layer base`, et non hors couche : une règle sans couche l'emporte sur TOUTES les couches
+ * Tailwind, donc `font-display` écrasait ici l'utilitaire `font-mono` posé sur les `h2` d'en-tête de
+ * liste (/jobs, /applications), qui sortaient en Syne au lieu du mono attendu. En base, Syne reste
+ * la valeur par défaut d'un titre et l'utilitaire reprend la main quand on en pose un. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
 }
 
 :focus-visible {
@@ -69,102 +75,8 @@ h3 {
   }
 }
 
-/* =========================================================================
- * LEGACY — pont vers l'ancienne UI, À SUPPRIMER EN TÂCHE 5
- * -------------------------------------------------------------------------
- * components/ui/, components/app/ et les anciennes pages (dont app/page.tsx)
- * référencent encore ces variables et classes utilitaires héritées du thème
- * précédent. Ce bloc les redéfinit en jetons Bleu Klein pour que le build et
- * le rendu restent corrects pendant la migration, sans toucher à ces
- * fichiers hors périmètre de la tâche 1 (ils sont remplacés en tâche 5).
- * Exclu du test de couleurs en dur : tests/ui/tokens.test.ts ignore
- * globals.css.
- * ========================================================================= */
-
-:root {
-  --background: var(--color-paper);
-  --background-elev: var(--color-white);
-  --card: var(--color-white);
-  --card-soft: var(--color-paper);
-  --card-hi: var(--color-klein-soft);
-  --foreground: var(--color-ink);
-  --foreground-dim: var(--color-grey);
-  --foreground-faint: var(--color-grey);
-  --border: var(--color-line);
-  --border-strong: var(--color-line);
-  --ring: var(--color-klein);
-  --accent: var(--color-klein);
-  --accent-press: var(--color-klein-deep);
-  --accent-soft: var(--color-klein-soft);
-  --accent-line: var(--color-klein-soft);
-  --accent-text: var(--color-klein-deep);
-  --good: var(--color-good);
-  --good-soft: var(--color-good-soft);
-  --mid: var(--color-warn);
-  --mid-soft: var(--color-warn-soft);
-  --low: var(--color-grey);
-  --low-soft: var(--color-line);
-  --danger: var(--color-bad);
-  --danger-soft: var(--color-bad-soft);
-  --shadow-1: 0 1px 0 rgba(16, 18, 38, 0.03) inset, 0 1px 2px rgba(16, 18, 38, 0.08);
-  --shadow-2: 0 18px 40px -24px rgba(16, 18, 38, 0.18), 0 2px 8px -2px rgba(16, 18, 38, 0.12);
-  --shadow-pop: var(--shadow-hero);
-  /* `--radius-*` est un espace de noms Tailwind 4 : redéfinir `--radius-lg` ici changeait la valeur
-   * de l'utilitaire `rounded-lg` pour toute l'application (20 px au lieu de 8 px — constaté sur les
-   * champs de /login). `--radius-sm` et `--radius-lg` n'étaient utilisés par aucun composant : ils
-   * sont retirés. `--radius` reste : components/ui/card.tsx le lit en `rounded-[var(--radius)]`. */
-  --radius: var(--radius-tile);
+/* Sélection de texte : la seule règle globale qui survit au bloc legacy retiré en tâche 5 —
+ * elle ne dépend que d'un jeton. */
+::selection {
+  background: var(--color-klein-soft);
 }
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--foreground);
-  --color-muted: var(--foreground-dim);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-}
-
-.label-xs {
-  font-family: var(--font-jetbrains), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--foreground-faint);
-}
-
-.surface-panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
-}
-
-.surface-elevated {
-  background: color-mix(in srgb, var(--background-elev) 88%, transparent);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
-}
-
-.glass-topbar {
-  background: color-mix(in srgb, var(--background) 76%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-/* Dans `@layer base`, et non hors couche : une règle sans couche l'emporte sur TOUTES les couches
- * Tailwind, donc ce `*` écrasait chaque utilitaire de couleur de bordure (`border-klein` d'un onglet
- * actif, `border-ink` d'une case à cocher, `border-bad` d'une erreur) — vérifié dans le navigateur :
- * l'onglet actif de /login ressortait en `line` (#e2e0d8) au lieu du bleu. En base, la valeur par
- * défaut sert toujours l'ancienne UI, et les utilitaires reprennent la main. */
-@layer base {
-  * {
-    border-color: var(--border);
-  }
-
-  ::selection {
-    background: var(--accent-soft);
-  }
-}
-
-/* fin du bloc LEGACY */

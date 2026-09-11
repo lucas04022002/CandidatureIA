@@ -82,6 +82,24 @@ npm run dev            # http://127.0.0.1:3000 — préférer 127.0.0.1 à local
 | `npm run create-admin` | crée le compte administrateur (un seul, refuse si un existe déjà) |
 | `npm run purge-inactive` | purge RGPD des comptes sans connexion depuis 12 mois (`lib/legal.ts`, `RETENTION_MONTHS`) — cron en production, voir `deploy/crontab.txt` |
 
+## Interface
+
+Direction visuelle « Bleu Klein » (spec
+[`docs/superpowers/specs/2026-09-11-applybot-front-design.md`](docs/superpowers/specs/2026-09-11-applybot-front-design.md)) :
+une seule couleur forte — le bleu `#1F2FD6` — posée en grand (barre de
+navigation, accueil, score de correspondance, tampon d'état) et jamais
+dispersée ; autour, du blanc cassé, du blanc, de l'encre et du gris. Les
+titres sont en Syne, le texte en Instrument Sans, les métadonnées d'offre,
+horodatages et codes d'organisme en JetBrains Mono, et le tampon d'état en
+Barlow Condensed penché. Thématique claire unique, pas de mode sombre. Toutes
+les couleurs viennent des jetons `@theme` de `app/globals.css`
+(`klein`, `paper`, `ink`, `grey`, `line`, `good`/`warn`/`bad`) : deux tests
+gardent la porte, l'un interdisant toute couleur écrite en dur dans `app/` et
+`components/`, l'autre vérifiant le contraste AA des paires texte/fond. Les
+composants partagés vivent à plat dans `components/` (`Shell`, `PageTitle`,
+`Button`, `Field`, `Stamp`, `Score`, `OfferTile`, `Kpi`, `Table`, `Empty`,
+`Toast`) ; aucune bibliothèque d'interface n'est installée.
+
 ## Tests
 
 ```bash

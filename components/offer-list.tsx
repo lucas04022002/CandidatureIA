@@ -16,9 +16,12 @@ export function OfferList({ jobs, applications = [], summary }: OfferListProps) 
 
   return (
     <section className="flex flex-col gap-3.5">
-      <p className="font-mono text-[12.5px] uppercase tracking-[0.06em] text-grey">
+      {/* `h2` et non `p` : les titres des tuiles sont des `h3`, et sauter de `h1` (le titre de la
+          page) à `h3` casse la hiérarchie — Lighthouse le relevait sur /jobs (heading-order). Même
+          dessin que les en-têtes de groupe de /applications, qui sont déjà des `h2`. */}
+      <h2 className="font-mono text-[12.5px] uppercase tracking-[0.06em] text-grey">
         {summary ?? `${jobs.length} offre${jobs.length > 1 ? "s" : ""}`}
-      </p>
+      </h2>
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
         {jobs.map((job) => (
           <OfferTile key={job.id} job={job} application={byJobId.get(job.id)} />
