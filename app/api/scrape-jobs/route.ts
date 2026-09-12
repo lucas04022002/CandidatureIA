@@ -178,9 +178,6 @@ function mergeSourceLabels(current: string[] | null | undefined, incoming: strin
 export const POST = handle(async (req) => {
   assertSameOrigin(req);
   const user = await requireUser();
-  await checkSearchQuota(user.id);
-  const payload = await readJson(req, Body);
-
   // Sans aucune source configurée (aucune clé dans .env), il n'y a rien à chercher : on le dit tout
   // de suite, sans consommer le quota horaire — sinon, pendant l'installation, chaque essai bloque
   // l'utilisateur une heure pour un résultat vide.
@@ -190,6 +187,9 @@ export const POST = handle(async (req) => {
       { status: 503 },
     );
   }
+
+  await checkSearchQuota(user.id);
+  const payload = await readJson(req, Body);
 
   // La recherche est comptabilisée avant l'appel aux connecteurs : une recherche lancée consomme le
   // quota horaire même si toutes les sources échouent.
