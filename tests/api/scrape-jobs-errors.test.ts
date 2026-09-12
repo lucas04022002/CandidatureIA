@@ -33,7 +33,9 @@ vi.mock("@/lib/scrapers/registry", () => {
       entry("la-bonne-alternance", "La bonne alternance"),
       entry("test", "Test"),
     ],
-    activeScrapers: () => [],
+    // Au moins une source active : sans cela la route répond 503 « aucune source configurée »
+    // avant même d'appeler scrapeAll, et ces tests ne verraient jamais les erreurs de source.
+    activeScrapers: () => [entry("test", "Test")],
     scrapeAll: async () => ({ jobs: etat.jobs, sources: etat.sources }),
   };
 });
