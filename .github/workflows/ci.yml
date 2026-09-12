@@ -199,7 +199,7 @@ jobs:
           ORIGIN="-H origin:http://localhost:3000 -H host:localhost:3000"
           REG=$(curl -sS -c /tmp/ci-cookies -H content-type:application/json $ORIGIN             -d '{"organisationName":"CI OF","email":"ci-resp@example.test","password":"ci-mot-de-passe-2026","acceptedTerms":true}'             -w '\nHTTP %{http_code}' http://localhost:3000/api/auth/register-organisation)
           echo "$REG" | grep -q 'HTTP 201' || { echo "register-organisation a échoué : $REG" >&2; docker logs applybot-ci-app; exit 1; }
-          CODE=$(docker exec applybot-ci-db psql -U applybot -d applybot -tAc "update organisations set active=true, seats=5 where name='CI OF' returning code")
+          CODE=$(docker exec applybot-ci-db psql -U applybot -d applybot -tAc "update organisations set active=true, seats=5 where name='CI OF' returning code" | head -n1 | tr -d '[:space:]')
           REG2=$(curl -sS -c /tmp/ci-cookies -H content-type:application/json $ORIGIN             -d "{\"email\":\"ci-stagiaire@example.test\",\"password\":\"ci-mot-de-passe-2026\",\"orgCode\":\"$CODE\",\"acceptedTerms\":true}"             -w '\nHTTP %{http_code}' http://localhost:3000/api/auth/register)
           echo "$REG2" | grep -q 'HTTP 201' || { echo "register (code=$CODE) a échoué : $REG2" >&2; docker logs applybot-ci-app; exit 1; }
           IMPORT=$(curl -sS -b /tmp/ci-cookies $ORIGIN -F "cv=@tests/fixtures/cv-minimal.pdf;type=application/pdf" http://localhost:3000/api/import-cv)
