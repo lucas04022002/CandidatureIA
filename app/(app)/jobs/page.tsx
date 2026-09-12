@@ -1,10 +1,12 @@
-import { EmptyState } from "@/components/app/empty-state";
-import { JobsBoard } from "@/components/app/jobs-board";
-import { PageHeader } from "@/components/app/page-header";
-import { ScrapeJobsControls } from "@/components/app/scrape-jobs-controls";
 import { redirect } from "next/navigation";
+import { Empty } from "@/components/empty";
+import { OfferList } from "@/components/offer-list";
+import { PageTitle } from "@/components/page-title";
+import { SearchControls } from "@/components/search-controls";
 import { getSession } from "@/lib/auth/session";
-import { getJobs } from "@/lib/db/queries/jobs";
+import { formatParisTime } from "@/lib/dates";
+import { getApplications } from "@/lib/db/queries/applications";
+import { getJobRows, mapJobRow } from "@/lib/db/queries/jobs";
 import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
 import type { Job } from "@/lib/types";
 
@@ -41,11 +43,12 @@ function locationMatches(jobLocation: string, locationFilter: string) {
   );
 }
 
+// Les deux seuls filtres que `SearchControls` sait produire : le métier et le lieu. Les anciens
+// `contract` et `remoteOnly` n'ont plus de champ pour les écrire dans l'URL ; du code qui ne peut
+// plus s'exécuter se lit comme une fonctionnalité existante, donc il part.
 function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string[] | undefined>) {
   const keywords = normalizeParamValue(params.keywords).trim().toLowerCase();
   const location = normalizeParamValue(params.location).trim().toLowerCase();
-  const contract = normalizeParamValue(params.contract).trim().toLowerCase();
-  const remoteOnly = normalizeParamValue(params.remoteOnly) === "true";
   const keywordTokens = normalizeText(keywords)
     .split(" ")
     .map((token) => token.trim())
@@ -56,30 +59,12 @@ function filterDisplayedJobs(jobs: Job[], params: Record<string, string | string
       const haystack = normalizeText(
         `${job.title} ${job.company} ${job.location} ${job.contract} ${job.jobDescription || ""}`,
       );
-      const matchesKeywords = keywordTokens.every((token) => haystack.includes(token));
-      if (!matchesKeywords) {
+      if (!keywordTokens.every((token) => haystack.includes(token))) {
         return false;
       }
     }
 
-    if (location && !locationMatches(job.location, location)) {
-      return false;
-    }
-
-    if (contract && contract !== "all" && !job.contract.toLowerCase().includes(contract)) {
-      return false;
-    }
-
-    if (remoteOnly) {
-      const jobLocation = job.location.toLowerCase();
-      const isRemote =
-        jobLocation.includes("remote") ||
-        jobLocation.includes("télétravail") ||
-        jobLocation.includes("teletravail");
-      if (!isRemote) return false;
-    }
-
-    return true;
+    return !location || locationMatches(job.location, location);
   });
 }
 
@@ -87,13 +72,20 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [jobs, candidateProfile] = await Promise.all([
-    getJobs(session.id),
+  // `getJobRows` plutôt que `getJobs` : la même donnée, plus l'heure exacte du relevé (`createdAt`),
+  // que le libellé de `Job.postedAt` a déjà arrondie au jour.
+  const [jobRows, applications, candidateProfile] = await Promise.all([
+    getJobRows(session.id),
+    getApplications(session.id),
     getCandidateProfileSummary(session.id),
   ]);
+
+  const jobs = jobRows.map(mapJobRow);
   const resolvedSearchParams = (await searchParams) ?? {};
-  const filteredJobs = filterDisplayedJobs(jobs, resolvedSearchParams);
-  const sortedJobs = [...filteredJobs].sort((a, b) => b.score - a.score);
+  const sortedJobs = [...filterDisplayedJobs(jobs, resolvedSearchParams)].sort(
+    (a, b) => b.score - a.score,
+  );
+
   const defaultKeywords =
     candidateProfile.preferredKeywords[0] ||
     candidateProfile.targetRole ||
@@ -104,40 +96,36 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     candidateProfile.location && candidateProfile.location !== "Non renseigne"
       ? candidateProfile.location
       : "";
-  const averageScore = sortedJobs.length
-    ? Math.round(sortedJobs.reduce((sum, job) => sum + job.score, 0) / sortedJobs.length)
-    : 0;
-  const topMatches = sortedJobs.filter((job) => job.score >= 85).length;
-  const currentTarget =
-    candidateProfile.targetRole ||
-    candidateProfile.role ||
-    "Profil candidat";
+
+  const lastRun = jobRows.reduce<Date | null>((latest, row) => {
+    if (!row.createdAt) return latest;
+    return !latest || row.createdAt > latest ? row.createdAt : latest;
+  }, null);
+  const lastRunLabel = formatParisTime(lastRun);
+
+  const shownKeywords = normalizeParamValue(resolvedSearchParams.keywords).trim() || defaultKeywords;
+  const shownLocation = normalizeParamValue(resolvedSearchParams.location).trim() || defaultLocation;
+  const shownRadius = normalizeParamValue(resolvedSearchParams.radiusKm).trim();
+
+  const summary = [
+    `${sortedJobs.length} offre${sortedJobs.length > 1 ? "s" : ""}`,
+    shownKeywords || null,
+    shownLocation ? (shownRadius ? `${shownLocation} + ${shownRadius} km` : shownLocation) : null,
+    lastRunLabel ? `relevé de ${lastRunLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Offres d’emploi"
-        description="Toutes les offres récupérées par l’agent, triées par compatibilité avec ton profil actif."
-      />
+    <div className="flex flex-col gap-6">
+      <PageTitle title="Offres pour toi" subtitle="Classées selon ton profil, la plus proche en haut." />
 
-      <ScrapeJobsControls
-        defaultKeywords={defaultKeywords}
-        defaultLocation={defaultLocation}
-        resultCount={sortedJobs.length}
-        currentTarget={currentTarget}
-        averageScore={averageScore}
-        topMatches={topMatches}
-      />
+      <SearchControls defaultKeywords={defaultKeywords} defaultLocation={defaultLocation} />
 
       {sortedJobs.length ? (
-        <JobsBoard jobs={sortedJobs} />
+        <OfferList jobs={sortedJobs} applications={applications} summary={summary} />
       ) : (
-        <div className="rounded-[24px] border border-[var(--border)] bg-[var(--card)] p-4">
-          <EmptyState
-            title="Aucune offre pour ce filtre"
-            description="Ajuste la cible, la ville ou relance un scraping filtre pour nourrir le pipeline."
-          />
-        </div>
+        <Empty text="Aucune offre pour l'instant. Lance une recherche." />
       )}
     </div>
   );

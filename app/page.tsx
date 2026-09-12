@@ -1,125 +1,114 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScoreGauge } from "@/components/app/score-gauge";
-import { Chip } from "@/components/ui/chip";
-import { LegalFooter } from "@/components/app/legal-footer";
+import { Button } from "@/components/button";
+import { Kpi } from "@/components/kpi";
+import { LegalFooter } from "@/components/legal-footer";
+import { Score } from "@/components/score";
+import { PublicBar } from "@/components/shell";
+import { Stamp } from "@/components/stamp";
+
+const COLUMNS = [
+  {
+    title: "Sept sources d'offres",
+    text: "France Travail, Adzuna, Jooble, La Bonne Alternance, Greenhouse, Lever, SmartRecruiters. Dédoublonnées, classées selon le profil.",
+  },
+  {
+    title: "Lettre et e-mail prêts",
+    text: "Pour chaque offre, une lettre, un e-mail et un message LinkedIn à copier. Le stagiaire postule sur le site de l'offre, en un clic.",
+  },
+  {
+    title: "Relance à quatre jours",
+    text: "Une candidature envoyée sans réponse déclenche une relance prête à partir. Rien n'est envoyé sans le stagiaire.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
-      <header className="mb-10 flex items-center justify-between rounded-[18px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--background-elev)_85%,transparent)] px-4 py-3 backdrop-blur md:px-6">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[linear-gradient(145deg,var(--accent),var(--accent-press))] text-white shadow-[var(--shadow-1),0_6px_18px_-8px_var(--accent)]">
-            A
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">ApplyBot</p>
-            <p className="text-xs text-[var(--foreground-faint)]">Votre pilote de candidatures</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost">Se connecter</Button>
-          </Link>
-          <Link href="/login">
-            <Button>Commencer</Button>
-          </Link>
-        </div>
-      </header>
+    <div className="flex min-h-full flex-1 flex-col bg-paper">
+      <PublicBar />
 
-      <main className="space-y-8">
-        <section className="surface-panel relative overflow-hidden rounded-[28px] px-6 py-8 md:px-10 md:py-12">
-          <div className="pointer-events-none absolute -right-16 top-0 h-60 w-60 rounded-full bg-[var(--accent-soft)] blur-3xl" />
-          <div className="pointer-events-none absolute -left-16 bottom-0 h-56 w-56 rounded-full bg-[rgba(88,160,255,0.12)] blur-3xl" />
-
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-line)] bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--accent-text)]">
-                <span className="label-xs !text-[var(--accent-text)]">ApplyBot • Refonte</span>
-              </div>
-              <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.035em] text-white md:text-6xl md:leading-[1.04]">
-                Trouve les bonnes offres, génère les bons messages, avance plus vite.
+      <main className="flex-1">
+        <section className="bg-klein text-white">
+          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1fr_380px] md:items-end md:py-16">
+            <div className="motion-safe:animate-[rise_400ms_ease-out]">
+              <h1 className="font-display text-[clamp(44px,7vw,92px)] font-extrabold leading-[0.95] tracking-[-0.03em]">
+                Chaque stagiaire postule. Chaque jour.
               </h1>
-              <p className="mt-5 max-w-2xl text-base text-[var(--foreground-dim)] md:text-lg">
-                ApplyBot centralise la recherche, le scoring et la préparation de candidature pour
-                tous les profils, du développeur au chargé d&apos;affaires.
+              <p className="mt-5 max-w-[44ch] font-body text-[16px] leading-[1.55] text-klein-soft">
+                Les offres de France Travail, d&apos;Adzuna, de Jooble et des sites d&apos;entreprises,
+                classées selon le profil de chaque stagiaire. Lettre et e-mail préparés, relance à
+                quatre jours, suivi par promo.
               </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/onboarding">
-                  <Button className="w-full sm:w-auto">Importer mon CV</Button>
+              <div className="mt-7 flex flex-wrap items-center gap-4">
+                <Button variant="onBlue" href="/organisme/inscription">
+                  Ouvrir des places pour ma promo
+                </Button>
+                {/* `Link` et non `<a>` : c'était le seul lien interne de l'accueil à provoquer un
+                    rechargement complet du document — perte du préchargement et du rendu client,
+                    alors que le bouton juste à côté (`Button href`) passe déjà par `Link`. */}
+                <Link
+                  href="/login"
+                  className="font-body text-[14px] text-white underline underline-offset-[3px]"
+                >
+                  J&apos;ai un code d&apos;organisme
                 </Link>
-                <Link href="/jobs">
-                  <Button variant="secondary" className="w-full sm:w-auto">
-                    Voir une démo
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Chip>France Travail</Chip>
-                <Chip>Adzuna</Chip>
-                <Chip>Jooble</Chip>
-                <Chip>La bonne alternance</Chip>
-                <Chip>SmartRecruiters</Chip>
-                <Chip>Scoring multi-profils</Chip>
               </div>
             </div>
 
-            <Card className="rounded-[24px] bg-[linear-gradient(160deg,var(--card-hi),var(--card))]">
-              <CardContent className="space-y-5 p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="label-xs">Top match</p>
-                    <h2 className="mt-2 text-lg font-semibold text-white">Chargé d&apos;affaires B2B</h2>
-                    <p className="mt-1 text-sm text-[var(--foreground-dim)]">
-                      Toulouse • CDI • France Travail
-                    </p>
-                  </div>
-                  <ScoreGauge value={91} size={72} thickness={7} />
-                </div>
-                <div className="grid gap-3">
-                  <div className="rounded-2xl border border-[var(--border)] bg-white/5 p-4">
-                    <p className="label-xs">Pourquoi ce score</p>
-                    <p className="mt-2 text-sm text-[var(--foreground-dim)]">
-                      Métier cible aligné, localisation compatible, expérience client et contrat CDI.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      ["24", "offres détectées"],
-                      ["6", "top matchs"],
-                      ["3", "brouillons prêts"],
-                    ].map(([value, label]) => (
-                      <div
-                        key={label}
-                        className="rounded-2xl border border-[var(--border)] bg-white/5 p-4"
-                      >
-                        <p className="font-mono text-2xl font-semibold text-white">{value}</p>
-                        <p className="mt-1 text-xs text-[var(--foreground-faint)]">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* La carte blanche qui flotte sur le bleu, avec son tampon, est l'image de l'accueil :
+                pas de photo (spec §« Décisions »). Contenu d'exemple, relevé d'une offre réelle. */}
+            <div className="rounded-tile bg-white p-5 text-ink shadow-hero motion-safe:animate-[rise_400ms_ease-out_120ms_backwards]">
+              <p className="font-display text-[17px] font-bold leading-[1.2]">Électricien bâtiment H/F</p>
+              <p className="mt-1.5 font-mono text-[12.5px] leading-[1.6] text-grey">
+                Spie Batignolles · Vénissieux · CDI
+                <br />
+                France Travail · relevé de 07:30
+              </p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <Score value={86} size="hero" />
+                <Stamp status="Envoyé" />
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {[
-            ["1. Scraper", "Collecte multi-source avec dédoublonnage et mise à jour intelligente du pipeline."],
-            ["2. Scorer", "Matching métier, mots-clés favoris, localisation et niveau d’expérience."],
-            ["3. Générer", "Email, lettre et message LinkedIn prêts à relire avant l’envoi."],
-          ].map(([title, description]) => (
-            <Card key={title}>
-              <CardContent className="p-5">
-                <p className="text-sm font-semibold text-white">{title}</p>
-                <p className="mt-2 text-sm text-[var(--foreground-dim)]">{description}</p>
-              </CardContent>
-            </Card>
+        <section className="mx-auto grid max-w-6xl gap-8 px-6 py-11 md:grid-cols-3">
+          {COLUMNS.map((column) => (
+            <div key={column.title}>
+              <h2 className="font-display text-[18px] font-bold leading-[1.2] tracking-[-0.02em]">
+                {column.title}
+              </h2>
+              <p className="mt-1.5 font-body text-[14.5px] leading-[1.55] text-grey">{column.text}</p>
+            </div>
           ))}
+        </section>
+
+        <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 pb-12 md:grid-cols-2">
+          <div>
+            <h2 className="font-display text-[30px] font-extrabold leading-[1.05] tracking-[-0.03em]">
+              Pour les organismes de formation
+            </h2>
+            <p className="mt-2.5 max-w-[46ch] font-body text-[15px] leading-[1.55] text-grey">
+              Vous achetez des places pour une promo. Chaque stagiaire s&apos;inscrit avec le code de
+              l&apos;organisme. Vous voyez qui est inscrit et combien de places restent. Jamais les CV,
+              jamais les candidatures.
+            </p>
+            <Button variant="primary" href="/organisme/inscription" className="mt-5">
+              Ouvrir des places
+            </Button>
+          </div>
+
+          <div className="rounded-tile border border-line bg-white p-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-grey">
+              Exemple · code d&apos;organisme · promo électricité
+            </p>
+            <p className="tnum mt-2 mb-4 font-display text-[44px] font-extrabold leading-none tracking-[0.06em]">
+              K7MZ4P2R
+            </p>
+            <div className="flex flex-wrap gap-7">
+              <Kpi value="12 / 20" label="places utilisées" />
+              <Kpi value="47" label="candidatures cette semaine" />
+            </div>
+          </div>
         </section>
       </main>
 

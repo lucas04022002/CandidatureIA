@@ -1,14 +1,35 @@
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { EmptyState } from "@/components/app/empty-state";
-import { OrganisationSeatsForm } from "@/components/app/organisation-seats-form";
-import { PageHeader } from "@/components/app/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrganisationSeatsAction } from "@/components/actions/organisation-seats";
+import { Empty } from "@/components/empty";
+import { Kpi } from "@/components/kpi";
+import { PageTitle } from "@/components/page-title";
+import { Table, type TableColumn } from "@/components/table";
 import { getSession } from "@/lib/auth/session";
 import { listOrganisations } from "@/lib/db/queries/organisations";
 
 export const dynamic = "force-dynamic";
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
+
+type OrganisationRow = {
+  key: string;
+  organisme: ReactNode;
+  responsable: string;
+  etat: ReactNode;
+  stagiaires: string;
+  ouvert: string;
+  reglages: ReactNode;
+};
+
+const COLUMNS: TableColumn<OrganisationRow>[] = [
+  { key: "organisme", label: "Organisme" },
+  { key: "responsable", label: "Responsable" },
+  { key: "etat", label: "État" },
+  { key: "stagiaires", label: "Stagiaires" },
+  { key: "ouvert", label: "Ouvert le" },
+  { key: "reglages", label: "Réglages" },
+];
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -19,83 +40,61 @@ export default async function AdminPage() {
   const activeCount = organisations.filter((organisation) => organisation.active).length;
   const traineeCount = organisations.reduce((total, organisation) => total + organisation.traineeCount, 0);
 
+  const rows: OrganisationRow[] = organisations.map((organisation) => ({
+    key: organisation.id,
+    organisme: (
+      <span className="flex flex-col">
+        <span className="font-medium text-ink">{organisation.name}</span>
+        <span className="font-mono text-[12px] uppercase tracking-[0.08em] text-grey">
+          {organisation.code}
+        </span>
+      </span>
+    ),
+    responsable: organisation.responsableEmail ?? "Aucun",
+    etat: (
+      <span
+        className={
+          organisation.active
+            ? "inline-block rounded-full bg-klein-soft px-2.5 py-0.5 font-mono text-[12px] uppercase tracking-[0.08em] text-klein-deep"
+            : "inline-block rounded-full border border-line px-2.5 py-0.5 font-mono text-[12px] uppercase tracking-[0.08em] text-grey"
+        }
+      >
+        {organisation.active ? "Actif" : "Inactif"}
+      </span>
+    ),
+    stagiaires: `${organisation.traineeCount} / ${organisation.seats}`,
+    ouvert: dateFormat.format(organisation.createdAt),
+    reglages: (
+      <OrganisationSeatsAction
+        id={organisation.id}
+        name={organisation.name}
+        active={organisation.active}
+        seats={organisation.seats}
+      />
+    ),
+  }));
+
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <div className="flex flex-col gap-6">
+      <PageTitle
         title="Administration"
-        description="Activer un organisme et fixer son nombre de places. Un organisme inactif refuse toute inscription de stagiaire."
+        subtitle="Activez un organisme et fixez son nombre de places. Un organisme inactif refuse toute inscription. Le champ e-mail ne sert qu'à rattacher un responsable à un organisme qui n'en a plus : laissé vide, il ne change rien."
       />
 
       {organisations.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Organismes</CardTitle>
-            <span className="text-xs text-[var(--foreground-faint)]">
-              {organisations.length} organisme(s) · {activeCount} actif(s) · {traineeCount} stagiaire(s)
-            </span>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-[0.14em] text-[var(--foreground-faint)]">
-                    <th className="px-[18px] py-3 font-medium">Organisme</th>
-                    <th className="px-[18px] py-3 font-medium">Responsable</th>
-                    <th className="px-[18px] py-3 font-medium">Statut</th>
-                    <th className="px-[18px] py-3 font-medium">Places</th>
-                    <th className="px-[18px] py-3 font-medium">Stagiaires</th>
-                    <th className="px-[18px] py-3 font-medium">Créé le</th>
-                    <th className="px-[18px] py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {organisations.map((organisation) => (
-                    <tr key={organisation.id} className="border-b border-[var(--border)] last:border-0">
-                      <td className="px-[18px] py-3">
-                        <p className="text-[var(--foreground)]">{organisation.name}</p>
-                        <p className="font-mono text-xs text-[var(--foreground-faint)]">{organisation.code}</p>
-                      </td>
-                      <td className="px-[18px] py-3 text-[var(--foreground-dim)]">
-                        {organisation.responsableEmail ?? "Aucun"}
-                      </td>
-                      <td className="px-[18px] py-3">
-                        <span
-                          className={
-                            organisation.active
-                              ? "rounded-full border border-[var(--accent-line)] bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent-text)]"
-                              : "rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--foreground-faint)]"
-                          }
-                        >
-                          {organisation.active ? "Actif" : "Inactif"}
-                        </span>
-                      </td>
-                      <td className="px-[18px] py-3 font-mono text-[var(--foreground)]">{organisation.seats}</td>
-                      <td className="px-[18px] py-3 font-mono text-[var(--foreground)]">
-                        {organisation.traineeCount}
-                      </td>
-                      <td className="px-[18px] py-3 text-[var(--foreground-dim)]">
-                        {dateFormat.format(organisation.createdAt)}
-                      </td>
-                      <td className="px-[18px] py-3">
-                        <OrganisationSeatsForm
-                          id={organisation.id}
-                          active={organisation.active}
-                          seats={organisation.seats}
-                          hasResponsable={organisation.responsableEmail !== null}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <>
+          <section className="grid grid-cols-3 gap-4 rounded-tile border border-line bg-white px-6 py-5">
+            <Kpi value={organisations.length} label="organismes" />
+            <Kpi value={activeCount} label="actifs" />
+            <Kpi value={traineeCount} label="stagiaires" />
+          </section>
+
+          <div className="overflow-x-auto rounded-tile border border-line bg-white px-2 py-1">
+            <Table columns={COLUMNS} rows={rows} getRowKey={(row) => row.key} />
+          </div>
+        </>
       ) : (
-        <EmptyState
-          title="Aucun organisme"
-          description="Les organismes apparaîtront ici dès qu'un responsable aura créé son espace depuis la page d'inscription."
-        />
+        <Empty text="Aucun organisme pour l'instant. Le premier apparaîtra ici dès qu'un responsable aura créé son espace depuis la page d'inscription." />
       )}
     </div>
   );

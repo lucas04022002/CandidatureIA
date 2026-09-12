@@ -10,3 +10,5 @@ coverage/
 tmp/
 data/
 next-env.d.ts
+# rapports Lighthouse produits localement (mesure d'accessibilité, tâche 5)
+lh-*.json

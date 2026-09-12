@@ -31,6 +31,25 @@ function open(): Db {
   return drizzle(pool, { schema }) as unknown as Db;
 }
 
-export const db: Db = open();
-export const closeDb = () => closeFn();
+// En dev, Next.js compile les routes API et les pages dans des graphes de modules séparés : sans
+// cache global, chaque graphe ouvrirait sa propre instance PGlite sur le même dossier, et une
+// écriture faite par une route resterait invisible des pages jusqu'au redémarrage. On mémorise
+// donc l'instance sur `globalThis`, clé par URL (même motif que le singleton Prisma/Drizzle).
+type DbCache = { url: string; db: Db; close: () => Promise<void> };
+const g = globalThis as unknown as { __applybotDb?: DbCache };
+if (!g.__applybotDb || g.__applybotDb.url !== url) {
+  const opened = open();
+  g.__applybotDb = { url, db: opened, close: closeFn };
+}
+export const db: Db = g.__applybotDb.db;
+// Fermer sans oublier le cache laissait `globalThis.__applybotDb` pointer sur une instance morte :
+// tout import ultérieur dans le même processus (un test qui ferme puis rouvre, un script qui
+// enchaîne deux connexions) récupérait la référence en cache au lieu d'ouvrir une base, et échouait
+// sur un client déjà fermé. On supprime l'entrée : le prochain import retombe sur `open()`.
+export const closeDb = async () => {
+  const cached = g.__applybotDb;
+  if (!cached) return;
+  delete g.__applybotDb;
+  await cached.close();
+};
 export const isPglite = url.startsWith("pglite://");

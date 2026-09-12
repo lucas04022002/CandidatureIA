@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // PGlite embarque un fichier WASM que webpack ne sait pas copier : le paquet doit rester externe au bundle serveur
+  // (idem pour pg, pilote natif Node). Sans cela, `next dev` répond « Erreur interne » à la première requête SQL.
+  serverExternalPackages: ["@electric-sql/pglite", "pg"],
   turbopack: {
     root: process.cwd(),
   },

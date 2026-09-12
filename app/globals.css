@@ -1,138 +1,97 @@
 @import "tailwindcss";
 
-:root {
-  --background: #090c14;
-  --background-elev: #0d111c;
-  --card: #121826;
-  --card-soft: #161d2d;
-  --card-hi: #1b2336;
-  --foreground: #eef1f8;
-  --foreground-dim: #a7afc4;
-  --foreground-faint: #6c7488;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --ring: oklch(0.66 0.17 246);
-  --accent: oklch(0.66 0.17 246);
-  --accent-press: oklch(0.6 0.17 246);
-  --accent-soft: oklch(0.66 0.17 246 / 0.15);
-  --accent-line: oklch(0.66 0.17 246 / 0.35);
-  --accent-text: oklch(0.82 0.1 246);
-  --good: oklch(0.74 0.16 152);
-  --good-soft: oklch(0.74 0.16 152 / 0.14);
-  --mid: oklch(0.78 0.14 78);
-  --mid-soft: oklch(0.78 0.14 78 / 0.14);
-  --low: oklch(0.66 0.03 260);
-  --low-soft: oklch(0.66 0.03 260 / 0.16);
-  --danger: oklch(0.66 0.18 18);
-  --danger-soft: oklch(0.66 0.18 18 / 0.14);
-  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 18px 40px -24px rgba(0, 0, 0, 0.85), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
-  --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
-  --radius: 16px;
-  --radius-sm: 10px;
-  --radius-lg: 22px;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--foreground);
-  --color-muted: var(--foreground-dim);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@property --g-val {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
+@theme {
+  --color-klein: #1f2fd6;
+  --color-klein-deep: #1523a8;
+  --color-klein-soft: #e6e9ff;
+  --color-paper: #f6f4ee;
+  --color-white: #ffffff;
+  --color-ink: #101226;
+  --color-grey: #6b6d7c;
+  --color-line: #e2e0d8;
+  --color-good: #176A42;
+  --color-warn: #8A5606;
+  --color-bad: #b3261e;
+  --color-good-soft: #e3f3ea;
+  --color-warn-soft: #fbf1dc;
+  --color-bad-soft: #f9e3e1;
+  --font-display: var(--font-syne), system-ui, sans-serif;
+  --font-body: var(--font-instrument), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-stamp: var(--font-barlow), Impact, sans-serif;
+  --radius-tile: 14px;
+  --radius-stamp: 4px;
+  --shadow-hero: 0 30px 60px -30px rgb(0 0 40 / 0.5);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  min-height: 100vh;
-  background:
-    radial-gradient(120% 90% at 100% -10%, var(--accent-soft) 0%, transparent 42%),
-    radial-gradient(80% 60% at 0% 0%, rgba(76, 98, 186, 0.22) 0%, transparent 48%),
-    linear-gradient(180deg, #090c14 0%, #090d17 100%);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  @apply bg-paper text-ink font-body antialiased;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px) 0 0 / 100% 3px,
-    linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px) 0 0 / 3px 100%;
-  opacity: 0.25;
-  z-index: 0;
+/* Dans `@layer base`, et non hors couche : une règle sans couche l'emporte sur TOUTES les couches
+ * Tailwind, donc `font-display` écrasait ici l'utilitaire `font-mono` posé sur les `h2` d'en-tête de
+ * liste (/jobs, /applications), qui sortaient en Syne au lieu du mono attendu. En base, Syne reste
+ * la valeur par défaut d'un titre et l'utilitaire reprend la main quand on en pose un. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
 }
 
-body > * {
-  position: relative;
-  z-index: 1;
+:focus-visible {
+  outline: 2px solid var(--color-klein);
+  outline-offset: 2px;
 }
 
-* {
-  border-color: var(--border);
+/* Sur les surfaces bleues (barre de l'application et barre publique, accueil), le contour bleu Klein
+ * du focus se confond avec le fond : au clavier, le lien actif n'était signalé par rien. On repasse
+ * le contour en blanc pour tout élément focalisable descendant d'un `.bg-klein`. Règle sur le
+ * descendant et non sur l'élément lui-même : les liens de la barre n'ont pas de classe de fond. */
+.bg-klein :focus-visible {
+  outline-color: var(--color-white);
 }
 
-::selection {
-  background: var(--accent-soft);
+/* …sauf sur un panneau clair posé à l'intérieur du bleu — le menu mobile du `Shell` est un
+ * `<details>` blanc rendu DANS l'en-tête bleu. Sans cette règle, ses liens et son bouton auraient
+ * hérité du contour blanc, invisible sur le blanc : on aurait déplacé le défaut, pas corrigé. */
+.bg-klein .bg-white :focus-visible {
+  outline-color: var(--color-klein);
 }
 
-.label-xs {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--foreground-faint);
+.stamp-mask {
+  mask: radial-gradient(circle at 30% 60%, #000 96%, transparent 100%);
 }
 
-.surface-panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
-.surface-elevated {
-  background: color-mix(in srgb, var(--background-elev) 88%, transparent);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
-}
-
-.glass-topbar {
-  background: color-mix(in srgb, var(--background) 76%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.rise {
-  animation: rise-in 0.55s cubic-bezier(0.22, 0.8, 0.25, 1);
-}
-
-@keyframes rise-in {
+/* Séquence d'entrée de l'accueil (spec §1) : le titre puis la carte, 400 ms, décalés de 120 ms.
+ * Appliquée uniquement via le variant `motion-safe:` de Tailwind — sous
+ * `prefers-reduced-motion: reduce`, la règle n'est pas émise du tout et l'élément s'affiche
+ * immédiatement. `backwards` évite le clignotement de l'élément retardé avant son départ. */
+@keyframes rise {
   from {
-    transform: translateY(12px);
+    opacity: 0;
+    transform: translateY(14px);
   }
   to {
+    opacity: 1;
     transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rise {
-    animation: none;
-  }
+/* Sélection de texte : la seule règle globale qui survit au bloc legacy retiré en tâche 5 —
+ * elle ne dépend que d'un jeton. */
+::selection {
+  background: var(--color-klein-soft);
 }
