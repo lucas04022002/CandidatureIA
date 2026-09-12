@@ -13,7 +13,7 @@ export async function resetDatabase() {
   // de test (constaté en CI : tous les fichiers après le premier échouaient en « relation ... does
   // not exist », le premier ayant marqué la migration comme appliquée pour de bon).
   await db.execute(sql`drop schema if exists drizzle cascade;`);
-  if (isPglite) {
+  if (isPglite()) {
     const { migrate } = await import("drizzle-orm/pglite/migrator");
     await migrate(db, { migrationsFolder: "drizzle" });
   } else {

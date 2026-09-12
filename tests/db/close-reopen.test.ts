@@ -10,7 +10,11 @@ describe("closeDb", () => {
     const g = globalThis as unknown as { __applybotDb?: unknown };
 
     const first = await import("@/lib/db/client");
-    expect(g.__applybotDb, "l'instance devrait être en cache après l'import").toBeDefined();
+    // Ouverture paresseuse : l'import seul n'ouvre rien (un `next build` importe ce module dans
+    // quinze processus sans jamais toucher la base). C'est la première requête qui ouvre.
+    expect(g.__applybotDb, "l'import seul ne doit pas ouvrir la base").toBeUndefined();
+    await first.db.execute(sql`select 1;`);
+    expect(g.__applybotDb, "l'instance devrait être en cache après la première requête").toBeDefined();
 
     await first.closeDb();
     expect(g.__applybotDb, "le cache devrait être vide après fermeture").toBeUndefined();
@@ -19,11 +23,12 @@ describe("closeDb", () => {
     // client à son tour). Sans l'oubli du cache, `open()` n'est pas rappelé.
     vi.resetModules();
     const second = await import("@/lib/db/client");
-    expect(g.__applybotDb).toBeDefined();
+    expect(g.__applybotDb, "toujours rien d'ouvert avant la première requête").toBeUndefined();
 
     // Et la base rouverte répond vraiment — une référence en cache pointant sur une instance fermée
     // aurait levé ici, pas à l'import.
     const result = (await second.db.execute(sql`select 1 as un;`)) as { rows: Array<{ un: number }> };
     expect(result.rows).toHaveLength(1);
+    expect(g.__applybotDb).toBeDefined();
   });
 });

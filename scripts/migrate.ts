@@ -3,7 +3,7 @@ import "./load-env";
 import { db, closeDb, isPglite } from "../lib/db/client";
 
 async function main() {
-  if (isPglite) {
+  if (isPglite()) {
     const { migrate } = await import("drizzle-orm/pglite/migrator");
     await migrate(db, { migrationsFolder: "drizzle" });
   } else {
