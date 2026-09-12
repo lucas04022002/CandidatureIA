@@ -3,7 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // PGlite embarque un fichier WASM que webpack ne sait pas copier : le paquet doit rester externe au bundle serveur
   // (idem pour pg, pilote natif Node). Sans cela, `next dev` répond « Erreur interne » à la première requête SQL.
-  serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg", "pdf-parse", "pdfjs-dist"],
+  // pdf-parse (et pdfjs-dist derrière) : empaqueté par Turbopack/webpack, il échoue à l'exécution
+  // (« Object.defineProperty called on non-object ») ; le smoke test de la CI envoie un vrai PDF.
   turbopack: {
     root: process.cwd(),
   },
