@@ -53,10 +53,14 @@ Puis :
 ```bash
 mkdir data             # dossier parent de la base PGlite (une seule fois)
 npm run db:migrate     # applique les migrations Drizzle (drizzle/) sur DATABASE_URL
-npm run create-admin   # crée le premier compte administrateur (invite e-mail + mot de passe)
+npm run create-admin   # crée le premier compte administrateur (invite e-mail + mot de passe) — SERVEUR ARRÊTÉ
 npm run dev            # http://127.0.0.1:3000 — préférer 127.0.0.1 à localhost (voir note plus bas)
 ```
 
+> **Une seule application à la fois sur la base PGlite** : arrêtez `npm run dev` avant de lancer
+> `create-admin`, `purge-inactive` ou un script maison, puis relancez-le. Deux processus sur le même
+> dossier `data/` corrompent la base (à reconstruire avec `rm -rf data/dev && npm run db:migrate`).
+>
 > Les scripts `db:migrate`, `create-admin` et `purge-inactive` tournent sous
 > `tsx`, hors de Next.js : ils lisent `.env.local` puis `.env` eux-mêmes
 > (`scripts/load-env.ts`). Une variable déjà présente dans l'environnement
