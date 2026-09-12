@@ -5,7 +5,7 @@ import { checkSearchQuota } from "@/lib/rate-limit";
 import { recordSearchRun } from "@/lib/db/queries/quotas";
 import { getActiveCandidateProfile } from "@/lib/candidate-profile";
 import { scoreJob } from "@/lib/scoring/job-scoring";
-import { SCRAPERS, scrapeAll, type ScrapedJob } from "@/lib/scrapers/registry";
+import { SCRAPERS, activeScrapers, scrapeAll, type ScrapedJob } from "@/lib/scrapers/registry";
 import { sanitizeJobDescription } from "@/lib/sanitize-text";
 import {
   backfillJobs,
@@ -180,6 +180,16 @@ export const POST = handle(async (req) => {
   const user = await requireUser();
   await checkSearchQuota(user.id);
   const payload = await readJson(req, Body);
+
+  // Sans aucune source configurée (aucune clé dans .env), il n'y a rien à chercher : on le dit tout
+  // de suite, sans consommer le quota horaire — sinon, pendant l'installation, chaque essai bloque
+  // l'utilisateur une heure pour un résultat vide.
+  if (activeScrapers().length === 0) {
+    return json(
+      { ok: false, error: "Aucune source d'offres configurée. Ajoutez les clés des sources (France Travail, Adzuna, Jooble…) dans le fichier .env, puis relancez le serveur." },
+      { status: 503 },
+    );
+  }
 
   // La recherche est comptabilisée avant l'appel aux connecteurs : une recherche lancée consomme le
   // quota horaire même si toutes les sources échouent.
