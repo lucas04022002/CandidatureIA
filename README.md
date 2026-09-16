@@ -1,10 +1,38 @@
 # ApplyBot
 
-ApplyBot est un SaaS **B2B** pour organismes de formation : chaque organisme
-inscrit ses stagiaires, qui utilisent l'outil pour préparer leurs
-candidatures. Pas d'IA (aucun appel OpenAI ni équivalent) : la génération de
-lettres/e-mails/messages LinkedIn et le scoring des offres sont **heuristiques**,
-pas de dépendance à une API tierce payante pour la partie génération.
+**SaaS B2B de suivi de candidatures pour organismes de formation.** Chaque organisme
+inscrit ses stagiaires, qui préparent leurs candidatures depuis l'outil.
+
+[**Voir le produit en ligne →**](https://applybot.lucasguilhot.fr) · [Étude de cas complète](https://lucasguilhot.fr/projets/applybot) · [Portfolio](https://lucasguilhot.fr)
+
+`Next.js` `TypeScript` `Node` `PostgreSQL` `Docker`
+
+<img src="https://raw.githubusercontent.com/lucas04022002/CandidatureIA/main/assets/apercu-applybot.jpg" alt="Page d'accueil d'ApplyBot." width="100%">
+
+---
+
+## La décision qui compte
+
+Le produit s'appelait CandidatureIA et reposait sur un modèle de langage pour rédiger
+lettres et messages. Mesuré : le résultat n'était pas meilleur que ce qu'un stagiaire
+obtient gratuitement ailleurs, et il coûtait un abonnement par utilisateur — une
+dépense qui grandit avec le nombre d'utilisateurs, sur un produit vendu au forfait
+à l'organisme.
+
+**Le fournisseur d'IA a été retiré.** La génération de lettres, d'e-mails et de
+messages LinkedIn ainsi que le scoring des offres sont désormais **heuristiques** :
+aucun appel à une API tierce, aucune dépendance payante, et un coût par candidature
+de **0 €**.
+
+## Chiffres
+
+- **202 tests automatisés**, de la base de données aux composants d'interface
+- **7 sources d'offres** publiques, dédupliquées par URL
+- **3 rôles** — stagiaire, responsable d'organisme, administration
+- **0 €** de coût d'IA par candidature
+- **100** en performance, accessibilité, bonnes pratiques et SEO (Lighthouse)
+
+## Les écrans
 
 - `/dashboard` : tableau de bord du stagiaire
 - `/jobs` : pipeline d'offres collectées
