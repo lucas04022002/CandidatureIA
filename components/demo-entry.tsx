@@ -41,7 +41,7 @@ export function DemoEntry({ email, password }: { email: string; password: string
         <Button variant="primary" onClick={entrer} pending={etat === "envoi"}>
           {etat === "envoi" ? "Connexion…" : "Entrer dans la démonstration"}
         </Button>
-        <p className="font-body text-[14px] text-grey">Aucune inscription, aucun code.</p>
+        <p className="font-body text-[14px] text-grey">Sans inscription. Sans code. Deux secondes.</p>
       </div>
 
       {etat === "erreur" && (

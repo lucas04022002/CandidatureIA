@@ -47,12 +47,17 @@ export default function DemoPage() {
             Démonstration
           </p>
           <h1 className="mt-4 font-display text-[clamp(28px,4.4vw,42px)] font-bold leading-[1.08] tracking-[-0.022em]">
-            Entrez dans un compte d&apos;exemple.
+            Regardez par-dessus l&apos;épaule de Camille.
           </h1>
           <p className="mt-5 max-w-[58ch] font-body text-[16.5px] leading-[1.6] text-grey">
-            Vous arrivez dans le compte d&apos;une étudiant fictive, Camille Perrin, sortie de
-            formation en électricité. Cinq offres classées selon son profil, des candidatures à
-            différents stades, et une relance qui arrive à échéance.
+            Camille est en formation électricité au Greta Rhône. Elle termine en novembre et cherche
+            son premier poste autour de Lyon — c&apos;est son organisme qui lui a ouvert un accès,
+            avec le reste de sa promo. Son compte est ouvert : six offres du jour, quatre
+            candidatures à des stades différents, et une relance qui attend depuis hier.
+          </p>
+          <p className="mt-3 max-w-[58ch] font-body text-[16.5px] leading-[1.6] text-grey">
+            Entrez, cliquez partout. Camille n&apos;existe pas, et rien de ce que vous ferez ne
+            compte.
           </p>
 
           <div className="mt-8 rounded-tile border border-line bg-white p-5 sm:p-6">
@@ -71,26 +76,29 @@ export default function DemoPage() {
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             <div>
-              <h2 className="font-display text-[17px] font-bold">Ce que vous pouvez faire</h2>
+              <h2 className="font-display text-[17px] font-bold">Ce qu&apos;il faut regarder</h2>
               <ul className="mt-3 space-y-2 font-body text-[15px] leading-[1.55] text-grey">
-                <li>Parcourir les offres et leur score de correspondance.</li>
-                <li>Ouvrir une candidature, lire la lettre et l&apos;e-mail préparés.</li>
-                <li>Voir une relance prête à partir, quatre jours après l&apos;envoi.</li>
+                <li>Le score en face de chaque offre : d&apos;où il vient, et ce qu&apos;il classe.</li>
+                <li>Une candidature ouverte : la lettre et l&apos;e-mail, écrits à partir du CV.</li>
+                <li>La relance de chez Ortec, échue depuis hier et prête à partir.</li>
               </ul>
             </div>
             <div>
               <h2 className="font-display text-[17px] font-bold">Ce que vous ne verrez pas</h2>
               <ul className="mt-3 space-y-2 font-body text-[15px] leading-[1.55] text-grey">
-                <li>L&apos;espace responsable d&apos;organisme, réservé aux comptes d&apos;organisme.</li>
-                <li>De vraies données : tout ce compte est fictif.</li>
+                <li>
+                  L&apos;espace du responsable d&apos;organisme : c&apos;est un autre rôle, et il ne
+                  donne accès ni aux CV ni aux candidatures.
+                </li>
+                <li>La moindre donnée réelle. Offres, entreprises, candidatures : tout est inventé.</li>
               </ul>
             </div>
           </div>
 
           <p className="mt-10 font-body text-[14.5px] leading-[1.6] text-grey">
-            Vous représentez un organisme de formation ?{" "}
+Vous formez une promo et vous voulez l&apos;ouvrir à vos étudiants ?{" "}
             <Link href="/organisme/inscription" className="text-klein underline underline-offset-[3px]">
-              Ouvrez des places pour votre promo
+              Ouvrez des places
             </Link>
             .
           </p>

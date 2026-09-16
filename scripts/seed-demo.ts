@@ -186,11 +186,11 @@ async function main() {
     fileName: "cv-demonstration.pdf",
     rawText: "Profil de démonstration ApplyBot.",
     fullName: "Camille Perrin",
-    role: "Électricienne bâtiment",
+    role: "Électricienne bâtiment — en formation",
     location: "Lyon",
     email: EMAIL,
     summary:
-      "Sortie de formation électricité, cherche un premier poste en bâtiment ou en tertiaire sur Lyon et sa périphérie.",
+      "En formation électricité au Greta Rhône jusqu'en novembre. Cherche un premier poste en bâtiment ou en tertiaire sur Lyon et sa périphérie, pour la sortie de formation.",
     technicalSkills: ["Habilitation B1V", "Lecture de plans", "Tirage de câbles", "Armoires électriques"],
     softSkills: ["Rigueur", "Travail en équipe"],
     experienceHighlights: ["Stage de 6 semaines chez un installateur", "Chantier école : logement collectif"],
@@ -237,7 +237,7 @@ async function main() {
       emailGenerated: o.lettre,
       linkedinGenerated: false,
       letterText: o.lettre
-        ? `Madame, Monsieur,\n\nVotre offre « ${o.title} » chez ${o.company} correspond à ce que je cherche à la sortie de ma formation en électricité.\n\nJ'ai suivi un chantier école en logement collectif et un stage de six semaines chez un installateur : lecture de plans, tirage de câbles, raccordement d'armoires. Je suis habilitée B1V et disponible immédiatement sur ${o.location} et ses environs.\n\nJe reste à votre disposition pour en parler.\n\nCamille Perrin`
+        ? `Madame, Monsieur,\n\nVotre offre « ${o.title} » chez ${o.company} correspond à ce que je cherche pour la sortie de ma formation en électricité, en novembre.\n\nJ'ai suivi un chantier école en logement collectif et un stage de six semaines chez un installateur : lecture de plans, tirage de câbles, raccordement d'armoires. Je suis habilitée B1V et disponible à partir de novembre sur ${o.location} et ses environs.\n\nJe reste à votre disposition pour en parler.\n\nCamille Perrin`
         : null,
       emailText: o.lettre ? `Bonjour,\n\nJe me permets de vous adresser ma candidature pour le poste de ${o.title}.\n\nCamille Perrin` : null,
       followupDueAt: o.relance,

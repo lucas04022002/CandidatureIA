@@ -16,12 +16,12 @@ const POINTS = [
   {
     titre: "Des places, pas des licences",
     texte:
-      "Vous ouvrez un nombre de places pour une promo. Chaque étudiant s'inscrit avec le code de l'organisme, et occupe une place tant qu'il l'utilise.",
+      "Vous ouvrez un nombre de places pour une promo. Chaque étudiant s'inscrit avec le code de l'organisme et occupe une place, jusqu'à ce que vous la libériez en retirant son compte — à la fin de la promo, par exemple.",
   },
   {
     titre: "Le suivi de la promo",
     texte:
-      "Qui est inscrit, quand, et combien de places restent. De quoi savoir si l'outil est utilisé sans avoir à demander.",
+      "L'adresse de chaque étudiant, sa date d'inscription, sa dernière connexion, et les places qui restent. De quoi savoir si l'outil sert vraiment, sans avoir à demander.",
   },
   {
     titre: "Ce que vous ne voyez pas",
@@ -49,8 +49,9 @@ export default function PourLesOrganismes() {
               </h1>
               <p className="mt-5 max-w-[48ch] font-body text-[16.5px] leading-[1.6] text-klein-soft">
                 Vous ouvrez des places, vos étudiants s&apos;inscrivent avec un code, et l&apos;outil
-                leur apporte chaque jour les offres qui leur correspondent. Vous voyez qui est inscrit
-                et combien de places restent — jamais leurs CV, jamais leurs candidatures.
+                cherche pour eux sur sept sites à la fois, lettre comprise. Vous voyez qui est
+                inscrit, quand il s&apos;est connecté, et combien de places restent — jamais leurs CV,
+                jamais leurs candidatures.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-4">
                 <Button variant="onBlue" href="/organisme/inscription">
@@ -72,10 +73,19 @@ export default function PourLesOrganismes() {
               <p className="tnum mt-2 mb-4 break-all font-display text-[30px] font-extrabold leading-none tracking-[0.06em] sm:text-[40px]">
                 K7MZ4P2R
               </p>
-              <div className="flex flex-wrap gap-7">
-                <Kpi value="12 / 20" label="places utilisées" />
-                <Kpi value="47" label="candidatures cette semaine" />
-              </div>
+              {/* Ce que l'écran réel affiche, et rien de plus : une jauge de places et la
+                  liste des comptes. Une première version montrait « 47 candidatures cette
+                  semaine » — un chiffre que le responsable ne voit jamais, sur une page qui
+                  promet précisément qu'il ne le verra pas. */}
+              <Kpi value="12 / 20" label="places utilisées" />
+              <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 border-t border-line pt-4 font-mono text-[12px] text-grey">
+                <dt>E-mail</dt>
+                <dd className="m-0 truncate text-ink">c.perrin@…</dd>
+                <dt>Inscrit le</dt>
+                <dd className="m-0 text-ink">02/09</dd>
+                <dt>Connexion</dt>
+                <dd className="m-0 text-ink">hier</dd>
+              </dl>
             </div>
           </div>
         </section>
@@ -97,8 +107,8 @@ export default function PourLesOrganismes() {
             <p className="mt-3 max-w-[62ch] font-body text-[15px] leading-[1.6] text-grey">
               Créer un organisme prend une minute et ne demande aucune validation de notre part :
               vous repartez avec votre code et trois places, de quoi faire essayer l&apos;outil à
-              quelques étudiants avant d&apos;en parler. Écrivez-nous quand vous voulez en ouvrir
-              davantage.
+              quelques étudiants avant d&apos;en parler. Le nombre de places se relève ensuite, sur
+              demande, sans rien réinstaller ni recréer de compte.
             </p>
             <Button variant="primary" href="/organisme/inscription" className="mt-5">
               Ouvrir des places
