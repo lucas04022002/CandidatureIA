@@ -1,4 +1,4 @@
 # Crons ApplyBot (Coolify « Scheduled Tasks », service applybot). Heures en UTC.
 # Purge RGPD des comptes dormants (aucune connexion depuis RETENTION_MONTHS = 12 mois, voir
 # lib/legal.ts) : hebdomadaire, dimanche 03:00 UTC — heure creuse, avant le pic d'usage du lundi.
-0 3 * * 0   cd /app && node node_modules/tsx/dist/cli.mjs scripts/purge-inactive.ts
+0 3 * * 0   cd /app && node dist/scripts/purge-inactive.cjs

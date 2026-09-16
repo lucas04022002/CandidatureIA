@@ -111,8 +111,8 @@ npm run dev            # http://127.0.0.1:3000 — préférer 127.0.0.1 à local
 | `npm test` | suite de tests (Vitest) |
 | `npm run db:generate` | génère une migration Drizzle à partir de `lib/db/schema.ts` |
 | `npm run db:migrate` | applique les migrations sur `DATABASE_URL` |
-| `npm run create-admin` | crée le compte administrateur (un seul, refuse si un existe déjà) |
-| `npm run purge-inactive` | purge RGPD des comptes sans connexion depuis 12 mois (`lib/legal.ts`, `RETENTION_MONTHS`) — cron en production, voir `deploy/crontab.txt` |
+| `npm run create-admin` | crée le compte administrateur (un seul, refuse si un existe déjà) — en production : `node dist/scripts/create-admin.cjs` |
+| `npm run purge-inactive` | purge RGPD des comptes sans connexion depuis 12 mois (`lib/legal.ts`, `RETENTION_MONTHS`) — en production : `node dist/scripts/purge-inactive.cjs`, voir `deploy/crontab.txt` |
 
 ## Interface
 

@@ -122,11 +122,13 @@ jobs:
 
       # Fait tourner l'image pour de vrai : conteneur Postgres + conteneur applybot sur le même
       # réseau Docker, attend que /login réponde (migration + démarrage du serveur inclus), vérifie
-      # les en-têtes de sécurité posés par next.config.ts, puis exécute scripts/purge-inactive.ts
-      # DANS le conteneur pour prouver que scripts/ + lib/ (imports relatifs ET alias "@/") se
-      # résolvent bien avec le node_modules et le tsconfig.json embarqués dans l'image — c'est
+      # les en-têtes de sécurité posés par next.config.ts, puis exécute le bundle de purge DANS le
+      # conteneur pour prouver que les scripts compilés par esbuild s'exécutent réellement — c'est
       # exactement le genre de trou que `docker build` seul ne peut pas détecter (il compile
-      # server.js, mais scripts/migrate.ts n'est jamais exécuté pendant le build).
+      # server.js, mais aucun script de maintenance n'est exécuté pendant le build).
+      #
+      # Ce contrôle a déjà payé : au passage aux bundles, il a rattrapé cette commande restée sur
+      # l'ancien chemin , que la mise à jour de la documentation avait oubliée.
       - name: docker run — smoke test (Postgres + healthcheck + scripts)
         run: |
           set -e
@@ -188,9 +190,9 @@ jobs:
           }
           echo "En-têtes de sécurité confirmés."
 
-          echo "Exécution de scripts/purge-inactive.ts dans le conteneur (preuve que lib/ et l'alias @/ se résolvent)..."
-          docker exec applybot-ci-app node node_modules/tsx/dist/cli.mjs scripts/purge-inactive.ts || {
-            echo "scripts/purge-inactive.ts a échoué dans le conteneur." >&2
+          echo "Exécution du bundle de purge dans le conteneur (preuve que les scripts compilés tournent)..."
+          docker exec applybot-ci-app node dist/scripts/purge-inactive.cjs || {
+            echo "dist/scripts/purge-inactive.cjs a échoué dans le conteneur." >&2
             docker logs applybot-ci-app
             exit 1
           }

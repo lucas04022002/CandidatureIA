@@ -44,7 +44,7 @@ l'interface Coolify.
    manuelle n'est nécessaire pour ça.
 
 6. **Créer l'administrateur** : depuis le terminal Coolify du service, lancer
-   `npm run create-admin` (invite interactive : e-mail + mot de passe, 10
+   `node dist/scripts/create-admin.cjs` (invite interactive : e-mail + mot de passe, 10
    caractères minimum). Le script refuse de créer un second administrateur si
    un compte `role = admin` existe déjà.
 
@@ -81,7 +81,7 @@ son compte dormant alors que l'organisme était déjà vide de stagiaires. Plus
 personne ne peut alors régénérer le code d'inscription, ajuster le nombre de
 places ni retirer un membre — l'organisme est vivant mais inadministrable.
 
-**Détection.** Le cron mensuel (`npm run purge-inactive`, voir
+**Détection.** Le cron hebdomadaire (`node dist/scripts/purge-inactive.cjs`, voir
 `deploy/crontab.txt`) termine son exécution en listant ces organismes :
 
 ```
