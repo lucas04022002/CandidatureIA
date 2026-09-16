@@ -53,7 +53,10 @@ describe("inscription par code", () => {
 
     const inactiveOrg = await createOrganisation({ name: "AFPA Inactif" });
     inactiveCode = inactiveOrg.code;
-    // reste `active: false` (valeur par défaut de `createOrganisation`).
+    // Un organisme naît désormais actif : on le désactive explicitement, sinon
+    // ce test ne vérifie plus rien. Le cas reste réel — l'administration peut
+    // couper l'accès d'un organisme après coup.
+    await db.update(organisations).set({ active: false }).where(eq(organisations.id, inactiveOrg.id));
   });
 
   it("code inconnu → 400", async () => {

@@ -30,24 +30,39 @@ export default function Home() {
         <section className="bg-klein text-white">
           <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 [&>*]:min-w-0 md:grid-cols-[1fr_380px] md:items-end md:py-16">
             <div className="motion-safe:animate-[rise_400ms_ease-out]">
-              <h1 className="font-display text-[clamp(44px,7vw,92px)] font-extrabold leading-[0.95] tracking-[-0.03em]">
-                Chaque stagiaire postule. Chaque jour.
+              {/* Le titre nomme le métier et la cible. L'ancien — « Chaque stagiaire
+                  postule. Chaque jour. » — sonnait bien et n'apprenait rien : un
+                  visiteur ne savait pas ce qu'est le produit ni s'il le concerne. */}
+              <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-klein-soft">
+                Logiciel pour organismes de formation
+              </p>
+              <h1 className="mt-4 font-display text-[clamp(31px,4.6vw,56px)] font-bold leading-[1.04] tracking-[-0.022em]">
+                Vos stagiaires postulent.
+                <br />
+                Vous suivez la promo.
               </h1>
-              <p className="mt-5 max-w-[44ch] font-body text-[16px] leading-[1.55] text-klein-soft">
-                Les offres de France Travail, d&apos;Adzuna, de Jooble et des sites d&apos;entreprises,
-                classées selon le profil de chaque stagiaire. Lettre et e-mail préparés, relance à
-                quatre jours, suivi par promo.
+              <p className="mt-5 max-w-[48ch] font-body text-[16.5px] leading-[1.6] text-klein-soft">
+                Chaque stagiaire reçoit les offres qui correspondent à son profil — France Travail,
+                Adzuna, Jooble et les sites d&apos;entreprises — avec la lettre et l&apos;e-mail déjà
+                préparés, et une relance au bout de quatre jours. Vous voyez qui est inscrit et
+                combien de places restent. Jamais les CV, jamais les candidatures.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-4">
-                <Button variant="onBlue" href="/organisme/inscription">
-                  Ouvrir des places pour ma promo
+                <Button variant="onBlue" href="/demo">
+                  Voir la démonstration
                 </Button>
+                <Link
+                  href="/organisme/inscription"
+                  className="font-body text-[14px] text-white underline underline-offset-[3px]"
+                >
+                  Ouvrir des places pour ma promo
+                </Link>
                 {/* `Link` et non `<a>` : c'était le seul lien interne de l'accueil à provoquer un
                     rechargement complet du document — perte du préchargement et du rendu client,
                     alors que le bouton juste à côté (`Button href`) passe déjà par `Link`. */}
                 <Link
                   href="/login"
-                  className="font-body text-[14px] text-white underline underline-offset-[3px]"
+                  className="font-body text-[14px] text-klein-soft underline underline-offset-[3px]"
                 >
                   J&apos;ai un code d&apos;organisme
                 </Link>

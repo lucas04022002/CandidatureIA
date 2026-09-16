@@ -15,7 +15,7 @@
   --color-good-soft: #e3f3ea;
   --color-warn-soft: #fbf1dc;
   --color-bad-soft: #f9e3e1;
-  --font-display: var(--font-syne), system-ui, sans-serif;
+  --font-display: var(--font-archivo), system-ui, sans-serif;
   --font-body: var(--font-instrument), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --font-stamp: var(--font-barlow), Impact, sans-serif;
@@ -36,8 +36,8 @@ body {
 
 /* Dans `@layer base`, et non hors couche : une règle sans couche l'emporte sur TOUTES les couches
  * Tailwind, donc `font-display` écrasait ici l'utilitaire `font-mono` posé sur les `h2` d'en-tête de
- * liste (/jobs, /applications), qui sortaient en Syne au lieu du mono attendu. En base, Syne reste
- * la valeur par défaut d'un titre et l'utilitaire reprend la main quand on en pose un. */
+ * liste (/jobs, /applications), qui sortaient en display au lieu du mono attendu. En base, la
+ * display reste la valeur par défaut d'un titre, et l'utilitaire reprend la main quand on en pose un. */
 @layer base {
   h1,
   h2,
