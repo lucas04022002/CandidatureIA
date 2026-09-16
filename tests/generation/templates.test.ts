@@ -32,7 +32,7 @@ function normalize(value: string) {
 }
 
 // "ia" est testé en tant que mot isolé (\bia\b) pour éviter les faux positifs sur des mots français
-// courants qui contiennent la sous-chaîne "ia" (ex: "stagiaire", "sociale").
+// courants qui contiennent la sous-chaîne "ia" (ex: "etudiant", "sociale").
 const BANNED_WORD_PATTERNS = [/\bia\b/, /intelligence artificielle/, /genere par/];
 
 describe("generateApplicationTexts", () => {

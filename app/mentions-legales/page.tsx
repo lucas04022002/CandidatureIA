@@ -36,7 +36,7 @@ const sections: LegalSection[] = [
       { subtitle: "Données traitées" },
       { list: PROCESSED_DATA },
       { subtitle: "Rôles" },
-      "Lorsqu'un stagiaire utilise ApplyBot dans le cadre d'une formation, l'organisme de formation qui lui ouvre l'accès est responsable de traitement, et l'éditeur d'ApplyBot agit comme sous-traitant au sens de l'article 28 du RGPD. Le responsable de l'organisme voit uniquement la liste de ses stagiaires : adresse e-mail, date d'inscription et date de dernière connexion. Il n'a jamais accès à leur CV, à leurs offres ni à leurs candidatures.",
+      "Lorsqu'un étudiant utilise ApplyBot dans le cadre d'une formation, l'organisme de formation qui lui ouvre l'accès est responsable de traitement, et l'éditeur d'ApplyBot agit comme sous-traitant au sens de l'article 28 du RGPD. Le responsable de l'organisme voit uniquement la liste de ses étudiants : adresse e-mail, date d'inscription et date de dernière connexion. Il n'a jamais accès à leur CV, à leurs offres ni à leurs candidatures.",
       { subtitle: "Finalité et base légale" },
       "Les données sont traitées pour créer le compte, importer un CV, rechercher et classer des offres, préparer des candidatures et en assurer le suivi. Le traitement repose sur l'exécution du contrat conclu lors de la création du compte, et sur l'intérêt légitime de l'éditeur pour la sécurité et le suivi technique du service.",
       { subtitle: "Destinataires" },

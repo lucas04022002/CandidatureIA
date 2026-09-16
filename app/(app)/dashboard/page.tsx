@@ -17,7 +17,7 @@ function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] || "toi";
 }
 
-// « Aujourd'hui » au sens du stagiaire, c'est-à-dire à Paris — et non dans le fuseau du serveur,
+// « Aujourd'hui » au sens de l'etudiant, c'est-à-dire à Paris — et non dans le fuseau du serveur,
 // qui est UTC en production : une offre relevée après 22:00 UTC porte déjà la date du lendemain à
 // Paris, et l'inverse en heure d'été. On compare deux jours civils parisiens, pas deux horloges.
 function isToday(date: Date | null, today: string | null) {

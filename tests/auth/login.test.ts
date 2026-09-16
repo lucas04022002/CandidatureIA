@@ -42,16 +42,16 @@ describe("connexion, session, déconnexion", () => {
   beforeAll(async () => {
     await resetDatabase();
     await createUser({
-      email: "stagiaire@ex.fr",
+      email: "etudiant@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
-      role: "stagiaire",
+      role: "etudiant",
       organisationId: null,
     });
   });
 
   it("bon mot de passe → 200 + cookie (flags conformes)", async () => {
     const r = await login(
-      request("/api/auth/login", { body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }) }),
+      request("/api/auth/login", { body: JSON.stringify({ email: "etudiant@ex.fr", password: "motdepasse-correct" }) }),
       {},
     );
     expect(r.status).toBe(200);
@@ -68,7 +68,7 @@ describe("connexion, session, déconnexion", () => {
     const r = await login(
       request("/api/auth/login", {
         headers: { "sec-fetch-site": "cross-site" },
-        body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }),
+        body: JSON.stringify({ email: "etudiant@ex.fr", password: "motdepasse-correct" }),
       }),
       {},
     );
@@ -79,7 +79,7 @@ describe("connexion, session, déconnexion", () => {
     const r = await login(
       request("/api/auth/login", {
         headers: { origin: "https://evil.example" },
-        body: JSON.stringify({ email: "stagiaire@ex.fr", password: "motdepasse-correct" }),
+        body: JSON.stringify({ email: "etudiant@ex.fr", password: "motdepasse-correct" }),
       }),
       {},
     );
@@ -88,7 +88,7 @@ describe("connexion, session, déconnexion", () => {
 
   it("mauvais mot de passe → 401", async () => {
     const r = await login(
-      request("/api/auth/login", { body: JSON.stringify({ email: "stagiaire@ex.fr", password: "mauvais-mot-de-passe" }) }),
+      request("/api/auth/login", { body: JSON.stringify({ email: "etudiant@ex.fr", password: "mauvais-mot-de-passe" }) }),
       {},
     );
     expect(r.status).toBe(401);
@@ -119,7 +119,7 @@ describe("connexion, session, déconnexion", () => {
     const r = await me(request("/api/auth/me", { method: "GET" }), {});
     expect(r.status).toBe(200);
     const body = await r.json();
-    expect(body).toMatchObject({ email: "stagiaire@ex.fr", role: "stagiaire", organisationId: null });
+    expect(body).toMatchObject({ email: "etudiant@ex.fr", role: "etudiant", organisationId: null });
   });
 
   it("GET /api/auth/me sans cookie → 401", async () => {

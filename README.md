@@ -1,7 +1,7 @@
 # ApplyBot
 
 **SaaS B2B de suivi de candidatures pour organismes de formation.** Chaque organisme
-inscrit ses stagiaires, qui préparent leurs candidatures depuis l'outil.
+inscrit ses étudiants, qui préparent leurs candidatures depuis l'outil.
 
 [**Voir le produit en ligne →**](https://applybot.lucasguilhot.fr) · [Étude de cas complète](https://lucasguilhot.fr/projets/applybot) · [Portfolio](https://lucasguilhot.fr)
 
@@ -14,7 +14,7 @@ inscrit ses stagiaires, qui préparent leurs candidatures depuis l'outil.
 ## La décision qui compte
 
 Le produit s'appelait CandidatureIA et reposait sur un modèle de langage pour rédiger
-lettres et messages. Mesuré : le résultat n'était pas meilleur que ce qu'un stagiaire
+lettres et messages. Mesuré : le résultat n'était pas meilleur que ce qu'un étudiant
 obtient gratuitement ailleurs, et il coûtait un abonnement par utilisateur — une
 dépense qui grandit avec le nombre d'utilisateurs, sur un produit vendu au forfait
 à l'organisme.
@@ -28,13 +28,13 @@ de **0 €**.
 
 - **202 tests automatisés**, de la base de données aux composants d'interface
 - **7 sources d'offres** publiques, dédupliquées par URL
-- **3 rôles** — stagiaire, responsable d'organisme, administration
+- **3 rôles** — étudiant, responsable d'organisme, administration
 - **0 €** de coût d'IA par candidature
 - **100** en performance, accessibilité, bonnes pratiques et SEO (Lighthouse)
 
 ## Les écrans
 
-- `/dashboard` : tableau de bord du stagiaire
+- `/dashboard` : tableau de bord de l'étudiant
 - `/jobs` : pipeline d'offres collectées
 - `/applications` : candidatures générées, suivi de statut
 - `/organisme` : espace responsable d'organisme (activation, places, membres)

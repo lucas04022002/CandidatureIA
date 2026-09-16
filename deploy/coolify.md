@@ -77,7 +77,7 @@ l'interface Coolify.
 
 Un organisme peut se retrouver **sans aucun responsable actif** : le responsable
 supprime son compte (droit à l'effacement), ou la purge RGPD mensuelle emporte
-son compte dormant alors que l'organisme était déjà vide de stagiaires. Plus
+son compte dormant alors que l'organisme était déjà vide de étudiants. Plus
 personne ne peut alors régénérer le code d'inscription, ajuster le nombre de
 places ni retirer un membre — l'organisme est vivant mais inadministrable.
 
@@ -88,13 +88,13 @@ places ni retirer un membre — l'organisme est vivant mais inadministrable.
 organisation AFPA Untel sans responsable (code 7KQ2M4XZ) — aucune désactivation automatique.
 ```
 
-Rien n'est désactivé automatiquement : couper l'accès des stagiaires d'un
+Rien n'est désactivé automatiquement : couper l'accès des étudiants d'un
 organisme est une décision commerciale, pas une conséquence d'un script de
 maintenance. Le même signalement est visible dans `/admin`, colonne
 « Responsable » à « Aucun ».
 
 **Garde-fou en amont.** Depuis la revue de sécurité, la purge ne supprime plus un
-responsable dormant tant que son organisme compte au moins un stagiaire non
+responsable dormant tant que son organisme compte au moins un étudiant non
 supprimé (`purgeInactiveUsers`, `lib/db/queries/users.ts`). Un responsable se
 connecte rarement — c'est la nature du rôle, pas un signe d'abandon. Le cas
 restant est donc l'organisme réellement vidé, ou le responsable qui a demandé
@@ -121,9 +121,9 @@ avec une session administrateur :
 
 Réponses possibles : `404` si aucun compte actif ne porte cet e-mail, `400` si le
 compte existe mais n'a pas le rôle `responsable`. La route **ne promeut jamais**
-un stagiaire en responsable : ce rôle donne vue sur les membres de l'organisme,
+un étudiant en responsable : ce rôle donne vue sur les membres de l'organisme,
 ça se décide explicitement et ça ne se fait pas en effet de bord d'une mise à
-jour de places. Pour un stagiaire qu'on veut promouvoir, changer son rôle en base
+jour de places. Pour un étudiant qu'on veut promouvoir, changer son rôle en base
 puis le rattacher.
 
 ## Ce que fait Claude et ce que fait Lucas

@@ -14,7 +14,7 @@
 - Branche `refonte-b2b` du dépôt `C:\Users\lucas\OneDrive\Desktop\CandidatureIA` (Windows, Git Bash). Commits en français, terminés par `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - Interdit dans `app/`, `lib/`, `components/` après la tâche 5 : `OPENAI`, `openai`, `supabase`, `sk-`. La CI l'impose (tâche 7).
 - Aucun fichier `.env*` suivi sauf `.env.example`. **Ne jamais coller de clé dans le chat, les commits ou les tests.** Les tests n'appellent jamais le réseau (fixtures enregistrées, anonymisées).
-- Rôles : `stagiaire`, `responsable`, `admin`. Toute requête de données filtrée par `user_id` de la session, côté serveur.
+- Rôles : `étudiant`, `responsable`, `admin`. Toute requête de données filtrée par `user_id` de la session, côté serveur.
 - Cookie de session `ab_session`, JWT HS256 signé avec `JWT_SECRET` (≥ 32 caractères, refus au démarrage sinon), 7 jours, `httpOnly`, `SameSite=Lax`, `Secure` quand `NODE_ENV=production`.
 - Mot de passe ≥ 10 caractères, haché **argon2id** (`hash-wasm`, WebAssembly ; aucun module natif dans le projet, Smart App Control les bloque).
 - Code d'organisme : 8 caractères parmi `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
@@ -207,7 +207,7 @@ git add -A && git commit -m "chore: retrait de tmp/ et des données personnelles
 - Generate: `drizzle/0000_init.sql` (par `npm run db:generate`, puis relu)
 
 **Interfaces:**
-- Produces : `db` (Drizzle), tables `organisations`, `users`, `candidateProfiles`, `jobs`, `applications`, `searchRuns`, `loginAttempts`, `cvImports` ; enums `roleEnum('stagiaire'|'responsable'|'admin')`, `applicationStatusEnum` (5 statuts existants) ; `resetDatabase()` pour les tests.
+- Produces : `db` (Drizzle), tables `organisations`, `users`, `candidateProfiles`, `jobs`, `applications`, `searchRuns`, `loginAttempts`, `cvImports` ; enums `roleEnum('étudiant'|'responsable'|'admin')`, `applicationStatusEnum` (5 statuts existants) ; `resetDatabase()` pour les tests.
 
 - [ ] **Step 1 : Test qui échoue** — `tests/db/schema.test.ts` :
 
@@ -232,7 +232,7 @@ describe("schéma", () => {
 
 ```ts
 import { pgTable, pgEnum, uuid, text, integer, boolean, timestamp, char, index, uniqueIndex } from "drizzle-orm/pg-core";
-export const roleEnum = pgEnum("user_role", ["stagiaire", "responsable", "admin"]);
+export const roleEnum = pgEnum("user_role", ["étudiant", "responsable", "admin"]);
 export const applicationStatusEnum = pgEnum("application_status", ["Nouveau", "À valider", "Brouillon", "Envoyé", "Refusé"]);
 export const organisations = pgTable("organisations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -436,8 +436,8 @@ import { describe, expect, it } from "vitest";
 import { signSession, verifySession } from "@/lib/auth/jwt";
 describe("jeton de session", () => {
   it("signe et relit", async () => {
-    const t = await signSession({ userId: "u1", role: "stagiaire" });
-    expect(await verifySession(t)).toEqual({ userId: "u1", role: "stagiaire" });
+    const t = await signSession({ userId: "u1", role: "étudiant" });
+    expect(await verifySession(t)).toEqual({ userId: "u1", role: "étudiant" });
   });
   it("refuse un jeton altéré", async () => { expect(await verifySession("a.b.c")).toBeNull(); });
 });
@@ -473,7 +473,7 @@ export const verifyPassword = (hash: string, p: string) => argon2Verify({ passwo
 
 ```ts
 import { SignJWT, jwtVerify } from "jose";
-export type Role = "stagiaire" | "responsable" | "admin";
+export type Role = "étudiant" | "responsable" | "admin";
 const secret = () => { const s = process.env.JWT_SECRET; if (!s || s.length < 32) throw new Error("JWT_SECRET absent ou trop court (32 caractères minimum)"); return new TextEncoder().encode(s); };
 export async function signSession(p: { userId: string; role: Role }) {
   return new SignJWT({ role: p.role }).setProtectedHeader({ alg: "HS256" }).setSubject(p.userId).setIssuedAt().setExpirationTime("7d").sign(secret());
@@ -651,7 +651,7 @@ describe("routes candidat sans session", () => {
 
 (Si une route est en `DELETE` ou `PATCH`, adapter la méthode dans la liste : `{ name, method }`.)
 
-- [ ] **Step 2 : Test du parcours (échec d'abord)** — `tests/api/candidate-flow.test.ts` : `resetDatabase`, crée un organisme actif + un stagiaire via `registerTraineeWithCode`, fabrique un cookie avec `signSession`, puis, en mockant `next/headers` `cookies()` pour renvoyer ce cookie (`vi.mock("next/headers", ...)`) :
+- [ ] **Step 2 : Test du parcours (échec d'abord)** — `tests/api/candidate-flow.test.ts` : `resetDatabase`, crée un organisme actif + un étudiant via `registerTraineeWithCode`, fabrique un cookie avec `signSession`, puis, en mockant `next/headers` `cookies()` pour renvoyer ce cookie (`vi.mock("next/headers", ...)`) :
   1. `POST /api/import-cv` avec un fichier texte fictif (`FormData`, CV inventé « Camille Test ») → 200, `getProfile(userId).fullName === "Camille Test"`.
   2. `POST /api/scrape-jobs` avec **tous les connecteurs mockés** (`vi.mock("@/lib/scrapers/registry", ...)` renvoyant 3 offres fictives) → 200, `getJobs(userId).length === 3`, `search_runs` a 1 ligne.
   3. `POST /api/generate-application` `{ jobId }` → 200, `letterText` non vide et contient « Camille Test ».
@@ -737,17 +737,17 @@ export async function scrapeAll(o: CommonSearchOptions): Promise<{ jobs: Normali
 - Produces : `deleteUserAndData(userId): Promise<void>`, `exportUserData(userId): Promise<{ profile, jobs, applications, exportedAt }>`, `purgeInactiveUsers(before: Date): Promise<number>`.
 
 - [ ] **Step 1 : Tests (échec d'abord)**
-  - `organisation.test.ts` : un responsable régénère le code → l'ancien code donne `OrgCodeError('unknown')` à l'inscription, le nouveau fonctionne ; `remove-member` sur un stagiaire d'un **autre** organisme → 404 ; sur le sien → le stagiaire est supprimé et la place libérée (`countActiveTrainees` décrémenté) ; un stagiaire appelant `regenerate-code` → 403.
+  - `organisation.test.ts` : un responsable régénère le code → l'ancien code donne `OrgCodeError('unknown')` à l'inscription, le nouveau fonctionne ; `remove-member` sur un étudiant d'un **autre** organisme → 404 ; sur le sien → l'étudiant est supprimé et la place libérée (`countActiveTrainees` décrémenté) ; un étudiant appelant `regenerate-code` → 403.
   - `admin.test.ts` : `POST /api/admin/organisation { id, active: true, seats: 20 }` par l'admin → 200 ; par un responsable → 403 ; une organisation inactive refuse l'inscription (`inactive`).
   - `delete-export.test.ts` : après `DELETE /api/account`, `getProfile`, `getJobs`, `getApplications` sont vides pour cet id, `findUserByEmail(email)` est `null` (e-mail libéré), et une nouvelle inscription avec le même e-mail réussit ; `GET /api/account/export` renvoie un JSON avec `profile`, `jobs`, `applications` du seul utilisateur.
   - `purge.test.ts` : un utilisateur `last_login_at` à −13 mois est purgé, un à −11 mois non, l'admin jamais.
   - `legal.test.ts` : `/mentions-legales` et `/cgu` rendent sans erreur ; si `CI_STRICT_LEGAL === "1"`, aucun champ de `LEGAL` ne vaut « À COMPLÉTER ».
 
-- [ ] **Step 2 : Implémenter** routes, requêtes, pages. Page `/organisme` : nom, code en gros caractères avec bouton « Régénérer », « places utilisées / places », tableau des stagiaires (e-mail, inscrit le, dernière connexion, bouton « Retirer » avec confirmation). Page `/admin` : tableau des organisations (nom, responsable, actif, places, stagiaires actifs, créé le) avec formulaire inline actif + places. Textes légaux : reprendre la structure de RushPlay (`C:\Users\lucas\OneDrive\Desktop\Saas--main - Copie\frontend\lib\legal.ts` et ses deux pages) en adaptant : éditeur « À COMPLÉTER », hébergeur Hetzner, données traitées (e-mail, hash, texte de CV extrait, profil, offres, candidatures, horodatages), aucun transfert à un tiers, sources d'offres citées (France Travail, Adzuna, Jooble, La Bonne Alternance, Greenhouse, Lever, SmartRecruiters), conservation 12 mois après la dernière connexion, droits et contact, cookie unique `ab_session`. CGU : contrat organisme (places, activation, durée, résiliation, sous-traitance RGPD art. 28 avec l'organisme comme responsable de traitement et ApplyBot comme sous-traitant pour les données des stagiaires) + notice stagiaire (compte personnel, 18 ans ou accord de l'organisme, usage personnel, pas de scraping, suppression).
+- [ ] **Step 2 : Implémenter** routes, requêtes, pages. Page `/organisme` : nom, code en gros caractères avec bouton « Régénérer », « places utilisées / places », tableau des étudiants (e-mail, inscrit le, dernière connexion, bouton « Retirer » avec confirmation). Page `/admin` : tableau des organisations (nom, responsable, actif, places, étudiants actifs, créé le) avec formulaire inline actif + places. Textes légaux : reprendre la structure de RushPlay (`C:\Users\lucas\OneDrive\Desktop\Saas--main - Copie\frontend\lib\legal.ts` et ses deux pages) en adaptant : éditeur « À COMPLÉTER », hébergeur Hetzner, données traitées (e-mail, hash, texte de CV extrait, profil, offres, candidatures, horodatages), aucun transfert à un tiers, sources d'offres citées (France Travail, Adzuna, Jooble, La Bonne Alternance, Greenhouse, Lever, SmartRecruiters), conservation 12 mois après la dernière connexion, droits et contact, cookie unique `ab_session`. CGU : contrat organisme (places, activation, durée, résiliation, sous-traitance RGPD art. 28 avec l'organisme comme responsable de traitement et ApplyBot comme sous-traitant pour les données des étudiants) + noticet étudiant (compte personnel, 18 ans ou accord de l'organisme, usage personnel, pas de scraping, suppression).
 
 - [ ] **Step 3 : Lancer** `npm test`, `typecheck`, `lint`, `build`.
 
-- [ ] **Step 4 : Commit** `git commit -am "feat(org,rgpd): page organisme (code, places, stagiaires), page admin, suppression et export de compte, purge des inactifs, mentions légales et CGU B2B"`
+- [ ] **Step 4 : Commit** `git commit -am "feat(org,rgpd): page organisme (code, places, étudiants), page admin, suppression et export de compte, purge des inactifs, mentions légales et CGU B2B"`
 
 ---
 

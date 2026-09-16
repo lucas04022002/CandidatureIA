@@ -14,14 +14,14 @@ interface NavLink {
 }
 
 /**
- * Navigation propre à chaque rôle. Le stagiaire est le seul à avoir un tableau de bord et un parcours
+ * Navigation propre à chaque rôle. L'étudiant est le seul à avoir un tableau de bord et un parcours
  * de candidature ;
- * le responsable ne voit que son organisme (jamais les CV ni les candidatures de ses stagiaires) ;
+ * le responsable ne voit que son organisme (jamais les CV ni les candidatures de ses étudiants) ;
  * l'admin ne voit que l'administration. « Profil » est commun : c'est de là que tout compte
  * s'exporte et se supprime.
  */
 const LINKS: Record<Role, NavLink[]> = {
-  stagiaire: [
+  etudiant: [
     { href: "/dashboard", label: "Tableau de bord" },
     { href: "/jobs", label: "Offres" },
     { href: "/applications", label: "Candidatures" },
@@ -170,7 +170,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
 
 /**
  * Même barre, pour les pages publiques : pas de compte, donc pas d'e-mail ni de déconnexion, mais
- * les deux portes d'entrée — le code d'organisme pour le stagiaire, la création d'espace pour
+ * les deux portes d'entrée — le code d'organisme pour l'etudiant, la création d'espace pour
  * l'organisme. Le lien de la page courante est omis plutôt que désactivé.
  */
 export function PublicBar() {

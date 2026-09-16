@@ -23,7 +23,7 @@ describe("pages légales", () => {
     const html = renderToStaticMarkup(createElement(Cgu));
     expect(html).not.toContain("undefined");
     expect(html).toContain("sous-traitant");
-    expect(html).toContain("stagiaire");
+    expect(html).toContain("etudiant");
   });
 
   // Garde-fou de mise en ligne : ce test n'échoue que si CI_STRICT_LEGAL vaut "1", c'est-à-dire

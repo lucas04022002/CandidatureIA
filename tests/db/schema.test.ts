@@ -11,7 +11,7 @@ describe("schéma", () => {
     for (const t of ["organisations","users","candidate_profiles","jobs","applications","search_runs","login_attempts","cv_imports"]) expect(names).toContain(t);
   });
   it("rejette un score hors plage 0-100 (contrainte jobs_score_range)", async () => {
-    const [user] = await db.insert(users).values({ email: "score-test@example.com", passwordHash: "x", role: "stagiaire" }).returning();
+    const [user] = await db.insert(users).values({ email: "score-test@example.com", passwordHash: "x", role: "etudiant" }).returning();
     await expect(
       db.insert(jobs).values({
         userId: user.id,
@@ -21,7 +21,7 @@ describe("schéma", () => {
     ).rejects.toThrow();
   });
   it("rejette deux candidatures pour la même offre et le même utilisateur (contrainte applications_job_user_unique)", async () => {
-    const [user] = await db.insert(users).values({ email: "unique-test@example.com", passwordHash: "x", role: "stagiaire" }).returning();
+    const [user] = await db.insert(users).values({ email: "unique-test@example.com", passwordHash: "x", role: "etudiant" }).returning();
     const [job] = await db.insert(jobs).values({
       userId: user.id,
       title: "titre", company: "société", location: "lieu", contract: "cdi", source: "source",
@@ -33,7 +33,7 @@ describe("schéma", () => {
     ).rejects.toThrow();
   });
   it("rejette une candidature sans jobId (job_id NOT NULL)", async () => {
-    const [user] = await db.insert(users).values({ email: "no-job-test@example.com", passwordHash: "x", role: "stagiaire" }).returning();
+    const [user] = await db.insert(users).values({ email: "no-job-test@example.com", passwordHash: "x", role: "etudiant" }).returning();
     await expect(
       // @ts-expect-error jobId est requis (job_id NOT NULL) : on vérifie ici le rejet en base sans lui.
       db.insert(applications).values({ userId: user.id })

@@ -17,14 +17,14 @@ const { requireRole, SESSION_COOKIE } = await import("@/lib/auth/session");
 describe("requireRole", () => {
   beforeAll(resetDatabase);
 
-  it("session stagiaire appelant une route réservée aux responsables/admins → 403", async () => {
+  it("session étudiant appelant une route réservée aux responsables/admins → 403", async () => {
     const user = await createUser({
-      email: "stagiaire-role@ex.fr",
+      email: "étudiant-role@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
-      role: "stagiaire",
+      role: "etudiant",
       organisationId: null,
     });
-    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "stagiaire" }));
+    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "etudiant" }));
 
     await expect(requireRole("responsable", "admin")).rejects.toMatchObject({ status: 403 });
   });

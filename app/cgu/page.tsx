@@ -7,7 +7,7 @@ const sections: LegalSection[] = [
   {
     title: "Objet du service",
     blocks: [
-      `ApplyBot est un outil d'aide à la candidature destiné aux organismes de formation et à leurs stagiaires. Il collecte des offres d'emploi auprès de sources publiques (${JOB_SOURCES.join(", ")}), les classe selon le profil issu du CV importé, et prépare des textes de candidature (lettre, e-mail, message LinkedIn, relance) que l'utilisateur relit et envoie lui-même.`,
+      `ApplyBot est un outil d'aide à la candidature destiné aux organismes de formation et à leurs étudiants. Il collecte des offres d'emploi auprès de sources publiques (${JOB_SOURCES.join(", ")}), les classe selon le profil issu du CV importé, et prépare des textes de candidature (lettre, e-mail, message LinkedIn, relance) que l'utilisateur relit et envoie lui-même.`,
       "ApplyBot n'envoie aucune candidature à la place de l'utilisateur, ne publie aucune offre et ne garantit ni entretien ni embauche.",
     ],
   },
@@ -15,38 +15,38 @@ const sections: LegalSection[] = [
     title: "Contrat avec l'organisme de formation",
     blocks: [
       { subtitle: "Ouverture du compte organisme" },
-      "Un organisme de formation crée son espace depuis la page d'inscription dédiée. Un code d'organisme à huit caractères lui est attribué : c'est ce code que ses stagiaires utilisent pour créer leur compte.",
+      "Un organisme de formation crée son espace depuis la page d'inscription dédiée. Un code d'organisme à huit caractères lui est attribué : c'est ce code que ses étudiants utilisent pour créer leur compte.",
       { subtitle: "Activation et places" },
-      "L'espace est créé inactif et sans place. L'éditeur l'active et fixe le nombre de places après échange avec l'organisme. Tant que l'espace est inactif, aucune inscription de stagiaire n'est possible. Lorsque toutes les places sont occupées, une nouvelle inscription est refusée jusqu'à ce qu'une place soit libérée ou que le nombre de places soit relevé.",
-      "Le responsable de l'organisme administre ses places : il peut régénérer le code d'inscription à tout moment (l'ancien code cesse alors immédiatement de fonctionner) et retirer un stagiaire, ce qui supprime le compte de ce stagiaire et libère sa place.",
+      "L'espace est créé inactif et sans place. L'éditeur l'active et fixe le nombre de places après échange avec l'organisme. Tant que l'espace est inactif, aucune inscription de étudiant n'est possible. Lorsque toutes les places sont occupées, une nouvelle inscription est refusée jusqu'à ce qu'une place soit libérée ou que le nombre de places soit relevé.",
+      "Le responsable de l'organisme administre ses places : il peut régénérer le code d'inscription à tout moment (l'ancien code cesse alors immédiatement de fonctionner) et retirer un etudiant, ce qui supprime le compte de cet étudiant et libère sa place.",
       { subtitle: "Durée, résiliation et fin de contrat" },
       "Le contrat est conclu pour la durée convenue entre l'organisme et l'éditeur, et se poursuit tant que l'espace reste actif. Chaque partie peut y mettre fin à tout moment : l'organisme en le demandant à l'éditeur, l'éditeur en désactivant l'espace en cas de manquement grave aux présentes conditions, après en avoir informé l'organisme.",
-      "À la fin du contrat, l'espace est désactivé : aucune nouvelle inscription n'est possible et les comptes des stagiaires sont supprimés selon les modalités convenues avec l'organisme, ou purgés automatiquement selon la durée de conservation indiquée plus bas.",
+      "À la fin du contrat, l'espace est désactivé : aucune nouvelle inscription n'est possible et les comptes des étudiants sont supprimés selon les modalités convenues avec l'organisme, ou purgés automatiquement selon la durée de conservation indiquée plus bas.",
       { subtitle: "Sous-traitance (RGPD, article 28)" },
-      "Pour les données des stagiaires, l'organisme de formation est responsable de traitement et l'éditeur d'ApplyBot agit comme sous-traitant. À ce titre, l'éditeur s'engage à :",
+      "Pour les données des étudiants, l'organisme de formation est responsable de traitement et l'éditeur d'ApplyBot agit comme sous-traitant. À ce titre, l'éditeur s'engage à :",
       {
         list: [
           "ne traiter les données que sur instruction de l'organisme et pour les seules finalités du service décrit ci-dessus ;",
-          "n'employer aucune donnée de stagiaire à d'autres fins, notamment commerciales, et ne la transmettre à aucun tiers ;",
+          "n'employer aucune donnée de étudiant à d'autres fins, notamment commerciales, et ne la transmettre à aucun tiers ;",
           "garantir la confidentialité des données et n'en donner l'accès qu'aux personnes qui en ont besoin pour exploiter le service ;",
           "mettre en œuvre des mesures techniques adaptées : mots de passe hachés, cloisonnement des données par compte, hébergement dans l'Union européenne ;",
-          "aider l'organisme à répondre aux demandes d'exercice des droits de ses stagiaires et à notifier toute violation de données dans les meilleurs délais ;",
+          "aider l'organisme à répondre aux demandes d'exercice des droits de ses étudiants et à notifier toute violation de données dans les meilleurs délais ;",
           "n'engager aucun sous-traitant ultérieur pour le traitement de ces données sans en informer l'organisme ;",
           "supprimer ou restituer les données à la fin du contrat, sans en conserver de copie.",
         ],
       },
-      "Le responsable de l'organisme ne voit de ses stagiaires que leur adresse e-mail, leur date d'inscription et leur date de dernière connexion. Le CV, les offres et les candidatures d'un stagiaire ne sont accessibles qu'à ce stagiaire.",
+      "Le responsable de l'organisme ne voit de ses étudiants que leur adresse e-mail, leur date d'inscription et leur date de dernière connexion. Le CV, les offres et les candidatures d'un étudiant ne sont accessibles qu'à cet étudiant.",
     ],
   },
   {
-    title: "Notice destinée au stagiaire",
+    title: "Notice destinée au étudiant",
     blocks: [
       { subtitle: "Compte personnel" },
-      "Le compte est strictement personnel et incessible. Le stagiaire est responsable de la confidentialité de son mot de passe et de toute activité effectuée depuis son compte.",
+      "Le compte est strictement personnel et incessible. L'étudiant est responsable de la confidentialité de son mot de passe et de toute activité effectuée depuis son compte.",
       { subtitle: "Âge" },
-      "L'utilisation du service est réservée aux personnes majeures ; un stagiaire mineur ne peut créer un compte qu'avec l'accord de son organisme de formation et de son représentant légal.",
+      "L'utilisation du service est réservée aux personnes majeures ; un étudiant mineur ne peut créer un compte qu'avec l'accord de son organisme de formation et de son représentant légal.",
       { subtitle: "Usage attendu" },
-      "Le stagiaire s'engage à utiliser le service pour ses propres candidatures, à fournir des informations exactes, à relire chaque texte généré avant de l'envoyer et à n'importer que des documents dont il dispose légitimement.",
+      "L'étudiant s'engage à utiliser le service pour ses propres candidatures, à fournir des informations exactes, à relire chaque texte généré avant de l'envoyer et à n'importer que des documents dont il dispose légitimement.",
       { subtitle: "Interdictions" },
       {
         list: [
@@ -57,7 +57,7 @@ const sections: LegalSection[] = [
         ],
       },
       { subtitle: "Suppression du compte" },
-      `Le stagiaire peut à tout moment exporter ses données ou supprimer son compte depuis la page « Profil ». La suppression efface immédiatement le profil, le CV importé, les offres et les candidatures ; elle est définitive et libère la place occupée dans l'organisme. Le responsable de l'organisme peut également retirer un stagiaire, avec le même effet. Un compte sans connexion depuis ${RETENTION_MONTHS} mois est purgé automatiquement.`,
+      `L'étudiant peut à tout moment exporter ses données ou supprimer son compte depuis la page « Profil ». La suppression efface immédiatement le profil, le CV importé, les offres et les candidatures ; elle est définitive et libère la place occupée dans l'organisme. Le responsable de l'organisme peut également retirer un etudiant, avec le même effet. Un compte sans connexion depuis ${RETENTION_MONTHS} mois est purgé automatiquement.`,
     ],
   },
   {
@@ -102,7 +102,7 @@ export default function Cgu() {
       eyebrow="Conditions générales"
       title="Conditions d'utilisation"
       lastUpdate={LEGAL.lastUpdate}
-      intro="Les présentes conditions générales d'utilisation régissent l'accès au service ApplyBot. Elles se composent d'un contrat conclu avec l'organisme de formation qui ouvre l'accès, et d'une notice qui s'applique à chaque stagiaire disposant d'un compte. L'identité de l'éditeur figure dans les mentions légales."
+      intro="Les présentes conditions générales d'utilisation régissent l'accès au service ApplyBot. Elles se composent d'un contrat conclu avec l'organisme de formation qui ouvre l'accès, et d'une notice qui s'applique à chaque étudiant disposant d'un compte. L'identité de l'éditeur figure dans les mentions légales."
       sections={sections}
       otherPage={{ href: "/mentions-legales", label: "Mentions légales" }}
     />

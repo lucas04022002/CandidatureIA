@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function OrganismePage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  // Page réservée au responsable : un stagiaire n'a rien à y voir, et l'admin passe par /admin.
+  // Page réservée au responsable : un étudiant n'a rien à y voir, et l'admin passe par /admin.
   if (session.role !== "responsable" || !session.organisationId) redirect("/dashboard");
 
   const [organisation, members] = await Promise.all([

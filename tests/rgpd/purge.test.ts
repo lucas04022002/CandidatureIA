@@ -40,15 +40,15 @@ const orgs: Record<string, { id: string; name: string }> = {};
 describe("purge des comptes inactifs", () => {
   beforeAll(async () => {
     await resetDatabase();
-    ids.vieux = (await seedUser("vieux@ex.fr", "stagiaire", { lastLoginAt: moisAvant(13), createdAt: moisAvant(20) })).id;
-    ids.recent = (await seedUser("recent@ex.fr", "stagiaire", { lastLoginAt: moisAvant(11), createdAt: moisAvant(20) })).id;
-    ids.jamais = (await seedUser("jamais@ex.fr", "stagiaire", { lastLoginAt: null, createdAt: moisAvant(13) })).id;
-    ids.jamaisRecent = (await seedUser("jamais-recent@ex.fr", "stagiaire", { lastLoginAt: null, createdAt: moisAvant(2) })).id;
+    ids.vieux = (await seedUser("vieux@ex.fr", "etudiant", { lastLoginAt: moisAvant(13), createdAt: moisAvant(20) })).id;
+    ids.recent = (await seedUser("recent@ex.fr", "etudiant", { lastLoginAt: moisAvant(11), createdAt: moisAvant(20) })).id;
+    ids.jamais = (await seedUser("jamais@ex.fr", "etudiant", { lastLoginAt: null, createdAt: moisAvant(13) })).id;
+    ids.jamaisRecent = (await seedUser("jamais-recent@ex.fr", "etudiant", { lastLoginAt: null, createdAt: moisAvant(2) })).id;
     ids.admin = (await seedUser("admin-purge@ex.fr", "admin", { lastLoginAt: moisAvant(20), createdAt: moisAvant(30) })).id;
 
-    // Quatre organismes : l'un perd son responsable à la purge (il n'a plus de stagiaire), un autre
+    // Quatre organismes : l'un perd son responsable à la purge (il n'a plus de etudiant), un autre
     // le garde parce qu'il se connecte, un autre n'en a jamais eu (espace créé puis abandonné), et
-    // le dernier a un responsable dormant MAIS des stagiaires encore actifs.
+    // le dernier a un responsable dormant MAIS des étudiants encore actifs.
     orgs.orphelin = await createOrganisation({ name: "AFPA Orpheline" });
     orgs.suivi = await createOrganisation({ name: "AFPA Suivie" });
     orgs.sansResponsable = await createOrganisation({ name: "AFPA Sans Responsable" });
@@ -59,7 +59,7 @@ describe("purge des comptes inactifs", () => {
     await seedUser("resp-actif@ex.fr", "responsable", { lastLoginAt: moisAvant(1), createdAt: moisAvant(20) }, orgs.suivi.id);
 
     // Le cas qui compte : responsable dormant depuis 14 mois, mais son organisme a encore un
-    // stagiaire qui se connecte. Le purger couperait l'administration de l'organisme sous les pieds
+    // étudiant qui se connecte. Le purger couperait l'administration de l'organisme sous les pieds
     // d'utilisateurs actifs — personne pour régénérer le code, gérer les places, retirer un membre.
     ids.respDormantPeuple = (
       await seedUser(
@@ -69,8 +69,8 @@ describe("purge des comptes inactifs", () => {
         orgs.peuple.id,
       )
     ).id;
-    ids.stagiaireActif = (
-      await seedUser("stagiaire-actif@ex.fr", "stagiaire", { lastLoginAt: moisAvant(1), createdAt: moisAvant(3) }, orgs.peuple.id)
+    ids.étudiantActif = (
+      await seedUser("étudiant-actif@ex.fr", "etudiant", { lastLoginAt: moisAvant(1), createdAt: moisAvant(3) }, orgs.peuple.id)
     ).id;
 
     await insertJobs(ids.vieux, [
@@ -113,21 +113,21 @@ describe("purge des comptes inactifs", () => {
     expect(admin?.deletedAt).toBeNull();
     expect(admin?.email).toBe("admin-purge@ex.fr");
 
-    // Un responsable dormant DONT l'organisme n'a plus aucun stagiaire est bien purgé : rien à
+    // Un responsable dormant DONT l'organisme n'a plus aucun étudiant est bien purgé : rien à
     // administrer, la conservation de son compte n'a plus de justification.
     expect((await findUserById(ids.respDormant))?.deletedAt).not.toBeNull();
   });
 
-  // Le cœur de la garde : sans elle, la purge fabrique un organisme orphelin — des stagiaires
+  // Le cœur de la garde : sans elle, la purge fabrique un organisme orphelin — des étudiants
   // actifs, et plus personne pour l'administrer.
-  it("ne purge pas un responsable dormant tant que son organisme a un stagiaire actif", async () => {
+  it("ne purge pas un responsable dormant tant que son organisme a un étudiant actif", async () => {
     const responsable = await findUserById(ids.respDormantPeuple);
     expect(responsable?.deletedAt).toBeNull();
     expect(responsable?.email).toBe("resp-dormant-peuple@ex.fr");
     expect(responsable?.organisationId).toBe(orgs.peuple.id);
 
-    // Le stagiaire, lui, était actif : conservé aussi.
-    expect((await findUserById(ids.stagiaireActif))?.deletedAt).toBeNull();
+    // L'etudiant, lui, était actif : conservé aussi.
+    expect((await findUserById(ids.étudiantActif))?.deletedAt).toBeNull();
 
     // Conséquence directe : l'organisme n'apparaît pas dans les orphelins.
     const orphelins = await listOrganisationsWithoutResponsable();

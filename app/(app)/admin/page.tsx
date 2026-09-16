@@ -17,7 +17,7 @@ type OrganisationRow = {
   organisme: ReactNode;
   responsable: string;
   etat: ReactNode;
-  stagiaires: string;
+  étudiants: string;
   ouvert: string;
   reglages: ReactNode;
 };
@@ -26,7 +26,7 @@ const COLUMNS: TableColumn<OrganisationRow>[] = [
   { key: "organisme", label: "Organisme" },
   { key: "responsable", label: "Responsable" },
   { key: "etat", label: "État" },
-  { key: "stagiaires", label: "Stagiaires" },
+  { key: "étudiants", label: "Étudiants" },
   { key: "ouvert", label: "Ouvert le" },
   { key: "reglages", label: "Réglages" },
 ];
@@ -62,7 +62,7 @@ export default async function AdminPage() {
         {organisation.active ? "Actif" : "Inactif"}
       </span>
     ),
-    stagiaires: `${organisation.traineeCount} / ${organisation.seats}`,
+    étudiants: `${organisation.traineeCount} / ${organisation.seats}`,
     ouvert: dateFormat.format(organisation.createdAt),
     reglages: (
       <OrganisationSeatsAction
@@ -86,7 +86,7 @@ export default async function AdminPage() {
           <section className="grid grid-cols-3 gap-4 rounded-tile border border-line bg-white px-6 py-5">
             <Kpi value={organisations.length} label="organismes" />
             <Kpi value={activeCount} label="actifs" />
-            <Kpi value={traineeCount} label="stagiaires" />
+            <Kpi value={traineeCount} label="étudiants" />
           </section>
 
           <div className="overflow-x-auto rounded-tile border border-line bg-white px-2 py-1">

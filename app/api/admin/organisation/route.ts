@@ -29,7 +29,7 @@ export const POST = handle(async (req) => {
       return json({ ok: false, error: "Aucun compte actif avec cet e-mail." }, { status: 404 });
     }
     if (responsable.role !== "responsable") {
-      // Volontairement pas de promotion de rôle ici : transformer un stagiaire en responsable lui
+      // Volontairement pas de promotion de rôle ici : transformer un étudiant en responsable lui
       // donnerait vue sur les membres de l'organisme. Ça se décide, ça ne se fait pas en effet de
       // bord d'une mise à jour de places.
       return json(

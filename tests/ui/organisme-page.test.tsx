@@ -58,7 +58,7 @@ describe("OrganisationView", () => {
     // « restantes », et il vient du nombre de lignes réellement rendues.
     const members = Array.from({ length: 12 }, (_, index) => ({
       id: `3333333${index}-3333-4333-8333-333333333333`,
-      email: `stagiaire${index}@promo-elec.fr`,
+      email: `étudiant${index}@promo-elec.fr`,
       createdAt: new Date("2026-03-02T09:00:00Z"),
       lastLoginAt: null,
     }));
@@ -67,7 +67,7 @@ describe("OrganisationView", () => {
     expect(screen.getByText("places utilisées")).toBeInTheDocument();
   });
 
-  it("liste les stagiaires avec leur dernière connexion et un bouton pour les retirer", () => {
+  it("liste les étudiants avec leur dernière connexion et un bouton pour les retirer", () => {
     renderView();
     expect(screen.getByText("camille@promo-elec.fr")).toBeInTheDocument();
     expect(screen.getByText("sofiane@promo-elec.fr")).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("OrganisationView", () => {
     expect(screen.getByRole("button", { name: "Régénérer" })).toBeInTheDocument();
   });
 
-  it("sans stagiaire, invite à communiquer le code plutôt que d'afficher un tableau vide", () => {
+  it("sans etudiant, invite à communiquer le code plutôt que d'afficher un tableau vide", () => {
     renderView({ members: [] });
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText(/Communiquez le code/)).toBeInTheDocument();

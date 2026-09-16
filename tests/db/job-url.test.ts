@@ -54,7 +54,7 @@ describe("assainissement de jobUrl", () => {
       const user = await createUser({
         email: "url@ex.fr",
         passwordHash: await hashPassword("motdepasse-correct"),
-        role: "stagiaire",
+        role: "etudiant",
         organisationId: null,
       });
       userId = user.id;

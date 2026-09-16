@@ -14,7 +14,7 @@ import { RETENTION_MONTHS } from "../lib/legal";
  * administrateur n'est jamais purgé : c'est le compte d'exploitation du service.
  *
  * La purge peut laisser un organisme sans aucun responsable actif : le script le signale en fin
- * d'exécution, mais ne désactive rien — couper l'accès des stagiaires reste une décision humaine.
+ * d'exécution, mais ne désactive rien — couper l'accès des étudiants reste une décision humaine.
  */
 async function main() {
   const before = new Date();

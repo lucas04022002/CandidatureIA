@@ -17,7 +17,7 @@
 - Contraste AA (≥ 4,5:1) pour chaque paire texte/fond utilisée : test `tests/ui/contrast.test.ts` calcule le ratio des paires listées (`ink/paper`, `ink/white`, `grey/paper`, `grey/white`, `white/klein`, `klein-deep/paper`, `klein-deep/white`, `klein/white`).
 - Les tests d'intégration existants (`tests/api/**`, `tests/auth/**`, `tests/org/**`, `tests/rgpd/**`) restent verts ; aucun corps de requête `fetch` ne change (comparer avec `git show main:components/app/<fichier>` avant de réécrire).
 - Pas de nouvelle dépendance UI. Pas de mode sombre. `prefers-reduced-motion` respecté (`motion-safe:` pour toute animation).
-- Copie : tutoiement stagiaire, vouvoiement organisme/admin ; verbes d'action nommant le résultat (voir spec §4).
+- Copie : tutoiement étudiant, vouvoiement organisme/admin ; verbes d'action nommant le résultat (voir spec §4).
 - À la fin : `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` verts ; `components/ui` et `components/app` n'existent plus ; Lighthouse accessibilité ≥ 95 sur `/`, `/login`, `/jobs` (build de prod + `next start`, `npx lighthouse http://127.0.0.1:3000/ --only-categories=accessibility --quiet --chrome-flags="--headless"` ; si Chrome n'est pas disponible, le dire dans le rapport et lister les vérifications manuelles faites : focus visible, libellés, contrastes).
 
 ---
@@ -162,17 +162,17 @@ describe("Stamp", () => {
 - Test: `tests/ui/shell.test.tsx`, `tests/ui/login-form.test.tsx`
 
 **Interfaces:**
-- `Shell({ user: SessionUser, children })` : barre `bg-klein text-white` (marque « ApplyBot » `font-display`, liens : stagiaire → Offres, Candidatures, Suivi, Profil ; responsable → Mon organisme, Profil ; admin → Admin, Profil ; à droite e-mail + bouton « Se déconnecter » (`POST /api/auth/logout` puis `router.push("/login")`) ; menu mobile `<details>` sans JS supplémentaire) ; contenu `max-w-6xl mx-auto px-6 py-8` ; `LegalFooter`.
+- `Shell({ user: SessionUser, children })` : barre `bg-klein text-white` (marque « ApplyBot » `font-display`, liens : étudiant → Offres, Candidatures, Suivi, Profil ; responsable → Mon organisme, Profil ; admin → Admin, Profil ; à droite e-mail + bouton « Se déconnecter » (`POST /api/auth/logout` puis `router.push("/login")`) ; menu mobile `<details>` sans JS supplémentaire) ; contenu `max-w-6xl mx-auto px-6 py-8` ; `LegalFooter`.
 - Formulaires : mêmes corps qu'aujourd'hui (`login-form.tsx` : `{ email, password }` / `{ email, password, orgCode, acceptedTerms }` ; `register-organisation-form.tsx` : `{ organisationName, email, password, acceptedTerms }`), erreurs affichées telles que renvoyées (`error` du JSON), `safeNextPath` conservé.
 
 - [ ] **Step 1 : Tests (échec d'abord)** — `shell.test.tsx` : pour chaque rôle, les liens attendus sont présents et les autres absents. `login-form.test.tsx` : l'onglet inscription montre le champ « Code d'organisme » (majuscules, `maxLength=8`, `font-mono`) et la case CGU ; une erreur API (`fetch` mocké → 400 `{ error: "Code d'organisme inconnu" }`) s'affiche telle quelle.
-- [ ] **Step 2 : Accueil `app/page.tsx`** selon spec §3 : section bleue (titre Syne « Chaque stagiaire postule. Chaque jour. », paragraphe, `Button onBlue` « Ouvrir des places pour ma promo » → `/organisme/inscription`, lien « J'ai un code d'organisme » → `/login`), carte blanche `rounded-tile shadow-hero` avec `Score hero` 86 et `Stamp Envoyé` sur l'offre d'exemple « Électricien bâtiment H/F · Spie Batignolles · Vénissieux · CDI · France Travail » ; trois colonnes (Sept sources / Lettre et e-mail prêts / Relance à quatre jours) ; bloc « Pour les organismes » ; `LegalFooter`. Animation d'entrée `motion-safe:animate-[rise_400ms_ease-out]` (keyframes dans `globals.css`), carte décalée de 120 ms.
+- [ ] **Step 2 : Accueil `app/page.tsx`** selon spec §3 : section bleue (titre Syne « Chaque étudiant postule. Chaque jour. », paragraphe, `Button onBlue` « Ouvrir des places pour ma promo » → `/organisme/inscription`, lien « J'ai un code d'organisme » → `/login`), carte blanche `rounded-tile shadow-hero` avec `Score hero` 86 et `Stamp Envoyé` sur l'offre d'exemple « Électricien bâtiment H/F · Spie Batignolles · Vénissieux · CDI · France Travail » ; trois colonnes (Sept sources / Lettre et e-mail prêts / Relance à quatre jours) ; bloc « Pour les organismes » ; `LegalFooter`. Animation d'entrée `motion-safe:animate-[rise_400ms_ease-out]` (keyframes dans `globals.css`), carte décalée de 120 ms.
 - [ ] **Step 3 : Login / inscription / inscription organisme / pages légales** selon spec.
 - [ ] **Step 4 : Lancer** tout, `build`, `commit -am "feat(front): Shell bleu Klein, accueil, connexion, inscription, pages légales"`.
 
 ---
 
-### Task 4 : Écrans du stagiaire
+### Task 4 : Écrans de l'étudiant
 
 **Files:**
 - Create: `components/offer-tile.tsx`, `components/offer-list.tsx`, `components/actions/{apply-offer,generate-application,generate-followup,application-status,scrape-jobs,rescore-jobs,copy-text}.tsx`, `components/forms/{onboarding-wizard,cv-upload,profile-form,account-actions}.tsx`, `components/search-controls.tsx`
@@ -188,7 +188,7 @@ describe("Stamp", () => {
 - [ ] **Step 1 : Tests (échec d'abord)** — `offer-tile.test.tsx` : avec candidature « Envoyé » → tampon ; sans → étiquette « Nouveau » et bouton « Préparer ma candidature ». `search-controls.test.tsx` : `fetch` mocké 429 `{ error: "Prochaine recherche possible à 09:30" }` → le texte s'affiche. `application-actions.test.tsx` : « Marquer envoyée » envoie `{ applicationId, status: "Envoyé" }` (spy sur `fetch`).
 - [ ] **Step 2 : Implémenter** les sept écrans selon spec §3 (Offres, fiche, Candidatures groupées par état avec tampons, Suivi en `Table`, Tableau de bord avec 4 `Kpi` + prochaines actions, Profil avec export/suppression, Onboarding en trois étapes avec barre bleue).
 - [ ] **Step 3 : Lancer** `npm test` (tout, y compris `tests/api/**` qui doivent rester verts), `typecheck`, `lint`, `build`.
-- [ ] **Step 4 : Commit** `git commit -am "feat(front): écrans du stagiaire en Bleu Klein (offres, candidature, suivi, tableau de bord, profil, onboarding)"`
+- [ ] **Step 4 : Commit** `git commit -am "feat(front): écrans de l'étudiant en Bleu Klein (offres, candidature, suivi, tableau de bord, profil, onboarding)"`
 
 ---
 
@@ -198,9 +198,9 @@ describe("Stamp", () => {
 - Create: `components/actions/{regenerate-code,remove-member,organisation-seats}.tsx` (mêmes `fetch`)
 - Modify: `app/(app)/organisme/page.tsx`, `app/(app)/admin/page.tsx`, `app/globals.css` (retirer le bloc legacy), `README.md` (capture ou description de l'interface)
 - Delete: `components/ui/`, `components/app/` entiers
-- Test: `tests/ui/organisme-page.test.tsx` (rendu avec données factices : code affiché en mono 40 px, places « 12 / 20 », lignes de stagiaires)
+- Test: `tests/ui/organisme-page.test.tsx` (rendu avec données factices : code affiché en mono 40 px, places « 12 / 20 », lignes de étudiants)
 
-- [ ] **Step 1 : Pages** selon spec §3 (organisme : `Kpi` places, code + « Régénérer », `Table` stagiaires avec « Retirer » ; admin : `Table` organisations avec formulaire inline actif/places/e-mail du responsable).
+- [ ] **Step 1 : Pages** selon spec §3 (organisme : `Kpi` places, code + « Régénérer », `Table` étudiants avec « Retirer » ; admin : `Table` organisations avec formulaire inline actif/places/e-mail du responsable).
 - [ ] **Step 2 : Nettoyage** : `git rm -r components/ui components/app` ; `grep -rn "components/app\|components/ui" app components tests` → 0 ; retirer le bloc legacy de `globals.css` ; le test de grep couleurs passe sans exclusion.
 - [ ] **Step 3 : Mesure** : `npm run build && npm run start` puis Lighthouse accessibilité sur `/`, `/login`, `/jobs` (avec un cookie de session pour `/jobs` : créer un compte via l'API en local, ou mesurer `/jobs` en état redirigé et le dire). Consigner les scores dans le rapport ; corriger tout ce qui est sous 95.
 - [ ] **Step 4 : Lancer** tout ; `commit -am "feat(front): pages organisme et admin, suppression de l'ancienne interface, mesure Lighthouse"`.
@@ -209,6 +209,6 @@ describe("Stamp", () => {
 
 ## Auto-revue
 
-- Spec §1 → T1 ; §2 → T2 (+ OfferTile/OfferList en T4, Shell en T3) ; §3 public → T3, stagiaire → T4, responsable/admin → T5 ; §4 copie → chaque tâche ; §5 qualité → T1 (gardes), T5 (Lighthouse, nettoyage) ; §6 hors périmètre respecté.
+- Spec §1 → T1 ; §2 → T2 (+ OfferTile/OfferList en T4, Shell en T3) ; §3 public → T3, étudiant → T4, responsable/admin → T5 ; §4 copie → chaque tâche ; §5 qualité → T1 (gardes), T5 (Lighthouse, nettoyage) ; §6 hors périmètre respecté.
 - Noms constants : `Stamp`, `Score`, `Button` (variants `primary|secondary|onBlue|quiet`), `Field`, `Shell`, `OfferTile`, `OfferList`, `SearchControls`, `Kpi`, `Table`, `Empty`, `Toast`, `PageTitle`, jetons `klein|klein-deep|klein-soft|paper|white|ink|grey|line|good|warn|bad`.
 - Risque connu : les tests `tests/api/**` mockent `next/headers` et importent des routes, pas des composants ; la réécriture des composants ne les touche pas, mais un changement de corps `fetch` casserait l'app sans casser ces tests → d'où la consigne de relecture `git show main:…` et les tests `application-actions`/`search-controls` qui espionnent `fetch`.

@@ -63,7 +63,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
     <div className="flex flex-col gap-6">
       <PageTitle
         title="Mon organisme"
-        subtitle="Le code d'inscription de vos stagiaires, vos places et les comptes ouverts. Leurs CV et leurs candidatures restent privés."
+        subtitle="Le code d'inscription de vos étudiants, vos places et les comptes ouverts. Leurs CV et leurs candidatures restent privés."
       />
 
       {active && seats <= PLACES_ESSAI ? (
@@ -84,7 +84,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
           className="rounded-tile border border-warn bg-warn-soft px-4 py-3 font-body text-[14px] text-warn"
         >
           Organisme pas encore activé : tant qu&apos;il ne l&apos;est pas, les inscriptions de
-          stagiaires sont refusées. Écrivez-nous pour l&apos;activer.
+          étudiants sont refusées. Écrivez-nous pour l&apos;activer.
         </p>
       )}
 
@@ -97,7 +97,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
             {code}
           </p>
           <p className="mt-2 font-body text-[14px] text-grey">
-            Vos stagiaires saisissent ce code à la création de leur compte. Organisme ouvert le{" "}
+            Vos étudiants saisissent ce code à la création de leur compte. Organisme ouvert le{" "}
             {dateFormat.format(createdAt)}.
           </p>
         </div>
@@ -106,7 +106,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
           <Kpi value={`${used} / ${seats}`} label="places utilisées" />
           <p className="max-w-md font-body text-[14px] text-grey">
             {remaining > 0
-              ? `${remaining} place${remaining > 1 ? "s" : ""} disponible${remaining > 1 ? "s" : ""}. Retirer un stagiaire en libère une.`
+              ? `${remaining} place${remaining > 1 ? "s" : ""} disponible${remaining > 1 ? "s" : ""}. Retirer un étudiant en libère une.`
               : "Plus aucune place disponible : les nouvelles inscriptions sont refusées."}
           </p>
           <RegenerateCodeAction />
@@ -114,13 +114,13 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-[22px] font-extrabold leading-none text-ink">Stagiaires</h2>
+        <h2 className="font-display text-[22px] font-extrabold leading-none text-ink">Étudiants</h2>
         {rows.length ? (
           <div className="overflow-x-auto rounded-tile border border-line bg-white px-2 py-1">
             <Table columns={COLUMNS} rows={rows} getRowKey={(row) => row.key} />
           </div>
         ) : (
-          <Empty text="Aucun stagiaire inscrit. Communiquez le code d'organisme à votre promo : chaque compte créé apparaîtra ici." />
+          <Empty text="Aucun étudiant inscrit. Communiquez le code d'organisme à votre promo : chaque compte créé apparaîtra ici." />
         )}
       </section>
     </div>
