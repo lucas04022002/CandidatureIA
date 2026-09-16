@@ -2,29 +2,42 @@
 
 # ApplyBot — image de production (Next.js standalone + migration Drizzle au démarrage).
 #
-# Choix pour la migration (scripts/migrate.ts) : le script est exécuté avec `tsx` embarqué dans
-# l'image plutôt que compilé en JS pur au build (esbuild/tsc → dist/migrate.mjs). Avantage : le
-# script reste identique dev/prod (mêmes imports TypeScript relatifs, lib/db/client.ts inclus),
-# sans étape de build supplémentaire à maintenir. Coût : quelques Mo de plus dans l'image finale.
-# Si la taille de l'image devient un problème, basculer vers un
-# `esbuild scripts/migrate.ts --bundle --platform=node --format=esm --outfile=dist/migrate.mjs`
-# ajouté au stage `build`, et changer le CMD pour `node dist/migrate.mjs`.
+# Choix pour les scripts de maintenance (migration au démarrage, et création d'administrateur,
+# purge, jeu de démonstration lancés à la main depuis le terminal Coolify) : ils sont compilés en
+# bundles autonomes par esbuild à l'étape `build`, et l'image finale n'embarque que ces bundles.
 #
-# Choix pour node_modules dans le runner : `output: "standalone"` (next.config.ts) ne trace que ce
-# que le serveur Next.js importe réellement — pas forcément `tsx`, `drizzle-orm` ou `pg`, puisque
-# scripts/migrate.ts est en dehors du bundle applicatif. Plutôt que recopier ces paquets un par un
-# (risque d'oublier une dépendance transitive hissée à la racine de node_modules par npm, ex.
-# pg-connection-string, pg-pool, esbuild, get-tsconfig — vérifié dans ce dépôt : npm hisse tout,
-# rien n'est imbriqué sous node_modules/pg ou node_modules/tsx), le runner copie l'intégralité du
-# node_modules du stage `build` (post `npm ci`, devDependencies comprises) par-dessus le
-# node_modules élagué de la sortie standalone. Plus simple et plus sûr à l'aveugle (pas de Docker
-# disponible pour vérifier localement) ; l'image est plus grosse que le minimum théorique.
+# L'image portait auparavant TOUT le node_modules du stage de build, devDependencies comprises,
+# pour garantir que `tsx` et les dépendances des scripts soient présents — la sortie `standalone`
+# de Next ne trace que ce que le serveur importe, pas ce que des scripts hors bundle utilisent.
+# C'était simple et sûr, et ça coûtait plus d'un gigaoctet : l'image pesait 1,57 Go alors que le
+# site lui-même en fait moins de 100 Mo. Neuf déploiements du portfolio construits de la même
+# façon ont rempli le disque du serveur et fait tomber Coolify ; on ne garde plus ce genre de
+# marge « au cas où ».
+#
+# Chaque script devient un fichier unique de 1,5 Mo, dépendances incluses. `pg-native` et
+# `cpu-features` sont exclus : ce sont des modules natifs optionnels que `pg` et ses dépendances
+# chargent dynamiquement s'ils existent, et qui ne sont pas installés ici.
 
-# ---- deps : dépendances npm complètes (nécessaires pour builder Next.js et pour la migration) ----
+# ---- deps : dépendances complètes, nécessaires pour construire ----
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
+
+# ---- prod-deps : les dépendances d'exécution seules ----
+#
+# `pdf-parse` est chargé dynamiquement par l'application au moment de l'import d'un CV, hors du
+# bundle Next : la sortie standalone ne le trace pas, et il réclame ses propres dépendances
+# (@napi-rs/canvas et les polyfills DOMMatrix) à l'exécution. Une image sans node_modules casse
+# donc l'import de CV — constaté par le test de fumée, pas deviné.
+#
+# On garde donc un node_modules, mais celui des dépendances d'exécution uniquement : les seize
+# devDependencies (TypeScript, ESLint, vitest, tsx, drizzle-kit…) restent dans les étapes de
+# construction. tsx n'est plus nécessaire à l'exécution depuis que les scripts sont compilés.
+FROM node:22-alpine AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # ---- build : build Next.js (sortie standalone) ----
 FROM node:22-alpine AS build
@@ -52,6 +65,11 @@ RUN DATABASE_URL=postgres://build:build@localhost:5432/build \
     JWT_SECRET=build-time-placeholder-not-a-real-secret-000000 \
     npm run build
 
+# Les scripts de maintenance, compilés en bundles autonomes. `--packages=bundle` force l'inclusion
+# des dépendances dans le fichier produit : sans lui, esbuild les laisserait en imports externes et
+# le bundle réclamerait un node_modules que l'image n'a plus.
+RUN npx esbuild scripts/migrate.ts scripts/create-admin.ts scripts/purge-inactive.ts scripts/seed-demo.ts     --bundle --platform=node --format=cjs --target=node22 --packages=bundle     --external:pg-native --external:cpu-features     --outdir=dist/scripts --out-extension:.js=.cjs
+
 # ---- runner : image finale ----
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -67,21 +85,26 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
-# Migration au démarrage (scripts/migrate.ts, et scripts/create-admin.ts / purge-inactive.ts lancés
-# à la main depuis le terminal Coolify, voir deploy/coolify.md) : fichiers SQL + métadonnées Drizzle,
-# les scripts eux-mêmes, et TOUT ce qu'ils importent — scripts/*.ts importe lib/db/client.ts en
-# relatif (../lib/...), qui lui-même importe une partie de lib/ (queries, auth) via l'alias
-# TypeScript "@/..." (lib/db/queries/users.ts, lib/db/queries/organisations.ts, lib/auth/jwt.ts...).
-# Sans lib/ ici, ces imports relatifs échouent (module introuvable) ; sans tsconfig.json, tsx ne sait
-# pas résoudre "@/..." (il lit compilerOptions.paths via get-tsconfig) et échoue pareillement — les
-# deux sont nécessaires, pas seulement scripts/ et drizzle/. node_modules complet copié en dernier,
-# par-dessus celui de la sortie standalone : voir le commentaire en tête de fichier (garantit tsx,
-# drizzle-orm, pg et leurs dépendances hissées).
+# Les fichiers SQL de migration, lus au démarrage par le bundle de migration, et les bundles
+# eux-mêmes. Ni scripts/, ni lib/, ni tsconfig.json : tout ce dont ils ont besoin est déjà
+# à l'intérieur des bundles.
 COPY --from=build --chown=nextjs:nodejs /app/drizzle ./drizzle
-COPY --from=build --chown=nextjs:nodejs /app/scripts ./scripts
-COPY --from=build --chown=nextjs:nodejs /app/lib ./lib
-COPY --from=build --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
-COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nextjs:nodejs /app/dist/scripts ./dist/scripts
+
+# Ce que Next ne trace pas, et rien de plus.
+#
+# Copier tout le node_modules de production coûtait encore 618 Mo, dont 384 pour `next` et
+# `@next` — déjà présents, en version élaguée, dans la sortie standalone — et 25 pour PGlite,
+# qui n'est que le pilote de développement local.
+#
+# L'arbre de pdf-parse est clos et vérifié : pdf-parse dépend de @napi-rs/canvas et de
+# pdfjs-dist, pdfjs-dist n'a que @napi-rs/canvas en dépendance optionnelle. Trois copies
+# suffisent donc, et le test de fumée importe un vrai PDF par l'API pour le prouver à chaque
+# exécution — c'est lui qui a détecté que l'import était cassé quand l'image n'avait aucun
+# node_modules.
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules/pdf-parse ./node_modules/pdf-parse
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules/@napi-rs ./node_modules/@napi-rs
 
 USER nextjs
 EXPOSE 3000
@@ -94,4 +117,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD wget -qO- http://
 # Migration Drizzle (idempotente : ne rejoue que les migrations non encore appliquées) puis
 # démarrage du serveur Next.js standalone. `&&` : si la migration échoue, le conteneur s'arrête au
 # lieu de démarrer un serveur pointant vers un schéma incomplet.
-CMD ["sh", "-c", "node node_modules/tsx/dist/cli.mjs scripts/migrate.ts && node server.js"]
+#
+# Les trois autres scripts se lancent à la main depuis le terminal Coolify :
+#   node dist/scripts/create-admin.cjs
+#   node dist/scripts/purge-inactive.cjs
+#   node dist/scripts/seed-demo.cjs
+CMD ["sh", "-c", "node dist/scripts/migrate.cjs && node server.js"]
