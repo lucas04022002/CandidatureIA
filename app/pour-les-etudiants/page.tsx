@@ -30,7 +30,7 @@ const ETAPES = [
   {
     titre: "La lettre, en un bouton",
     texte:
-      "Sur une offre qui vous plaît, un bouton écrit la lettre, l'e-mail et le message LinkedIn à partir de votre CV et de l'annonce. Vous relisez, vous changez ce qui ne vous ressemble pas, vous copiez.",
+      "Sur une offre qui vous plaît, un bouton écrit la lettre, l'e-mail et le message LinkedIn à partir de votre CV et de l'annonce. Vous relisez, vous copiez, et vous retouchez ce qui ne vous ressemble pas avant d'envoyer.",
   },
   {
     titre: "On vous dit quand relancer",
@@ -117,7 +117,7 @@ export default function PourLesEtudiants() {
               <li>
                 <span className="font-mono text-[12px] tracking-[0.12em] text-klein">03</span>
                 <br />
-                Vous lancez votre première recherche. Les offres arrivent classées, avec leur lettre.
+                Vous lancez votre première recherche. Les offres arrivent classées ; la lettre s&apos;écrit sur celles que vous gardez.
               </li>
             </ol>
             <p className="mt-6 border-l-2 border-klein pl-4 font-body text-[14.5px] leading-[1.6] text-ink">

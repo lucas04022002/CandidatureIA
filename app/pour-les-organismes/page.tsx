@@ -107,8 +107,8 @@ export default function PourLesOrganismes() {
             <p className="mt-3 max-w-[62ch] font-body text-[15px] leading-[1.6] text-grey">
               Créer un organisme prend une minute et ne demande aucune validation de notre part :
               vous repartez avec votre code et trois places, de quoi faire essayer l&apos;outil à
-              quelques étudiants avant d&apos;en parler. Écrivez-nous quand vous voulez en ouvrir
-              davantage.
+              quelques étudiants avant d&apos;en parler. Le nombre de places se relève ensuite, sur
+              demande, sans rien réinstaller ni recréer de compte.
             </p>
             <Button variant="primary" href="/organisme/inscription" className="mt-5">
               Ouvrir des places
