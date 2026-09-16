@@ -4,6 +4,16 @@ import { DemoEntry } from "@/components/demo-entry";
 import { LegalFooter } from "@/components/legal-footer";
 import { PublicBar } from "@/components/shell";
 
+/**
+ * Rendu à chaque requête, et non à la construction.
+ *
+ * Cette page lit DEMO_EMAIL et DEMO_PASSWORD, qui sont des variables
+ * d'exécution — elles n'existent pas quand l'image est construite. Sans cette
+ * ligne, Next pré-rend la page au build, y fige « la démonstration n'est pas
+ * configurée », et aucune variable posée ensuite ne peut plus rien y changer.
+ */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Démonstration",
   description:
