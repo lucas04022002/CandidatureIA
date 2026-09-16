@@ -3,7 +3,7 @@
 ## Décisions prises avec Lucas
 
 - Le parcours candidat existant est conservé tel quel : CV → profil → offres agrégées → score → textes de candidature → « Postuler » vers l'offre d'origine → suivi → relance J+4. L'app n'envoie jamais rien à la place du candidat.
-- Le client est l'**organisme de formation**, qui achète des places pour ses stagiaires. Le stagiaire s'inscrit avec un **code d'organisme**.
+- Le client est l'**organisme de formation**, qui achète des places pour ses étudiants. L'étudiant s'inscrit avec un **code d'organisme**.
 - **Pas d'IA** : le chemin heuristique (déjà le seul utilisé en pratique) devient le chemin unique. Tout le code OpenAI sort.
 - **Supabase remplacé** par Postgres 16 sur le VPS + authentification maison, sur le modèle de RushPlay.
 - **Une seule base de code Next.js** (voie 1) : les connecteurs, le parser de CV et le scoring TypeScript sont réutilisés tels quels.
@@ -41,7 +41,7 @@ tests/                    Vitest (voir §6)
 
 ## 2. Données et rôles
 
-Rôles : `stagiaire`, `responsable`, `admin`.
+Rôles : `étudiant`, `responsable`, `admin`.
 
 ```
 organisations
@@ -57,31 +57,31 @@ applications         (existant) + user_id fk not null
 ```
 
 Règles :
-- Un `stagiaire` et un `responsable` appartiennent toujours à une organisation ; l'`admin` (Lucas) à aucune.
-- Places : `count(users where organisation_id = X and role = 'stagiaire' and deleted_at is null) < seats`, vérifié dans une transaction à l'inscription.
+- Un `étudiant` et un `responsable` appartiennent toujours à une organisation ; l'`admin` (Lucas) à aucune.
+- Places : `count(users where organisation_id = X and role = 'étudiant' and deleted_at is null) < seats`, vérifié dans une transaction à l'inscription.
 - Le code d'organisme : 8 caractères en majuscules et chiffres sans ambiguïté (pas de O/0, I/1), régénérable par le responsable ; l'ancien cesse de fonctionner immédiatement.
-- Suppression de compte : `deleted_at` posé, puis effacement physique des lignes `candidate_profiles`, `jobs`, `applications` de l'utilisateur dans la même transaction ; l'e-mail est remplacé par `deleted-<uuid>@invalid` pour libérer l'adresse. Une organisation ne se supprime que par l'admin, et seulement sans stagiaire actif.
+- Suppression de compte : `deleted_at` posé, puis effacement physique des lignes `candidate_profiles`, `jobs`, `applications` de l'utilisateur dans la même transaction ; l'e-mail est remplacé par `deleted-<uuid>@invalid` pour libérer l'adresse. Une organisation ne se supprime que par l'admin, et seulement sans étudiant actif.
 - Toutes les requêtes de données sont filtrées par `user_id` de la session, côté serveur, sans exception. Pas de RLS Postgres (une seule application, un seul rôle SQL).
 
 ## 3. Parcours et routes
 
 ### Comptes
-- `POST /api/auth/register` : `{ email, password, orgCode }` → crée un `stagiaire` si le code existe, l'organisation est active et il reste une place ; sinon 400 avec un message précis (« code inconnu », « organisme inactif », « plus de place disponible »). Mot de passe ≥ 10 caractères.
+- `POST /api/auth/register` : `{ email, password, orgCode }` → crée un `étudiant` si le code existe, l'organisation est active et il reste une place ; sinon 400 avec un message précis (« code inconnu », « organisme inactif », « plus de place disponible »). Mot de passe ≥ 10 caractères.
 - `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
 - `POST /api/auth/register-organisation` : `{ organisationName, email, password }` → crée l'organisation **inactive** avec `seats = 0` et son `responsable`. L'admin l'active et fixe les places depuis `/admin` (pas de paiement au lancement).
-- `DELETE /api/account` : suppression de compte (stagiaire ou responsable), voir §2.
+- `DELETE /api/account` : suppression de compte (étudiant ou responsable), voir §2.
 - `GET /api/account/export` : JSON de toutes les données de l'utilisateur (profil, offres, candidatures).
 
 ### Organisme (`responsable`)
-- `GET /organisme` : nom, code, places utilisées / achetées, liste des stagiaires (e-mail, date d'inscription, dernière connexion). **Aucune donnée de CV, d'offre ni de candidation n'est visible par le responsable.**
+- `GET /organisme` : nom, code, places utilisées / achetées, liste des étudiants (e-mail, date d'inscription, dernière connexion). **Aucune donnée de CV, d'offre ni de candidation n'est visible par le responsable.**
 - `POST /api/organisation/regenerate-code`.
-- `POST /api/organisation/remove-member` : retire un stagiaire (suppression de compte identique à `DELETE /api/account`, sur demande du responsable).
+- `POST /api/organisation/remove-member` : retire un étudiant (suppression de compte identique à `DELETE /api/account`, sur demande du responsable).
 
 ### Admin (`admin`)
 - `GET /admin` : organisations, activation, places, dernier accès. `POST /api/admin/organisation` : `{ id, active, seats }`.
 - Un seul compte admin, créé par script `npm run create-admin` (e-mail et mot de passe saisis dans le terminal, jamais en variable d'environnement).
 
-### Candidat (`stagiaire`) — routes existantes réécrites sur `requireUser()`
+### Candidat (`étudiant`) — routes existantes réécrites sur `requireUser()`
 `import-cv`, `update-candidate-profile`, `scrape-jobs`, `rescore-jobs`, `generate-application`, `generate-followup`, `update-application-status`, `mark-job-applied`, `delete-application`. Même contrat d'entrée/sortie qu'aujourd'hui, mêmes pages.
 
 ### Quotas et protection
@@ -105,7 +105,7 @@ Règles :
 - Données traitées : e-mail, hash, texte de CV extrait, profil dérivé, offres et candidatures de l'utilisateur, horodatages de connexion. Aucun transfert à un tiers (plus d'OpenAI) ; les connecteurs n'envoient aux sources que les critères de recherche (mots-clés, lieu), jamais le CV.
 - Droits : export JSON et suppression en un clic depuis `/profil` ; suppression par le responsable (`remove-member`).
 - Conservation : comptes sans connexion depuis **12 mois** supprimés par une tâche planifiée `npm run purge-inactive` (cron Coolify hebdomadaire), après un e-mail d'avertissement **quand l'envoi d'e-mail existera** (d'ici là, simple suppression documentée dans les CGU).
-- Pages `/mentions-legales`, `/cgu` (contrat organisme : places, durée, résiliation, sous-traitance RGPD art. 28 ; notice stagiaire : finalités, droits, durée) sur le modèle de RushPlay (`lib/legal.ts` avec champs « À COMPLÉTER » et garde CI `CI_STRICT_LEGAL`).
+- Pages `/mentions-legales`, `/cgu` (contrat organisme : places, durée, résiliation, sous-traitance RGPD art. 28 ; noticet étudiant : finalités, droits, durée) sur le modèle de RushPlay (`lib/legal.ts` avec champs « À COMPLÉTER » et garde CI `CI_STRICT_LEGAL`).
 - Hébergement : Hetzner (Allemagne, UE).
 
 ## 6. Tests et qualité
@@ -115,7 +115,7 @@ Règles :
 - Parser de CV : 3 CV **fictifs** (créés pour les tests, aucune personne réelle) en texte, plus un PDF fictif généré.
 - Scoring : cas bornés (0, 100, mots-clés absents).
 - Génération : sorties des gabarits (lettre, e-mail, LinkedIn, relance) stables, sans le vocabulaire IA.
-- Auth et organisation : inscription par code (inconnu, inactif, plein, ok), régénération de code, rôles (un stagiaire ne voit pas `/organisme`, un responsable ne voit pas les données d'un stagiaire), suppression de compte (données physiquement absentes après), export.
+- Auth et organisation : inscription par code (inconnu, inactif, plein, ok), régénération de code, rôles (un étudiant ne voit pas `/organisme`, un responsable ne voit pas les données d'un étudiant), suppression de compte (données physiquement absentes après), export.
 - Quotas : deuxième `scrape-jobs` dans l'heure → 429.
 - Routes : chaque route API sans cookie → 401 (test paramétré sur la liste des routes).
 - Migrations : `drizzle-kit` génère, un test applique `0000_init` sur un Postgres de CI (service GitHub Actions) et vérifie les tables.

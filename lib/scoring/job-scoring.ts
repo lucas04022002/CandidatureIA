@@ -76,7 +76,7 @@ function countMatches(text: string, keywords: string[]) {
 function inferSeniority(text: string) {
   if (text.includes("senior") || text.includes("expert") || text.includes("confirme")) return "senior";
   if (text.includes("junior") || text.includes("debutant")) return "junior";
-  if (text.includes("alternance") || text.includes("stage") || text.includes("stagiaire")) {
+  if (text.includes("alternance") || text.includes("stage") || text.includes("etudiant")) {
     return "entry";
   }
   return "neutral";

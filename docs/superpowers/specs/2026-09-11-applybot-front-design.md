@@ -65,11 +65,11 @@ Mouvement : une seule séquence d'entrée sur l'accueil (le titre puis la carte,
 ## 3. Écrans
 
 Public :
-- **Accueil `/`** : barre bleue ; accueil bleu pleine largeur, titre Syne « Chaque stagiaire postule. Chaque jour. », paragraphe (sources, lettre, relance, suivi par promo), bouton blanc « Ouvrir des places pour ma promo », lien « J'ai un code d'organisme » ; à droite la carte blanche flottante (offre réelle d'exemple, score 86, tampon Envoyé). Sous l'accueil, trois colonnes texte : « Sept sources », « Lettre et e-mail prêts », « Relance à quatre jours » ; puis « Pour les organismes » (places par promo, code, le responsable ne voit jamais les CV) ; pied légal.
+- **Accueil `/`** : barre bleue ; accueil bleu pleine largeur, titre Syne « Chaque étudiant postule. Chaque jour. », paragraphe (sources, lettre, relance, suivi par promo), bouton blanc « Ouvrir des places pour ma promo », lien « J'ai un code d'organisme » ; à droite la carte blanche flottante (offre réelle d'exemple, score 86, tampon Envoyé). Sous l'accueil, trois colonnes texte : « Sept sources », « Lettre et e-mail prêts », « Relance à quatre jours » ; puis « Pour les organismes » (places par promo, code, le responsable ne voit jamais les CV) ; pied légal.
 - **Connexion `/login`** et **inscription** (même page, deux onglets) : carte blanche centrée sur `paper`, champ code d'organisme en mono majuscules, case CGU. **Inscription organisme `/organisme/inscription`** : même gabarit.
 - `/mentions-legales`, `/cgu` : colonne de lecture 65 ch, titres Syne.
 
-Stagiaire (dans `Shell`) :
+Étudiant (dans `Shell`) :
 - **Offres `/jobs`** : `PageTitle` « Offres pour toi » + contrôles (métier, lieu, rayon, bouton « Chercher des offres » avec le quota affiché : « prochaine recherche possible à HH:MM ») ; `OfferList`.
 - **Fiche d'offre / candidature `/applications/[id]`** : en-tête blanc (titre, ligne mono, `Score` hero, `Stamp`), trois blocs de texte à copier (Lettre, E-mail, Message LinkedIn) avec bouton « Copier », colonne d'actions : « Postuler sur le site de l'offre » (bleu, ouvre l'URL), « Marquer envoyée », « Préparer la relance », « Supprimer ».
 - **Candidatures `/applications`** : tuiles regroupées par état, tampon sur chaque tuile.
@@ -78,13 +78,13 @@ Stagiaire (dans `Shell`) :
 - **Profil `/profil`** : CV importé (nom, poste cible, mots-clés, compétences), modèle de lettre, export JSON, suppression de compte (confirmation par saisie de l'e-mail).
 - **Onboarding `/onboarding`** : trois étapes (importer le CV, vérifier le profil, choisir le métier et le lieu), barre de progression bleue.
 
-Responsable : **`/organisme`** : `Kpi` places utilisées / places, code en Syne 40 px mono avec « Régénérer », `Table` des stagiaires (e-mail, inscrit le, dernière connexion, « Retirer »). Admin : **`/admin`** : `Table` des organisations avec formulaire inline (actif, places, e-mail du responsable).
+Responsable : **`/organisme`** : `Kpi` places utilisées / places, code en Syne 40 px mono avec « Régénérer », `Table` des étudiants (e-mail, inscrit le, dernière connexion, « Retirer »). Admin : **`/admin`** : `Table` des organisations avec formulaire inline (actif, places, e-mail du responsable).
 
 Mobile : tout en une colonne, barre repliable, tuiles pleine largeur, tampons conservés.
 
 ## 4. Copie
 
-Tutoiement pour le stagiaire, vouvoiement pour l'organisme et l'admin. Verbes d'action nommant le résultat : « Chercher des offres », « Préparer ma candidature », « Marquer envoyée », « Relancer », « Copier la lettre ». Erreurs : ce qui s'est passé et quoi faire (« Code d'organisme inconnu. Vérifie les 8 caractères avec ton formateur. »). États vides : une invitation.
+Tutoiement pour l'étudiant, vouvoiement pour l'organisme et l'admin. Verbes d'action nommant le résultat : « Chercher des offres », « Préparer ma candidature », « Marquer envoyée », « Relancer », « Copier la lettre ». Erreurs : ce qui s'est passé et quoi faire (« Code d'organisme inconnu. Vérifie les 8 caractères avec ton formateur. »). États vides : une invitation.
 
 ## 5. Qualité
 

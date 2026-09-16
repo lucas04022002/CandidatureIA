@@ -18,7 +18,7 @@ export default function RegisterOrganisationPage() {
             Ouvrir des places pour votre promo
           </h1>
           <p className="mt-2 mb-6 font-body text-[14px] leading-[1.55] text-grey">
-            Un code d&apos;organisme à huit caractères vous est attribué : vos stagiaires s&apos;inscrivent
+            Un code d&apos;organisme à huit caractères vous est attribué : vos étudiants s&apos;inscrivent
             avec ce code. Votre espace est activé, et le nombre de places fixé, après échange avec
             nous.
           </p>

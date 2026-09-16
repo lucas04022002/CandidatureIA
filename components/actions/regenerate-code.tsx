@@ -23,7 +23,7 @@ export function RegenerateCodeAction() {
     setError("");
 
     const confirmed = window.confirm(
-      "Régénérer le code ? L'ancien code cessera de fonctionner : les stagiaires qui ne se sont pas encore inscrits devront utiliser le nouveau.",
+      "Régénérer le code ? L'ancien code cessera de fonctionner : les étudiants qui ne se sont pas encore inscrits devront utiliser le nouveau.",
     );
     if (!confirmed) return;
 
@@ -38,7 +38,7 @@ export function RegenerateCodeAction() {
         return;
       }
 
-      show("Code régénéré. Communiquez le nouveau à vos stagiaires.");
+      show("Code régénéré. Communiquez le nouveau à vos étudiants.");
       startTransition(() => router.refresh());
     } catch {
       setError("Connexion perdue. Vérifiez votre connexion et réessayez.");

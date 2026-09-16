@@ -16,7 +16,7 @@ const MODES: ReadonlyArray<readonly [AuthMode, string]> = [
 ];
 
 /**
- * L'API répond « Code d'organisme inconnu » : exact, mais le stagiaire ne sait pas quoi en faire.
+ * L'API répond « Code d'organisme inconnu » : exact, mais l'étudiant ne sait pas quoi en faire.
  * Cette seule erreur est reformulée en indiquant la marche à suivre (spec §4). Toutes les autres
  * sont affichées telles que renvoyées, sans réécriture.
  */

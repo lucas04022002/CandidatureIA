@@ -15,7 +15,7 @@ import { hashPassword } from "../lib/auth/password";
  * l'a pas. Il repart sans avoir rien vu — le pire résultat pour un lien
  * annoncé comme « voir le produit en ligne ».
  *
- * Ce script crée un organisme actif et un stagiaire déjà garni : des offres
+ * Ce script crée un organisme actif et un étudiant déjà garni : des offres
  * classées, des candidatures à plusieurs stades, une relance qui arrive à
  * échéance. Il est **idempotent** : relancé, il remet le compte dans cet état
  * exact plutôt que d'empiler des doublons — c'est aussi la remise à zéro.
@@ -156,7 +156,7 @@ async function main() {
       .where(eq(organisations.id, org.id));
   }
 
-  // 2. Le stagiaire. On réécrit le mot de passe à chaque passage : le compte est
+  // 2. L'étudiant. On réécrit le mot de passe à chaque passage : le compte est
   //    public, il doit rester conforme à ce qu'annonce la page de démonstration.
   const hash = await hashPassword(PASSWORD);
   const [userExistant] = await db.select().from(users).where(eq(users.email, EMAIL)).limit(1);
@@ -165,14 +165,14 @@ async function main() {
     (
       await db
         .insert(users)
-        .values({ email: EMAIL, passwordHash: hash, role: "stagiaire", organisationId: org.id })
+        .values({ email: EMAIL, passwordHash: hash, role: "etudiant", organisationId: org.id })
         .returning()
     )[0];
 
   if (userExistant) {
     await db
       .update(users)
-      .set({ passwordHash: hash, organisationId: org.id, role: "stagiaire", deletedAt: null })
+      .set({ passwordHash: hash, organisationId: org.id, role: "etudiant", deletedAt: null })
       .where(eq(users.id, user.id));
   }
 
@@ -251,7 +251,7 @@ async function main() {
   console.log(
     `Démonstration prête.\n` +
       `  organisme   : ${org.name} (code ${CODE}, ${org.seats} places, actif)\n` +
-      `  stagiaire   : ${EMAIL}\n` +
+      `  étudiant   : ${EMAIL}\n` +
       `  offres      : ${OFFRES.length}\n` +
       `  candidatures: ${candidatures}`,
   );

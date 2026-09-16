@@ -11,7 +11,7 @@ interface RemoveMemberActionProps {
 }
 
 /**
- * « Retirer » un stagiaire de l'organisme. Corps inchangé : `POST /api/organisation/remove-member`
+ * « Retirer » un étudiant de l'organisme. Corps inchangé : `POST /api/organisation/remove-member`
  * avec `{ userId }`.
  *
  * Retirer supprime définitivement le compte et ses données (et libère la place) : confirmation
@@ -44,11 +44,11 @@ export function RemoveMemberAction({ userId, email }: RemoveMemberActionProps) {
       const payload = (await response.json()) as { ok: boolean; message?: string; error?: string };
 
       if (!response.ok || !payload.ok) {
-        setError(payload.error ?? "Le stagiaire n'a pas pu être retiré. Réessayez dans un instant.");
+        setError(payload.error ?? "L'étudiant n'a pas pu être retiré. Réessayez dans un instant.");
         return;
       }
 
-      show(payload.message ?? "Stagiaire retiré et données supprimées.");
+      show(payload.message ?? "Étudiant retiré et données supprimées.");
       startTransition(() => router.refresh());
     } catch {
       setError("Connexion perdue. Vérifiez votre connexion et réessayez.");

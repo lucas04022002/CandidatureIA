@@ -67,13 +67,13 @@ describe("administration des organismes", () => {
     expect(relu?.active).toBe(true);
     expect(relu?.seats).toBe(20);
 
-    // L'organisme devient utilisable : un stagiaire peut s'inscrire avec son code.
-    const stagiaire = await registerTraineeWithCode({
-      email: "stagiaire-admin@ex.fr",
+    // L'organisme devient utilisable : un étudiant peut s'inscrire avec son code.
+    const etudiant = await registerTraineeWithCode({
+      email: "étudiant-admin@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
       code: org.code,
     });
-    expect(stagiaire.organisationId).toBe(org.id);
+    expect(etudiant.organisationId).toBe(org.id);
 
     const lignes = await listOrganisations();
     const ligne = lignes.find((o) => o.id === org.id);
@@ -112,23 +112,23 @@ describe("administration des organismes", () => {
 
     await expect(
       registerTraineeWithCode({
-        email: "stagiaire-inactive@ex.fr",
+        email: "étudiant-inactive@ex.fr",
         passwordHash: await hashPassword("motdepasse-correct"),
         code: org.code,
       }),
     ).rejects.toMatchObject({ reason: "inactive" });
   });
 
-  it("un stagiaire appelant la route admin → 403", async () => {
-    const org = await createOrganisation({ name: "AFPA Stagiaire" });
+  it("un étudiant appelant la route admin → 403", async () => {
+    const org = await createOrganisation({ name: "AFPA Étudiant" });
     await setOrganisationStatus(org.id, { active: true, seats: 3 });
-    const stagiaire = await registerTraineeWithCode({
-      email: "stagiaire-403@ex.fr",
+    const etudiant = await registerTraineeWithCode({
+      email: "étudiant-403@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
       code: org.code,
     });
 
-    await asUser(stagiaire);
+    await asUser(etudiant);
     expect((await post({ id: org.id, active: true, seats: 99 })).status).toBe(403);
     expect((await findOrganisationByCode(org.code))?.seats).toBe(3);
   });
@@ -196,16 +196,16 @@ describe("administration des organismes", () => {
         organisationId: null,
       });
       const org = await createOrganisation({ name: "AFPA Refus" });
-      const orgDuStagiaire = await createOrganisation({ name: "AFPA Du Stagiaire" });
-      await setOrganisationStatus(orgDuStagiaire.id, { active: true, seats: 3 });
-      const stagiaire = await registerTraineeWithCode({
-        email: "stagiaire-pas-responsable@ex.fr",
+      const orgDuÉtudiant = await createOrganisation({ name: "AFPA Du Étudiant" });
+      await setOrganisationStatus(orgDuÉtudiant.id, { active: true, seats: 3 });
+      const etudiant = await registerTraineeWithCode({
+        email: "étudiant-pas-responsable@ex.fr",
         passwordHash: await hashPassword("motdepasse-correct"),
-        code: orgDuStagiaire.code,
+        code: orgDuÉtudiant.code,
       });
 
       await asUser(admin);
-      const res = await post({ id: org.id, active: true, seats: 7, responsableEmail: "stagiaire-pas-responsable@ex.fr" });
+      const res = await post({ id: org.id, active: true, seats: 7, responsableEmail: "étudiant-pas-responsable@ex.fr" });
       expect(res.status).toBe(400);
 
       // Le rattachement est vérifié AVANT la mise à jour de l'organisme : un refus ne doit rien
@@ -213,7 +213,7 @@ describe("administration des organismes", () => {
       const relu = await findOrganisationByCode(org.code);
       expect(relu?.active).toBe(true);
       expect(relu?.seats).toBe(PLACES_ESSAI);
-      expect((await findUserById(stagiaire.id))?.organisationId).toBe(orgDuStagiaire.id);
+      expect((await findUserById(etudiant.id))?.organisationId).toBe(orgDuÉtudiant.id);
     });
 
     it("un e-mail inconnu → 404", async () => {

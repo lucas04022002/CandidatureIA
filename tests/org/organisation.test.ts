@@ -89,57 +89,57 @@ describe("espace organisme", () => {
     expect(relu?.id).toBe(org.id);
   });
 
-  it("retirer un stagiaire d'un AUTRE organisme → 404", async () => {
+  it("retirer un étudiant d'un AUTRE organisme → 404", async () => {
     const a = await seedOrganisation("AFPA A", "resp-a@ex.fr");
     const b = await seedOrganisation("AFPA B", "resp-b@ex.fr");
 
-    const stagiaireB = await registerTraineeWithCode({
-      email: "stagiaire-b@ex.fr",
+    const étudiantB = await registerTraineeWithCode({
+      email: "étudiant-b@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
       code: b.org.code,
     });
 
     await asUser(a.responsable);
-    const res = await post(removeMember, "/api/organisation/remove-member", { userId: stagiaireB.id });
+    const res = await post(removeMember, "/api/organisation/remove-member", { userId: étudiantB.id });
     expect(res.status).toBe(404);
     expect((await res.json()).ok).toBe(false);
 
-    // Le stagiaire de l'organisme B est intact.
-    expect((await findUserById(stagiaireB.id))?.deletedAt).toBeNull();
+    // L'étudiant de l'organisme B est intact.
+    expect((await findUserById(étudiantB.id))?.deletedAt).toBeNull();
     expect(await countActiveTrainees(b.org.id)).toBe(1);
   });
 
-  it("retirer un stagiaire du sien → supprimé et place libérée", async () => {
+  it("retirer un étudiant du sien → supprimé et place libérée", async () => {
     const { org, responsable } = await seedOrganisation("AFPA Places", "resp-places@ex.fr");
-    const stagiaire = await registerTraineeWithCode({
-      email: "stagiaire-places@ex.fr",
+    const etudiant = await registerTraineeWithCode({
+      email: "étudiant-places@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
       code: org.code,
     });
     expect(await countActiveTrainees(org.id)).toBe(1);
 
     await asUser(responsable);
-    const res = await post(removeMember, "/api/organisation/remove-member", { userId: stagiaire.id });
+    const res = await post(removeMember, "/api/organisation/remove-member", { userId: etudiant.id });
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
 
     expect(await countActiveTrainees(org.id)).toBe(0);
-    const relu = await findUserById(stagiaire.id);
+    const relu = await findUserById(etudiant.id);
     expect(relu?.deletedAt).not.toBeNull();
     expect(relu?.email).toMatch(/^deleted-[0-9a-f-]{36}@invalid$/);
   });
 
-  it("un stagiaire appelant la régénération du code → 403", async () => {
+  it("un étudiant appelant la régénération du code → 403", async () => {
     const { org } = await seedOrganisation("AFPA Rôles", "resp-roles@ex.fr");
-    const stagiaire = await registerTraineeWithCode({
-      email: "stagiaire-roles@ex.fr",
+    const etudiant = await registerTraineeWithCode({
+      email: "étudiant-roles@ex.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
       code: org.code,
     });
 
-    await asUser(stagiaire);
+    await asUser(etudiant);
     expect((await post(regenerateCode, "/api/organisation/regenerate-code")).status).toBe(403);
-    expect((await post(removeMember, "/api/organisation/remove-member", { userId: stagiaire.id })).status).toBe(403);
+    expect((await post(removeMember, "/api/organisation/remove-member", { userId: etudiant.id })).status).toBe(403);
 
     const inchange = await findOrganisationByCode(org.code);
     expect(inchange?.id).toBe(org.id);

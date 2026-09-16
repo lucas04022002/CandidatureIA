@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 function user(role: Role): SessionUser {
-  return { id: "u1", email: "camille.test@mail.fr", role, organisationId: role === "stagiaire" ? "o1" : null };
+  return { id: "u1", email: "camille.test@mail.fr", role, organisationId: role === "etudiant" ? "o1" : null };
 }
 
 // La barre est rendue deux fois (desktop + menu `<details>` mobile) : on compte les occurrences
@@ -35,9 +35,9 @@ const ADMIN_LINKS = ["Admin", "Profil"];
 const ALL_LINKS = ["Tableau de bord", "Offres", "Candidatures", "Suivi", "Profil", "Mon organisme", "Admin"];
 
 describe("Shell — liens selon le rôle", () => {
-  it("stagiaire : Tableau de bord, Offres, Candidatures, Suivi, Profil et rien d'autre", () => {
+  it("étudiant : Tableau de bord, Offres, Candidatures, Suivi, Profil et rien d'autre", () => {
     render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -47,7 +47,7 @@ describe("Shell — liens selon le rôle", () => {
     }
   });
 
-  it("responsable : Mon organisme et Profil, pas les écrans du stagiaire ni Admin", () => {
+  it("responsable : Mon organisme et Profil, pas les écrans de l'étudiant ni Admin", () => {
     render(
       <Shell user={user("responsable")}>
         <p>contenu</p>
@@ -59,7 +59,7 @@ describe("Shell — liens selon le rôle", () => {
     }
   });
 
-  it("admin : Admin et Profil, pas les écrans du stagiaire ni Mon organisme", () => {
+  it("admin : Admin et Profil, pas les écrans de l'étudiant ni Mon organisme", () => {
     render(
       <Shell user={user("admin")}>
         <p>contenu</p>
@@ -75,7 +75,7 @@ describe("Shell — liens selon le rôle", () => {
 describe("Shell — marque, compte et contenu", () => {
   it("affiche la marque, l'e-mail, la déconnexion, le contenu et le pied légal", () => {
     render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu de la page</p>
       </Shell>,
     );
@@ -90,7 +90,7 @@ describe("Shell — marque, compte et contenu", () => {
 
   it("le menu mobile se referme après une navigation", () => {
     const { container, rerender } = render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -101,7 +101,7 @@ describe("Shell — marque, compte et contenu", () => {
     // sans l'effet du Shell, le panneau resterait ouvert par-dessus la page d'arrivée.
     nav.pathname = "/profil";
     rerender(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -110,7 +110,7 @@ describe("Shell — marque, compte et contenu", () => {
 
   it("marque la page courante dans les deux menus, desktop et mobile", () => {
     render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -124,7 +124,7 @@ describe("Shell — marque, compte et contenu", () => {
 
   it("la barre est bleue et le contenu dans la colonne de lecture", () => {
     const { container } = render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -141,7 +141,7 @@ describe("Shell — marque, compte et contenu", () => {
 describe("Shell — lien d'évitement", () => {
   it("premier élément focalisable de l'en-tête, il pointe sur le <main>", () => {
     const { container } = render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );
@@ -162,7 +162,7 @@ describe("Shell — lien d'évitement", () => {
 
   it("caché à l'œil, rendu visible au focus (et non `hidden`, qui le sortirait du parcours)", () => {
     render(
-      <Shell user={user("stagiaire")}>
+      <Shell user={user("etudiant")}>
         <p>contenu</p>
       </Shell>,
     );

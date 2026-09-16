@@ -103,11 +103,11 @@ let otherUserId = "";
 
 // Bascule la session mockée sur un autre utilisateur le temps d'un appel.
 async function asUser(id: string, run: () => Promise<void>) {
-  mockCookies.set(SESSION_COOKIE, await signSession({ userId: id, role: "stagiaire" }));
+  mockCookies.set(SESSION_COOKIE, await signSession({ userId: id, role: "etudiant" }));
   try {
     await run();
   } finally {
-    mockCookies.set(SESSION_COOKIE, await signSession({ userId, role: "stagiaire" }));
+    mockCookies.set(SESSION_COOKIE, await signSession({ userId, role: "etudiant" }));
   }
 }
 
@@ -125,11 +125,11 @@ describe("parcours candidat sur Postgres", () => {
     const other = await createUser({
       email: "autre@exemple.fr",
       passwordHash: await hashPassword("motdepasse-correct"),
-      role: "stagiaire",
+      role: "etudiant",
       organisationId: org.id,
     });
     otherUserId = other.id;
-    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "stagiaire" }));
+    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "etudiant" }));
   });
 
   let jobId = "";

@@ -18,7 +18,7 @@ async function countActiveTraineesWith(executor: Executor, organisationId: strin
   const [row] = await executor
     .select({ count: sql<number>`count(*)::int` })
     .from(users)
-    .where(and(eq(users.organisationId, organisationId), eq(users.role, "stagiaire"), isNull(users.deletedAt)));
+    .where(and(eq(users.organisationId, organisationId), eq(users.role, "etudiant"), isNull(users.deletedAt)));
   return (row?.count as number | undefined) ?? 0;
 }
 
@@ -44,7 +44,7 @@ async function insertOrganisationWith(executor: Executor, name: string) {
         // produit que des comptes morts-nés.
         //
         // L'administration sert désormais à AJOUTER des places, pas à ouvrir la
-        // porte : un organisme peut inscrire trois stagiaires et voir le produit
+        // porte : un organisme peut inscrire trois étudiants et voir le produit
         // fonctionner avant d'en discuter.
         .values({ name, code: generateOrgCode(), active: true, seats: PLACES_ESSAI })
         .returning();
@@ -91,7 +91,7 @@ export async function registerTraineeWithCode(p: { email: string; passwordHash: 
     if (count >= org.seats) throw new OrgCodeError("full");
     const [user] = await tx
       .insert(users)
-      .values({ email: p.email, passwordHash: p.passwordHash, role: "stagiaire", organisationId: org.id })
+      .values({ email: p.email, passwordHash: p.passwordHash, role: "etudiant", organisationId: org.id })
       .returning();
     return user;
   });
@@ -118,7 +118,7 @@ export async function regenerateCode(organisationId: string) {
   throw new Error("Impossible de générer un code d'organisme unique après plusieurs tentatives");
 }
 
-// Ce que le responsable a le droit de voir de ses stagiaires : l'e-mail et deux dates. Jamais leur
+// Ce que le responsable a le droit de voir de ses étudiants : l'e-mail et deux dates. Jamais leur
 // CV, leurs offres ni leurs candidatures — d'où une projection explicite plutôt qu'un `select()`.
 export async function listMembers(organisationId: string) {
   return db
@@ -130,13 +130,13 @@ export async function listMembers(organisationId: string) {
     })
     .from(users)
     .where(
-      and(eq(users.organisationId, organisationId), eq(users.role, "stagiaire"), isNull(users.deletedAt)),
+      and(eq(users.organisationId, organisationId), eq(users.role, "etudiant"), isNull(users.deletedAt)),
     )
     .orderBy(desc(users.createdAt));
 }
 
-// Le stagiaire n'est retourné que s'il appartient à CET organisme : un responsable qui envoie l'id
-// d'un stagiaire d'un autre organisme obtient `null`, donc un 404 côté route.
+// L'étudiant n'est retourné que s'il appartient à CET organisme : un responsable qui envoie l'id
+// d'un étudiant d'un autre organisme obtient `null`, donc un 404 côté route.
 export async function findTraineeInOrganisation(organisationId: string, userId: string) {
   const rows = await db
     .select({ id: users.id, email: users.email })
@@ -145,7 +145,7 @@ export async function findTraineeInOrganisation(organisationId: string, userId: 
       and(
         eq(users.id, userId),
         eq(users.organisationId, organisationId),
-        eq(users.role, "stagiaire"),
+        eq(users.role, "etudiant"),
         isNull(users.deletedAt),
       ),
     )
@@ -181,7 +181,7 @@ export async function listOrganisations(): Promise<OrganisationSummary[]> {
   for (const m of members) {
     if (!m.organisationId) continue;
     if (m.role === "responsable" && !responsables.has(m.organisationId)) responsables.set(m.organisationId, m.email);
-    if (m.role === "stagiaire") trainees.set(m.organisationId, (trainees.get(m.organisationId) ?? 0) + 1);
+    if (m.role === "etudiant") trainees.set(m.organisationId, (trainees.get(m.organisationId) ?? 0) + 1);
   }
 
   return orgs.map((org) => ({
@@ -208,7 +208,7 @@ export async function setOrganisationStatus(id: string, p: { active: boolean; se
 
 // Organismes dont plus aucun responsable n'est actif : la purge des comptes dormants peut laisser
 // un organisme orphelin, personne ne pouvant plus régénérer son code ni gérer ses places. Signalé
-// par `scripts/purge-inactive.ts`, jamais désactivé automatiquement : couper l'accès des stagiaires
+// par `scripts/purge-inactive.ts`, jamais désactivé automatiquement : couper l'accès des étudiants
 // d'un organisme est une décision commerciale, pas une conséquence d'un script de maintenance.
 export async function listOrganisationsWithoutResponsable() {
   const [orgs, responsables] = await Promise.all([

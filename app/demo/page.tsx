@@ -50,7 +50,7 @@ export default function DemoPage() {
             Entrez dans un compte d&apos;exemple.
           </h1>
           <p className="mt-5 max-w-[58ch] font-body text-[16.5px] leading-[1.6] text-grey">
-            Vous arrivez dans le compte d&apos;une stagiaire fictive, Camille Perrin, sortie de
+            Vous arrivez dans le compte d&apos;une étudiant fictive, Camille Perrin, sortie de
             formation en électricité. Cinq offres classées selon son profil, des candidatures à
             différents stades, et une relance qui arrive à échéance.
           </p>

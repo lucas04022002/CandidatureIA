@@ -28,7 +28,7 @@ async function asUser(user: { id: string; role: Role }) {
   mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: user.role }));
 }
 
-const EMAIL = "stagiaire-rgpd@ex.fr";
+const EMAIL = "étudiant-rgpd@ex.fr";
 const AUTRE = "autre-rgpd@ex.fr";
 
 let orgCode = "";
@@ -74,7 +74,7 @@ describe("RGPD : export et suppression de compte", () => {
   });
 
   it("l'export ne contient que les données de l'appelant", async () => {
-    await asUser({ id: userId, role: "stagiaire" });
+    await asUser({ id: userId, role: "etudiant" });
     const res = await exportAccount(
       new Request("http://localhost/api/account/export", { headers: { host: "localhost" } }),
       {},
@@ -102,7 +102,7 @@ describe("RGPD : export et suppression de compte", () => {
   });
 
   it("la suppression efface les 5 tables, libère l'e-mail et laisse une nouvelle inscription passer", async () => {
-    await asUser({ id: userId, role: "stagiaire" });
+    await asUser({ id: userId, role: "etudiant" });
     const res = await deleteAccount(
       new Request("http://localhost/api/account", {
         method: "DELETE",
@@ -186,7 +186,7 @@ describe("RGPD : export et suppression de compte", () => {
   });
 
   it("la session d'un compte supprimé ne donne plus accès à l'export", async () => {
-    await asUser({ id: userId, role: "stagiaire" });
+    await asUser({ id: userId, role: "etudiant" });
     const res = await exportAccount(
       new Request("http://localhost/api/account/export", { headers: { host: "localhost" } }),
       {},

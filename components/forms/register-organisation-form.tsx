@@ -10,7 +10,7 @@ const inputClasses =
   "w-full rounded-lg border border-line bg-white px-3 py-2.5 font-body text-[15px] text-ink placeholder:text-grey";
 
 /**
- * Création d'un espace organisme. Même gabarit que la connexion du stagiaire, au vouvoiement
+ * Création d'un espace organisme. Même gabarit que la connexion de l'etudiant, au vouvoiement
  * (spec §4). Le corps envoyé est inchangé : { organisationName, email, password, acceptedTerms }.
  */
 export function RegisterOrganisationForm() {

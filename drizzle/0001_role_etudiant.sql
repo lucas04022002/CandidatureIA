@@ -1,0 +1,11 @@
+-- Le rôle « stagiaire » devient « etudiant ».
+--
+-- Le produit s'adresse à des étudiants, pas à des stagiaires : le mot venait
+-- d'une première version et ne correspondait plus à ce qui est vendu. Il
+-- disparaît des écrans, du code, des exports de données et des journaux — le
+-- garder ici seulement aurait laissé deux vocabulaires cohabiter.
+--
+-- ALTER TYPE ... RENAME VALUE est atomique et conserve les lignes existantes :
+-- aucune donnée n'est réécrite, c'est l'étiquette de la valeur qui change.
+-- Disponible depuis PostgreSQL 10 ; la production tourne en 16.
+ALTER TYPE "public"."user_role" RENAME VALUE 'stagiaire' TO 'etudiant';

@@ -57,10 +57,10 @@ async function nouvelUtilisateur() {
   const user = await createUser({
     email: `scrape-erreur-${compteur}@ex.fr`,
     passwordHash: await hashPassword("motdepasse-correct"),
-    role: "stagiaire",
+    role: "etudiant",
     organisationId: null,
   });
-  mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "stagiaire" }));
+  mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "etudiant" }));
   return user.id;
 }
 

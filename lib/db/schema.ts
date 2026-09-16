@@ -4,7 +4,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 const sqlLower = (c: AnyPgColumn) => sql`lower(${c})`;
 
-export const roleEnum = pgEnum("user_role", ["stagiaire", "responsable", "admin"]);
+export const roleEnum = pgEnum("user_role", ["etudiant", "responsable", "admin"]);
 export const applicationStatusEnum = pgEnum("application_status", ["Nouveau", "À valider", "Brouillon", "Envoyé", "Refusé"]);
 
 export const organisations = pgTable("organisations", {

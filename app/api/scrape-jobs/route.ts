@@ -57,7 +57,7 @@ const SOURCE_INDISPONIBLE = "Source indisponible pour le moment.";
  * porte des URLs d'API internes, le mode d'authentification retenu, les codes HTTP et un extrait de
  * la réponse de l'API tierce — parfois un fragment d'identifiant. C'est précieux pour diagnostiquer,
  * et c'est exactement pour ça que ça reste dans les logs du serveur (`console.error`) au lieu de
- * partir dans le navigateur d'un stagiaire.
+ * partir dans le navigateur d'un étudiant.
  */
 function normalizeSourceIssue(reason: string | undefined, source: string) {
   const message = reason?.trim();

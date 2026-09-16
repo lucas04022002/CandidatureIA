@@ -24,7 +24,7 @@ describe("scrape-jobs sans source configurée", () => {
     const org = await createOrganisation({ name: "OF sans clés" });
     await db.update(organisations).set({ active: true, seats: 1 }).where(eq(organisations.id, org.id));
     const user = await registerTraineeWithCode({ email: "s@ex.fr", passwordHash: "x", code: org.code });
-    cookie = await signSession({ userId: user.id, role: "stagiaire" });
+    cookie = await signSession({ userId: user.id, role: "etudiant" });
   });
 
   it("répond 503 avec un message d'installation et ne consomme pas le quota", async () => {

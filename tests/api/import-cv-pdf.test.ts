@@ -81,7 +81,7 @@ describe("import CV au format PDF", () => {
       code: org.code,
     });
     userId = user.id;
-    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "stagiaire" }));
+    mockCookies.set(SESSION_COOKIE, await signSession({ userId: user.id, role: "etudiant" }));
   });
 
   it("extrait le texte d'un PDF et enregistre le profil correspondant", async () => {

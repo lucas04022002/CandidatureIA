@@ -96,11 +96,11 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
 // Deux exceptions, toutes deux parce que la purge fermerait une porte que personne ne pourrait
 // rouvrir :
 //  - l'administrateur, compte d'exploitation du service ;
-//  - un responsable dont l'organisme compte encore au moins un stagiaire non supprimé. Le
+//  - un responsable dont l'organisme compte encore au moins un étudiant non supprimé. Le
 //    responsable est le seul à pouvoir régénérer le code d'inscription, gérer les places et retirer
 //    un membre : le purger laisse un organisme vivant mais inadministrable, avec des utilisateurs
 //    actifs dedans. Un responsable ne se connecte de toute façon que rarement — c'est la nature du
-//    rôle, pas un signe d'abandon. Si l'organisme s'est réellement vidé (plus aucun stagiaire), la
+//    rôle, pas un signe d'abandon. Si l'organisme s'est réellement vidé (plus aucun etudiant), la
 //    purge s'applique normalement.
 export async function purgeInactiveUsers(before: Date): Promise<number> {
   const dormants = await db
@@ -117,8 +117,8 @@ export async function purgeInactiveUsers(before: Date): Promise<number> {
   let purges = 0;
   for (const dormant of dormants) {
     if (dormant.role === "responsable" && dormant.organisationId) {
-      const stagiaires = await countActiveTrainees(dormant.organisationId);
-      if (stagiaires > 0) continue;
+      const étudiants = await countActiveTrainees(dormant.organisationId);
+      if (étudiants > 0) continue;
     }
     await deleteUserAndData(dormant.id);
     purges += 1;

@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 
-export type Role = "stagiaire" | "responsable" | "admin";
+export type Role = "etudiant" | "responsable" | "admin";
 
-const ROLES: readonly Role[] = ["stagiaire", "responsable", "admin"];
+const ROLES: readonly Role[] = ["etudiant", "responsable", "admin"];
 
 function loadSecret(): Uint8Array {
   const s = process.env.JWT_SECRET;

@@ -41,7 +41,7 @@ describe("quotas et limite d'essais", () => {
     const user = await createUser({
       email,
       passwordHash: await hashPassword("motdepasse-correct"),
-      role: "stagiaire",
+      role: "etudiant",
       organisationId: null,
     });
     return user.id;
