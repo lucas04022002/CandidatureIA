@@ -88,7 +88,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
         >
           Aller au contenu
         </a>
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4 sm:gap-4 sm:px-6">
           <Link href="/" className="font-display text-[20px] font-extrabold tracking-[-0.01em] text-white">
             ApplyBot
           </Link>
@@ -178,22 +178,29 @@ export function PublicBar() {
 
   return (
     <header className="bg-klein text-white">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-        <Link href="/" className="font-display text-[20px] font-extrabold tracking-[-0.01em] text-white">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4 sm:gap-4 sm:px-6">
+        <Link
+          href="/"
+          className="font-display text-[17px] font-extrabold tracking-[-0.01em] text-white sm:text-[20px]"
+        >
           ApplyBot
         </Link>
-        <nav aria-label="Navigation publique" className="ml-auto flex items-center gap-5">
+        <nav aria-label="Navigation publique" className="ml-auto flex items-center gap-3 sm:gap-5">
           {pathname === "/login" ? null : (
-            <Link href="/login" className="font-body text-[13.5px] text-white opacity-90 hover:opacity-100">
+            <Link
+              href="/login"
+              className="flex min-h-11 items-center font-body text-[13px] text-white opacity-90 hover:opacity-100 sm:text-[13.5px]"
+            >
               Connexion
             </Link>
           )}
           {pathname.startsWith("/organisme/inscription") ? null : (
             <Link
               href="/organisme/inscription"
-              className="rounded-full bg-white px-3.5 py-2 font-body text-[13.5px] font-semibold text-klein transition duration-150 hover:bg-klein-soft"
+              className="flex min-h-11 items-center whitespace-nowrap rounded-full bg-white px-3.5 font-body text-[13px] font-semibold text-klein transition duration-150 hover:bg-klein-soft sm:px-4 sm:text-[13.5px]"
             >
-              Créer un organisme
+              <span className="sm:hidden">Créer un compte</span>
+              <span className="hidden sm:inline">Créer un organisme</span>
             </Link>
           )}
         </nav>

@@ -28,7 +28,7 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="bg-klein text-white">
-          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1fr_380px] md:items-end md:py-16">
+          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 [&>*]:min-w-0 md:grid-cols-[1fr_380px] md:items-end md:py-16">
             <div className="motion-safe:animate-[rise_400ms_ease-out]">
               <h1 className="font-display text-[clamp(44px,7vw,92px)] font-extrabold leading-[0.95] tracking-[-0.03em]">
                 Chaque stagiaire postule. Chaque jour.
@@ -71,7 +71,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-8 px-6 py-11 md:grid-cols-3">
+        <section className="mx-auto grid max-w-6xl gap-8 px-6 py-11 [&>*]:min-w-0 md:grid-cols-3">
           {COLUMNS.map((column) => (
             <div key={column.title}>
               <h2 className="font-display text-[18px] font-bold leading-[1.2] tracking-[-0.02em]">
@@ -82,7 +82,7 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 pb-12 md:grid-cols-2">
+        <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 pb-12 [&>*]:min-w-0 md:grid-cols-2">
           <div>
             <h2 className="font-display text-[30px] font-extrabold leading-[1.05] tracking-[-0.03em]">
               Pour les organismes de formation
@@ -97,11 +97,15 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="rounded-tile border border-line bg-white p-6">
+          <div className="min-w-0 rounded-tile border border-line bg-white p-5 sm:p-6">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-grey">
               Exemple · code d&apos;organisme · promo électricité
             </p>
-            <p className="tnum mt-2 mb-4 font-display text-[44px] font-extrabold leading-none tracking-[0.06em]">
+            {/* Un mot de huit caractères insécable en 44 px mesure 442 px de large :
+                comme aucun enfant de grille ne peut être plus étroit que son contenu
+                minimal, il imposait 491 px à toute la page, soit 37 % de débordement
+                horizontal sur un écran de 375. Il rétrécit donc avant l'écran. */}
+            <p className="tnum mt-2 mb-4 break-all font-display text-[30px] font-extrabold leading-none tracking-[0.06em] sm:text-[44px]">
               K7MZ4P2R
             </p>
             <div className="flex flex-wrap gap-7">
