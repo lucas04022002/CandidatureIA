@@ -50,9 +50,10 @@ export default function DemoPage() {
             Regardez par-dessus l&apos;épaule de Camille.
           </h1>
           <p className="mt-5 max-w-[58ch] font-body text-[16.5px] leading-[1.6] text-grey">
-            Camille sort d&apos;une formation en électricité et cherche son premier poste autour de
-            Lyon. Son compte est ouvert : six offres du jour, quatre candidatures à des stades
-            différents, et une relance qui attend depuis hier.
+            Camille est en formation électricité au Greta Rhône. Elle termine en novembre et cherche
+            son premier poste autour de Lyon — c&apos;est son organisme qui lui a ouvert un accès,
+            avec le reste de sa promo. Son compte est ouvert : six offres du jour, quatre
+            candidatures à des stades différents, et une relance qui attend depuis hier.
           </p>
           <p className="mt-3 max-w-[58ch] font-body text-[16.5px] leading-[1.6] text-grey">
             Entrez, cliquez partout. Camille n&apos;existe pas, et rien de ce que vous ferez ne

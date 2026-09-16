@@ -13,27 +13,29 @@ export const metadata: Metadata = {
 };
 
 /**
- * Les trois blocs.
+ * Les trois blocs, écrits du point de vue de l'étudiant.
  *
- * Écrits du point de vue de l'étudiant, pas de celui du produit. « Les offres
- * viennent à vous » décrivait une fonctionnalité ; « Le matin, elles sont
- * déjà là » décrit sa journée.
+ * Et vérifiés contre le produit : une première version annonçait « sept sites
+ * relevés pendant la nuit », alors qu'il n'existe aucune collecte planifiée —
+ * l'étudiant lance lui-même la recherche, une fois par heure au maximum
+ * (lib/rate-limit.ts, SEARCH_MAX). Un texte qui promet ce que le code ne fait
+ * pas se retourne contre le produit dès la première utilisation.
  */
 const ETAPES = [
   {
-    titre: "Le matin, elles sont déjà là",
+    titre: "Un clic, sept sites",
     texte:
-      "Sept sites relevés pendant la nuit, les doublons retirés, le reste classé par ce qui colle vraiment à votre profil. Vous ouvrez, vous lisez. Vous ne cherchez plus.",
+      "France Travail, Adzuna, Jooble, La Bonne Alternance et trois sites d'entreprises, interrogés d'un coup. Les doublons tombent, le reste arrive classé par ce qui colle à votre profil.",
   },
   {
-    titre: "La lettre est écrite avant vous",
+    titre: "La lettre, en un bouton",
     texte:
-      "Pour chaque offre : une lettre, un e-mail, un message LinkedIn, tirés de votre CV et de l'annonce. Vous relisez, vous changez ce qui ne vous ressemble pas, vous copiez.",
+      "Sur une offre qui vous plaît, un bouton écrit la lettre, l'e-mail et le message LinkedIn à partir de votre CV et de l'annonce. Vous relisez, vous changez ce qui ne vous ressemble pas, vous copiez.",
   },
   {
-    titre: "On vous rappelle de relancer",
+    titre: "On vous dit quand relancer",
     texte:
-      "Quatre jours sans réponse, la relance est prête. C'est souvent elle qui déclenche un retour, et c'est ce qu'on oublie le plus vite.",
+      "Quatre jours après un envoi resté sans réponse, la relance apparaît dans vos actions du jour, et s'écrit comme le reste. C'est souvent elle qui déclenche un retour, et c'est ce qu'on oublie le plus vite.",
   },
 ];
 
@@ -55,9 +57,9 @@ export default function PourLesEtudiants() {
                 Pas quarante lettres à écrire.
               </h1>
               <p className="mt-5 max-w-[48ch] font-body text-[16.5px] leading-[1.6] text-klein-soft">
-                Chercher les annonces, réécrire la même lettre, se souvenir de qui n&apos;a pas
-                répondu : une heure par candidature, et on lâche au bout de dix. ApplyBot s&apos;occupe
-                des trois. Vous gardez la seule qui compte — relire, et envoyer.
+                Chercher les annonces sur sept sites, réécrire la même lettre, se souvenir de qui
+                n&apos;a pas répondu. Trois corvées, et c&apos;est la troisième qui fait abandonner.
+                ApplyBot s&apos;en charge. Vous gardez la seule qui compte : relire, et envoyer.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-4">
                 <Button variant="onBlue" href="/demo">
@@ -115,7 +117,7 @@ export default function PourLesEtudiants() {
               <li>
                 <span className="font-mono text-[12px] tracking-[0.12em] text-klein">03</span>
                 <br />
-                Le lendemain matin, les premières offres sont là. Vous n&apos;avez plus qu&apos;à ouvrir.
+                Vous lancez votre première recherche. Les offres arrivent classées, avec leur lettre.
               </li>
             </ol>
             <p className="mt-6 border-l-2 border-klein pl-4 font-body text-[14.5px] leading-[1.6] text-ink">
