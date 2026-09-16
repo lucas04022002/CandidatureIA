@@ -4,6 +4,7 @@ import { resetDatabase } from "../setup-db";
 import { db } from "@/lib/db/client";
 import { organisations, users } from "@/lib/db/schema";
 import { POST as registerOrganisation } from "@/app/api/auth/register-organisation/route";
+import { PLACES_ESSAI } from "@/lib/db/queries/organisations";
 
 // IP dédiée à ce fichier : voir la même remarque dans tests/auth/register.test.ts.
 const TEST_IP = "198.51.100.30";
@@ -27,18 +28,20 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 describe("création d'organisme", () => {
   beforeAll(resetDatabase);
 
-  it("ok → 201, organisme inactif à 0 place, responsable créé", async () => {
+  it("ok → 201, organisme actif avec ses places d'essai, responsable créé", async () => {
     const r = await post({ organisationName: "AFPA Nouvelle", email: "resp@ex.fr", password: "0123456789", acceptedTerms: true });
     expect(r.status).toBe(201);
 
     const body = await r.json();
     expect(body.role).toBe("responsable");
-    expect(body.organisation.active).toBe(false);
+    expect(body.organisation.active).toBe(true);
     expect(r.headers.get("set-cookie")).toMatch(/ab_session=/);
 
     const [org] = await db.select().from(organisations).where(eq(organisations.id, body.organisation.id));
-    expect(org.active).toBe(false);
-    expect(org.seats).toBe(0);
+    // Un organisme naît utilisable : l'administration sert à ajouter des places,
+    // pas à ouvrir la porte. Un compte qui attend une validation est un compte mort.
+    expect(org.active).toBe(true);
+    expect(org.seats).toBe(PLACES_ESSAI);
 
     const [user] = await db.select().from(users).where(eq(users.id, body.id));
     expect(user.role).toBe("responsable");

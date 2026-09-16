@@ -5,6 +5,7 @@ import { Empty } from "@/components/empty";
 import { Kpi } from "@/components/kpi";
 import { PageTitle } from "@/components/page-title";
 import { Table, type TableColumn } from "@/components/table";
+import { PLACES_ESSAI } from "@/lib/db/queries/organisations";
 
 export interface OrganisationMember {
   id: string;
@@ -65,6 +66,16 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
         subtitle="Le code d'inscription de vos stagiaires, vos places et les comptes ouverts. Leurs CV et leurs candidatures restent privés."
       />
 
+      {active && seats <= PLACES_ESSAI ? (
+        <p
+          role="status"
+          className="rounded-tile border border-line bg-white px-4 py-3 font-body text-[14px] text-grey"
+        >
+          Vous disposez de {seats} places d&apos;essai. Écrivez-nous pour en ouvrir davantage —
+          votre organisme fonctionne dès maintenant.
+        </p>
+      ) : null}
+
       {active ? null : (
         // role="status" : l'avertissement décide si les inscriptions passent ou non, il doit être
         // annoncé et pas seulement coloré.
@@ -82,7 +93,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
           <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-grey">
             Code d&apos;organisme · {name}
           </p>
-          <p className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[0.06em] text-ink tnum">
+          <p className="tnum mt-2 break-all font-display text-[28px] font-extrabold leading-none tracking-[0.06em] text-ink sm:text-[40px]">
             {code}
           </p>
           <p className="mt-2 font-body text-[14px] text-grey">

@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
-import { Syne, Instrument_Sans, JetBrains_Mono, Barlow_Condensed } from "next/font/google";
+import { Archivo, Instrument_Sans, JetBrains_Mono, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+/**
+ * Archivo remplace Syne comme police d'affichage.
+ *
+ * Syne est une display très large et géométrique : lisible sur un titre de
+ * trois mots, elle devient pénible dès qu'une phrase entière est composée
+ * dedans, et elle date le produit. Archivo est un grotesque de labeur — il
+ * tient à 60 px comme à 17 px, et laisse le bleu Klein porter l'identité.
+ */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["700", "800"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -46,7 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${syne.variable} ${instrumentSans.variable} ${jetbrainsMono.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`${archivo.variable} ${instrumentSans.variable} ${jetbrainsMono.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

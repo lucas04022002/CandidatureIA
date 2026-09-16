@@ -22,6 +22,9 @@ async function countActiveTraineesWith(executor: Executor, organisationId: strin
   return (row?.count as number | undefined) ?? 0;
 }
 
+/** Places offertes à la création, avant toute discussion commerciale. */
+export const PLACES_ESSAI = 3;
+
 export async function findOrganisationByCode(code: string) {
   const rows = await db.select().from(organisations).where(eq(organisations.code, code)).limit(1);
   return rows[0] ?? null;
@@ -32,7 +35,18 @@ async function insertOrganisationWith(executor: Executor, name: string) {
     try {
       const [org] = await executor
         .insert(organisations)
-        .values({ name, code: generateOrgCode(), active: false, seats: 0 })
+        // Actif d'emblée, avec un nombre de places d'essai.
+        //
+        // Auparavant un organisme naissait inactif et sans place : le
+        // responsable créait son compte, voyait « organisme pas encore activé »,
+        // et attendait une validation manuelle. Personne n'attend. Le filtrage
+        // a priori n'avait de sens qu'avec de vrais clients à trier ; il n'a
+        // produit que des comptes morts-nés.
+        //
+        // L'administration sert désormais à AJOUTER des places, pas à ouvrir la
+        // porte : un organisme peut inscrire trois stagiaires et voir le produit
+        // fonctionner avant d'en discuter.
+        .values({ name, code: generateOrgCode(), active: true, seats: PLACES_ESSAI })
         .returning();
       return org;
     } catch (e) {

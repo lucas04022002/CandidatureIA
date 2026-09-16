@@ -10,6 +10,7 @@ import {
   setOrganisationStatus,
 } from "@/lib/db/queries/organisations";
 import { createUser, findUserById } from "@/lib/db/queries/users";
+import { PLACES_ESSAI } from "@/lib/db/queries/organisations";
 
 const mockCookies = new Map<string, string>();
 
@@ -100,8 +101,9 @@ describe("administration des organismes", () => {
     expect(res.status).toBe(403);
 
     const relu = await findOrganisationByCode(org.code);
-    expect(relu?.active).toBe(false);
-    expect(relu?.seats).toBe(0);
+    // L'appel a été refusé : l'organisme doit être resté tel qu'il est né.
+    expect(relu?.active).toBe(true);
+    expect(relu?.seats).toBe(PLACES_ESSAI);
   });
 
   it("un organisme inactif refuse l'inscription (inactive)", async () => {
@@ -209,8 +211,8 @@ describe("administration des organismes", () => {
       // Le rattachement est vérifié AVANT la mise à jour de l'organisme : un refus ne doit rien
       // laisser à moitié appliqué.
       const relu = await findOrganisationByCode(org.code);
-      expect(relu?.active).toBe(false);
-      expect(relu?.seats).toBe(0);
+      expect(relu?.active).toBe(true);
+      expect(relu?.seats).toBe(PLACES_ESSAI);
       expect((await findUserById(stagiaire.id))?.organisationId).toBe(orgDuStagiaire.id);
     });
 
@@ -226,7 +228,7 @@ describe("administration des organismes", () => {
       await asUser(admin);
       const res = await post({ id: org.id, active: true, seats: 4, responsableEmail: "personne@ex.fr" });
       expect(res.status).toBe(404);
-      expect((await findOrganisationByCode(org.code))?.seats).toBe(0);
+      expect((await findOrganisationByCode(org.code))?.seats).toBe(PLACES_ESSAI);
     });
 
     it("un e-mail mal formé → 400 (zod)", async () => {

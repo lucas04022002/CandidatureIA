@@ -146,7 +146,8 @@ describe("purge des comptes inactifs", () => {
 
     // Aucune désactivation automatique : l'organisme signalé reste dans l'état où il était.
     const orphelin = orphelins.find((o) => o.id === orgs.orphelin.id);
-    expect(orphelin?.active).toBe(false);
+    // L'organisme est né actif ; la purge signale, elle ne désactive pas.
+    expect(orphelin?.active).toBe(true);
     expect(orphelin?.code).toHaveLength(8);
   });
 });
