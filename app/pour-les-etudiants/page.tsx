@@ -9,7 +9,7 @@ import { Stamp } from "@/components/stamp";
 export const metadata: Metadata = {
   title: "Pour les étudiants",
   description:
-    "Les offres qui correspondent à votre profil, la lettre et l'e-mail déjà préparés, et une relance au bout de quatre jours.",
+    "Sept sites d'offres interrogés d'un coup, les résultats classés selon votre CV, et la lettre écrite en un bouton.",
 };
 
 /**
@@ -35,7 +35,7 @@ const ETAPES = [
   {
     titre: "On vous dit quand relancer",
     texte:
-      "Quatre jours après un envoi resté sans réponse, la relance apparaît dans vos actions du jour, et s'écrit comme le reste. C'est souvent elle qui déclenche un retour, et c'est ce qu'on oublie le plus vite.",
+      "Dès qu'une candidature est marquée envoyée, « préparer la relance » entre dans vos actions du jour. Le bouton l'écrit et la date à quatre jours après l'envoi. C'est souvent elle qui déclenche un retour, et c'est ce qu'on oublie le plus vite.",
   },
 ];
 

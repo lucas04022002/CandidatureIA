@@ -18,7 +18,7 @@ const PORTES = [
     eyebrow: "Je cherche un emploi ou une alternance",
     titre: "Je suis étudiant",
     texte:
-      "Les offres qui correspondent à votre profil, chaque jour, avec la lettre et l'e-mail déjà préparés.",
+      "Sept sites d'offres interrogés d'un coup, les résultats classés selon votre CV, et la lettre écrite en un bouton.",
     cta: "Voir ce que ça donne",
   },
   {
