@@ -9,33 +9,60 @@ import { Stamp } from "@/components/stamp";
 export const metadata: Metadata = {
   title: "Pour les étudiants",
   description:
-    "Sept sites d'offres interrogés d'un coup, les résultats classés selon votre CV, et la lettre écrite en un bouton.",
+    "ApplyBot cherche les offres sur plusieurs sites, les classe selon votre CV et vous aide à préparer vos candidatures.",
 };
 
 /**
- * Les trois blocs, écrits du point de vue de l'étudiant.
+ * Les trois fonctions, dans l'ordre où on les utilise.
  *
- * Et vérifiés contre le produit : une première version annonçait « sept sites
- * relevés pendant la nuit », alors qu'il n'existe aucune collecte planifiée —
- * l'étudiant lance lui-même la recherche, une fois par heure au maximum
- * (lib/rate-limit.ts, SEARCH_MAX). Un texte qui promet ce que le code ne fait
- * pas se retourne contre le produit dès la première utilisation.
+ * Deux formulations du guide ont été ajustées, pour la même raison : le produit
+ * ne les fait pas.
+ *
+ * — « Vous pouvez ensuite relire et MODIFIER le texte » : le texte généré n'est
+ *   pas modifiable dans ApplyBot. Il s'affiche en lecture seule avec un bouton
+ *   « Copier » (TextBlock, dans le détail d'une candidature). La retouche se
+ *   fait après le collage, chez l'employeur ou dans la boîte mail.
+ *
+ * — « ApplyBot vous indique quand il est temps de relancer » : la relance entre
+ *   dans les actions du jour dès qu'une candidature est marquée envoyée, pas à
+ *   une date. Les quatre jours sont la date d'envoi CONSEILLÉE, écrite dans la
+ *   lettre une fois le bouton pressé (app/api/generate-followup).
  */
+const FONCTIONS = [
+  {
+    titre: "Cherchez sur plusieurs sites à la fois",
+    texte:
+      "ApplyBot interroge sept sites d'offres d'un coup et regroupe les résultats au même endroit. Les doublons sont retirés, et les offres sont classées selon votre profil.",
+  },
+  {
+    titre: "Préparez votre candidature",
+    texte:
+      "Quand une offre vous intéresse, un bouton prépare votre lettre, votre e-mail et votre message LinkedIn à partir de votre CV et de l'annonce. Vous relisez, vous copiez, et vous retouchez ce qui ne vous ressemble pas avant d'envoyer.",
+  },
+  {
+    titre: "N'oubliez plus les relances",
+    texte:
+      "Vos candidatures restent enregistrées avec leur statut et leur date d'envoi. Dès qu'une candidature est marquée envoyée, « préparer la relance » entre dans vos actions du jour, et le message se prépare comme le reste.",
+  },
+];
+
 const ETAPES = [
   {
-    titre: "Un clic, sept sites",
-    texte:
-      "France Travail, Adzuna, Jooble, La Bonne Alternance et trois sites d'entreprises, interrogés d'un coup. Les doublons tombent, le reste arrive classé par ce qui colle à votre profil.",
+    numero: "01",
+    titre: "Créez votre compte",
+    texte: "Votre organisme de formation vous donne un code d'accès à huit caractères.",
   },
   {
-    titre: "La lettre, en un bouton",
+    numero: "02",
+    titre: "Ajoutez votre CV",
     texte:
-      "Sur une offre qui vous plaît, un bouton écrit la lettre, l'e-mail et le message LinkedIn à partir de votre CV et de l'annonce. Vous relisez, vous copiez, et vous retouchez ce qui ne vous ressemble pas avant d'envoyer.",
+      "Vous le déposez une seule fois. ApplyBot l'utilise ensuite pour classer les offres et préparer vos candidatures.",
   },
   {
-    titre: "On vous dit quand relancer",
+    numero: "03",
+    titre: "Lancez votre recherche",
     texte:
-      "Dès qu'une candidature est marquée envoyée, « préparer la relance » entre dans vos actions du jour. Le bouton l'écrit et la date à quatre jours après l'envoi. C'est souvent elle qui déclenche un retour, et c'est ce qu'on oublie le plus vite.",
+      "Les offres sont regroupées et classées selon votre profil. Vous choisissez celles qui vous intéressent, et vous préparez votre candidature.",
   },
 ];
 
@@ -51,15 +78,13 @@ export default function PourLesEtudiants() {
               <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-klein-soft">
                 Étudiants et alternants
               </p>
-              <h1 className="mt-4 font-display text-[clamp(31px,4.6vw,56px)] font-bold leading-[1.04] tracking-[-0.022em]">
-                Vous avez une formation à finir.
-                <br />
-                Pas quarante lettres à écrire.
+              <h1 className="mt-4 max-w-[19ch] font-display text-[clamp(31px,4.6vw,56px)] font-bold leading-[1.04] tracking-[-0.022em]">
+                Trouvez plus facilement votre emploi ou votre alternance
               </h1>
               <p className="mt-5 max-w-[48ch] font-body text-[16.5px] leading-[1.6] text-klein-soft">
-                Chercher les annonces sur sept sites, réécrire la même lettre, se souvenir de qui
-                n&apos;a pas répondu. Trois corvées, et c&apos;est la troisième qui fait abandonner.
-                ApplyBot s&apos;en charge. Vous gardez la seule qui compte : relire, et envoyer.
+                ApplyBot cherche les offres sur plusieurs sites, les classe selon votre CV et vous
+                aide à préparer vos candidatures. Vous gardez toutes vos offres, candidatures et
+                relances au même endroit.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-4">
                 <Button variant="onBlue" href="/demo">
@@ -69,17 +94,19 @@ export default function PourLesEtudiants() {
                   href="/login"
                   className="font-body text-[14px] text-white underline underline-offset-[3px]"
                 >
-                  J&apos;ai un code d&apos;organisme
+                  J&apos;ai déjà un code
                 </Link>
               </div>
             </div>
 
             <div className="min-w-0 rounded-tile bg-white p-5 text-ink shadow-hero motion-safe:animate-[rise_400ms_ease-out_120ms_backwards]">
-              <p className="font-display text-[17px] font-bold leading-[1.2]">Électricien bâtiment H/F</p>
+              <p className="font-display text-[17px] font-bold leading-[1.2]">
+                Électricien bâtiment H/F
+              </p>
               <p className="mt-1.5 font-mono text-[12.5px] leading-[1.6] text-grey">
                 Spie Batignolles · Vénissieux · CDI
                 <br />
-                France Travail · relevé de 07:30
+                France Travail
               </p>
               <div className="mt-4 flex items-center justify-between gap-3">
                 <Score value={86} size="hero" />
@@ -90,49 +117,72 @@ export default function PourLesEtudiants() {
         </section>
 
         <section className="mx-auto grid max-w-6xl gap-8 px-5 py-11 [&>*]:min-w-0 sm:px-6 md:grid-cols-3">
-          {ETAPES.map((e) => (
-            <div key={e.titre}>
-              <h2 className="font-display text-[18px] font-bold leading-[1.2] tracking-[-0.02em]">{e.titre}</h2>
-              <p className="mt-1.5 font-body text-[14.5px] leading-[1.55] text-grey">{e.texte}</p>
+          {FONCTIONS.map((f) => (
+            <div key={f.titre}>
+              <h2 className="font-display text-[18px] font-bold leading-[1.2] tracking-[-0.02em]">
+                {f.titre}
+              </h2>
+              <p className="mt-1.5 font-body text-[14.5px] leading-[1.55] text-grey">{f.texte}</p>
             </div>
           ))}
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-11 sm:px-6">
+          <div className="min-w-0 rounded-tile border border-line bg-white p-5 sm:p-7">
+            <h2 className="font-display text-[22px] font-bold leading-[1.15] tracking-[-0.02em]">
+              Commencez en quelques minutes
+            </h2>
+            <ol className="mt-4 grid gap-4 font-body text-[15px] leading-[1.55] text-grey sm:grid-cols-3">
+              {ETAPES.map((e) => (
+                <li key={e.numero}>
+                  <span className="font-mono text-[12px] tracking-[0.12em] text-klein">
+                    {e.numero}
+                  </span>
+                  <br />
+                  <strong className="font-semibold text-ink">{e.titre}</strong>
+                  <br />
+                  {e.texte}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Le bloc qui répond à la crainte « un robot va-t-il postuler à ma
+            place ? ». Court et visible : c'est la question qu'on se pose avant
+            toutes les autres. */}
+        <section className="mx-auto max-w-6xl px-5 pb-11 sm:px-6">
+          <div className="min-w-0 rounded-tile border-l-[3px] border-klein bg-white px-5 py-6 sm:px-7">
+            <h2 className="font-display text-[22px] font-bold leading-[1.15] tracking-[-0.02em]">
+              Vous gardez toujours le contrôle.
+            </h2>
+            <p className="mt-3 max-w-[62ch] font-body text-[15px] leading-[1.6] text-ink">
+              ApplyBot n&apos;envoie aucune candidature à votre place. Vous postulez vous-même, sur
+              le site de l&apos;employeur, avec un texte que vous avez relu.
+            </p>
+          </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-14 sm:px-6">
           <div className="min-w-0 rounded-tile border border-line bg-white p-5 sm:p-7">
             <h2 className="font-display text-[22px] font-bold leading-[1.15] tracking-[-0.02em]">
-              Dix minutes, une fois pour toutes
+              Vous n&apos;avez pas encore de code d&apos;accès&nbsp;?
             </h2>
-            <ol className="mt-4 grid gap-4 font-body text-[15px] leading-[1.55] text-grey sm:grid-cols-3">
-              <li>
-                <span className="font-mono text-[12px] tracking-[0.12em] text-klein">01</span>
-                <br />
-                Votre organisme de formation vous donne un code à huit caractères.
-              </li>
-              <li>
-                <span className="font-mono text-[12px] tracking-[0.12em] text-klein">02</span>
-                <br />
-                Vous créez votre compte avec ce code, et vous déposez votre CV. Une seule fois.
-              </li>
-              <li>
-                <span className="font-mono text-[12px] tracking-[0.12em] text-klein">03</span>
-                <br />
-                Vous lancez votre première recherche. Les offres arrivent classées ; la lettre s&apos;écrit sur celles que vous gardez.
-              </li>
-            </ol>
-            <p className="mt-6 border-l-2 border-klein pl-4 font-body text-[14.5px] leading-[1.6] text-ink">
-              <strong className="font-semibold">Rien ne part en votre nom.</strong> Vous postulez
-              vous-même, sur le site de l&apos;employeur, avec un texte que vous avez relu. ApplyBot
-              n&apos;envoie aucun e-mail à votre place.
+            <p className="mt-3 max-w-[62ch] font-body text-[15px] leading-[1.6] text-grey">
+              ApplyBot est proposé par votre organisme de formation. Vous pouvez lui parler de
+              l&apos;outil pour qu&apos;il ouvre des accès à votre promo.
             </p>
-
-            <p className="mt-5 font-body text-[14.5px] leading-[1.6] text-grey">
-              Vous n&apos;avez pas de code ?{" "}
-              <Link href="/pour-les-organismes" className="text-klein underline underline-offset-[3px]">
-                Parlez d&apos;ApplyBot à votre organisme
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <Button variant="primary" href="/pour-les-organismes">
+                Découvrir ApplyBot pour les organismes
+              </Button>
+              <Link
+                href="/login"
+                className="font-body text-[14px] text-klein-deep underline underline-offset-[3px]"
+              >
+                Déjà un code&nbsp;? Se connecter
               </Link>
-              . C&apos;est lui qui ouvre les places.
-            </p>
+            </div>
           </div>
         </section>
       </main>

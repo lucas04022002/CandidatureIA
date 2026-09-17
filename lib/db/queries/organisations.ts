@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { PLACES_ESSAI } from "@/lib/places";
 import { db } from "@/lib/db/client";
 import { organisations, users } from "@/lib/db/schema";
 import { generateOrgCode } from "@/lib/auth/org-code";
@@ -23,7 +24,9 @@ async function countActiveTraineesWith(executor: Executor, organisationId: strin
 }
 
 /** Places offertes à la création, avant toute discussion commerciale. */
-export const PLACES_ESSAI = 3;
+// La constante vit dans lib/places.ts : les pages publiques l'affichent aussi,
+// et ne doivent pas importer ce module (elles tireraient le client de base).
+export { PLACES_ESSAI };
 
 export async function findOrganisationByCode(code: string) {
   const rows = await db.select().from(organisations).where(eq(organisations.code, code)).limit(1);
