@@ -1,5 +1,5 @@
 import { LegalPage, type LegalSection } from "@/components/legal-page";
-import { JOB_SOURCES, LEGAL, RETENTION_MONTHS } from "@/lib/legal";
+import { JOB_SOURCES, LEGAL, RETENTION_MONTHS, NOT_APPLICABLE } from "@/lib/legal";
 
 export const metadata = { title: "Conditions d'utilisation", robots: { index: false } };
 
@@ -90,7 +90,13 @@ const sections: LegalSection[] = [
     title: "Droit applicable et litiges",
     blocks: [
       "Les présentes conditions sont soumises au droit français.",
-      `Conformément aux articles L616-1 et suivants du code de la consommation, en cas de litige non résolu directement avec l'éditeur, l'utilisateur consommateur peut recourir gratuitement au service de médiation de la consommation suivant : ${LEGAL.mediator}.`,
+      // Le médiateur de la consommation n'est obligatoire qu'à partir du moment
+      // où un contrat est conclu avec un consommateur. ApplyBot ne vend rien et
+      // n'encaisse rien : désigner un médiateur laisserait croire le contraire.
+      // La phrase revient d'elle-même le jour où un médiateur est renseigné.
+      LEGAL.mediator === NOT_APPLICABLE
+        ? "Le service est gratuit et ne donne lieu à aucun contrat de consommation : aucun médiateur de la consommation n'est désigné. Ce paragraphe sera complété si le service devient payant."
+        : `Conformément aux articles L616-1 et suivants du code de la consommation, en cas de litige non résolu directement avec l'éditeur, l'utilisateur consommateur peut recourir gratuitement au service de médiation de la consommation suivant : ${LEGAL.mediator}.`,
       "À défaut de résolution amiable, les tribunaux français compétents seront saisis.",
     ],
   },

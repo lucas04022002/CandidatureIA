@@ -1,5 +1,12 @@
 import { LegalPage, type LegalSection } from "@/components/legal-page";
-import { JOB_SOURCES, LEGAL, PROCESSED_DATA, RETENTION_MONTHS, SESSION_COOKIE_NAME } from "@/lib/legal";
+import {
+  JOB_SOURCES,
+  LEGAL,
+  PROCESSED_DATA,
+  RETENTION_MONTHS,
+  SESSION_COOKIE_NAME,
+  isRegistered,
+} from "@/lib/legal";
 
 export const metadata = { title: "Mentions légales", robots: { index: false } };
 
@@ -7,7 +14,12 @@ const sections: LegalSection[] = [
   {
     title: "Éditeur du service",
     blocks: [
-      `Le service ApplyBot est édité par ${LEGAL.editorName}, ${LEGAL.editorStatus}, dont le siège de l'activité est situé ${LEGAL.editorAddress}, immatriculé sous le numéro SIREN ${LEGAL.editorSiren}.`,
+      // La phrase suit le statut : citer un siège social et un SIREN pour une
+      // personne physique qui n'en a pas serait faux, et l'omettre le
+      // deviendrait le jour de l'immatriculation.
+      isRegistered()
+        ? `Le service ApplyBot est édité par ${LEGAL.editorName}, ${LEGAL.editorStatus}, dont le siège de l'activité est situé ${LEGAL.editorAddress}, immatriculé sous le numéro SIREN ${LEGAL.editorSiren}.`
+        : `Le service ApplyBot est édité par ${LEGAL.editorName}, ${LEGAL.editorStatus}, établi en ${LEGAL.editorAddress}. Le service étant gratuit et sans activité commerciale, son éditeur n'est pas immatriculé.`,
       `Adresse e-mail de contact : ${LEGAL.editorEmail}.`,
     ],
   },
