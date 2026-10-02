@@ -35,6 +35,9 @@ describe("création d'organisme", () => {
     const body = await r.json();
     expect(body.role).toBe("responsable");
     expect(body.organisation.active).toBe(true);
+    // Ancien texte de l'époque de la validation manuelle, affiché tel quel par le formulaire : il
+    // annonçait une attente qui n'existe plus, juste avant d'entrer dans un organisme déjà ouvert.
+    expect(body.message).not.toMatch(/validation|activé après/i);
     expect(r.headers.get("set-cookie")).toMatch(/ab_session=/);
 
     const [org] = await db.select().from(organisations).where(eq(organisations.id, body.organisation.id));
@@ -46,6 +49,7 @@ describe("création d'organisme", () => {
     const [user] = await db.select().from(users).where(eq(users.id, body.id));
     expect(user.role).toBe("responsable");
     expect(user.organisationId).toBe(org.id);
+    expect(user.lastLoginAt).not.toBeNull();
   });
 
   it("CGU non acceptées → 400", async () => {

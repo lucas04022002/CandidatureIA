@@ -10,9 +10,9 @@ import { hashPassword } from "../lib/auth/password";
 /**
  * Jeu de démonstration.
  *
- * Un visiteur venu du portfolio ne peut pas entrer dans ApplyBot : créer un
- * organisme le laisse en attente d'activation, et le code d'organisme, il ne
- * l'a pas. Il repart sans avoir rien vu — le pire résultat pour un lien
+ * Un visiteur venu du portfolio ne peut pas entrer dans ApplyBot sans s'inscrire :
+ * un étudiant a besoin d'un code d'organisme, et un organisme créé pour l'occasion
+ * est vide. Il repartirait sans avoir rien vu — le pire résultat pour un lien
  * annoncé comme « voir le produit en ligne ».
  *
  * Ce script crée un organisme actif et un étudiant déjà garni : des offres

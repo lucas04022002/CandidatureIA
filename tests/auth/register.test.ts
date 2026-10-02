@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { resetDatabase } from "../setup-db";
 import { createOrganisation } from "@/lib/db/queries/organisations";
 import { db } from "@/lib/db/client";
-import { organisations } from "@/lib/db/schema";
+import { organisations, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { POST as register } from "@/app/api/auth/register/route";
 
@@ -69,6 +69,11 @@ describe("inscription par code", () => {
     const r = await post({ email: "a@ex.fr", password: "0123456789", acceptedTerms: true, orgCode: code });
     expect(r.status).toBe(201);
     expect(r.headers.get("set-cookie")).toMatch(/ab_session=/);
+
+    // L'inscription ouvre une session : c'est une première connexion. Sans cette date, l'organisme
+    // voyait « Jamais » en face d'un étudiant qui venait de s'inscrire et utilisait l'outil.
+    const [u] = await db.select().from(users).where(eq(users.email, "a@ex.fr"));
+    expect(u.lastLoginAt).not.toBeNull();
   });
 
   it("plus de place → 400", async () => {

@@ -35,7 +35,7 @@ export const POST = handle(async (req) => {
         email: user.email,
         role: user.role,
         organisation: { id: organisation.id, name: organisation.name, code: organisation.code, active: organisation.active },
-        message: "Votre organisme sera activé après validation.",
+        message: "Organisme créé : votre code vous attend.",
       },
       { status: 201 },
     );
