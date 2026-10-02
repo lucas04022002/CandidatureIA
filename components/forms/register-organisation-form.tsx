@@ -23,10 +23,10 @@ export function RegisterOrganisationForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Le succès ouvre un délai de 1,5 s avant de partir sur /dashboard, le temps de lire la
-  // confirmation. Ce minuteur doit mourir avec le composant : si l'utilisateur quitte la page
-  // entre-temps, `router.push` s'exécuterait sur un composant démonté et le ramènerait de force sur
-  // /dashboard depuis là où il était allé.
+  // Le succès ouvre un délai de 1,5 s avant de partir sur /organisme — là où se trouve le code à
+  // donner à la promo —, le temps de lire la confirmation. Ce minuteur doit mourir avec le
+  // composant : si l'utilisateur quitte la page entre-temps, `router.push` s'exécuterait sur un
+  // composant démonté et le ramènerait de force sur /organisme depuis là où il était allé.
   const redirect = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     return () => {
@@ -61,7 +61,7 @@ export function RegisterOrganisationForm() {
       // confirmation, au pire un doublon. Le bouton reste désactivé jusqu'à ce que la navigation
       // emporte le formulaire.
       redirect.current = setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/organisme");
         router.refresh();
       }, 1500);
     } catch {

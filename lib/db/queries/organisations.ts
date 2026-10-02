@@ -79,7 +79,7 @@ export async function registerResponsableWithNewOrganisation(p: { organisationNa
     const org = await insertOrganisationWith(tx, p.organisationName);
     const [user] = await tx
       .insert(users)
-      .values({ email: p.email, passwordHash: p.passwordHash, role: "responsable", organisationId: org.id })
+      .values({ email: p.email, passwordHash: p.passwordHash, role: "responsable", organisationId: org.id, lastLoginAt: new Date() })
       .returning();
     return { organisation: org, user };
   });
@@ -94,7 +94,9 @@ export async function registerTraineeWithCode(p: { email: string; passwordHash: 
     if (count >= org.seats) throw new OrgCodeError("full");
     const [user] = await tx
       .insert(users)
-      .values({ email: p.email, passwordHash: p.passwordHash, role: "etudiant", organisationId: org.id })
+      // L'inscription ouvre une session : c'est une première connexion. Sans la date, l'organisme
+      // lisait « Jamais » en face d'un étudiant qui venait de s'inscrire et utilisait l'outil.
+      .values({ email: p.email, passwordHash: p.passwordHash, role: "etudiant", organisationId: org.id, lastLoginAt: new Date() })
       .returning();
     return user;
   });

@@ -4,6 +4,7 @@ import { Button } from "@/components/button";
 import { Empty } from "@/components/empty";
 import { Kpi } from "@/components/kpi";
 import { PageTitle } from "@/components/page-title";
+import { homeForRole } from "@/lib/auth/safe-next";
 import { getSession } from "@/lib/auth/session";
 import { parisDay } from "@/lib/dates";
 import { getApplications } from "@/lib/db/queries/applications";
@@ -68,6 +69,7 @@ function nextActions(applications: Application[]) {
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.role !== "etudiant") redirect(homeForRole(session.role));
 
   const [jobRows, applications, profile] = await Promise.all([
     getJobRows(session.id),

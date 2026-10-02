@@ -24,9 +24,9 @@ export const metadata: Metadata = {
 /**
  * La porte d'entrée du visiteur.
  *
- * Sans elle, quelqu'un qui découvre ApplyBot ne peut rien voir : créer un
- * organisme le laisse en attente d'activation, et le code d'organisme, il ne
- * l'a pas. Cette page le fait entrer en un clic dans un compte garni.
+ * Sans elle, quelqu'un qui découvre ApplyBot ne peut rien voir sans s'inscrire :
+ * un étudiant a besoin d'un code d'organisme, et un organisme créé pour l'occasion
+ * est vide. Cette page le fait entrer en un clic dans un compte garni.
  *
  * Les identifiants sont publics par construction — le compte ne contient que
  * des données d'exemple. Ils sont affichés plutôt que cachés : un visiteur qui

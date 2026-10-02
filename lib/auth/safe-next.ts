@@ -1,3 +1,5 @@
+import type { Role } from "./jwt";
+
 /**
  * Destination de redirection après connexion, ramenée à un chemin interne.
  *
@@ -19,4 +21,16 @@ export function safeNextPath(raw: string | null): string {
   if (raw.startsWith("//") || raw.startsWith("/\\")) return DEFAULT_NEXT_PATH;
   if (raw.includes(":")) return DEFAULT_NEXT_PATH;
   return raw;
+}
+
+/**
+ * Le point d'arrivée de chaque rôle. `/dashboard` est le tableau de bord de l'étudiant : un
+ * responsable qui y atterrissait (après son inscription, et à chaque connexion puisque c'est la
+ * destination par défaut) lisait « Bonjour toi » et un bouton « Chercher des offres », sans trace du
+ * code d'organisme qu'il venait chercher.
+ */
+export function homeForRole(role: Role): string {
+  if (role === "responsable") return "/organisme";
+  if (role === "admin") return "/admin";
+  return DEFAULT_NEXT_PATH;
 }
