@@ -35,7 +35,7 @@ const sections: LegalSection[] = [
           "supprimer ou restituer les données à la fin du contrat, sans en conserver de copie.",
         ],
       },
-      "Le responsable de l'organisme ne voit de ses étudiants que leur adresse e-mail, leur date d'inscription et leur date de dernière connexion. Le CV, les offres et les candidatures d'un étudiant ne sont accessibles qu'à cet étudiant.",
+      "Le responsable de l'organisme voit de ses étudiants leur adresse e-mail, leur date d'inscription et leur date de dernière connexion. Si l'étudiant l'accepte, il voit aussi le nombre de candidatures envoyées, la date de la dernière et s'il a trouvé une entreprise ; cet accord se retire à tout moment depuis le profil. Le CV, les offres et le contenu des candidatures d'un étudiant ne sont accessibles qu'à cet étudiant.",
     ],
   },
   {

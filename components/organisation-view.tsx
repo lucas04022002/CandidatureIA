@@ -49,7 +49,7 @@ function resume(members: OrganisationMember[]): string {
   const trouve = partagent.filter((member) => member.foundCompanyAt).length;
   return [
     `${trouve} ${trouve > 1 ? "ont" : "a"} trouvé une entreprise`,
-    `${partagent.length} ${partagent.length > 1 ? "partagent" : "partage"} leur avancement sur ${members.length} inscrit${members.length > 1 ? "s" : ""}`,
+    `${partagent.length} ${partagent.length > 1 ? "partagent leur" : "partage son"} avancement sur ${members.length} inscrit${members.length > 1 ? "s" : ""}`,
   ].join(" · ");
 }
 

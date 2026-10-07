@@ -31,6 +31,18 @@ const CODE = "DEMO2026";
 
 const jourss = (n: number) => new Date(Date.now() + n * 86_400_000);
 
+// Camille partage son avancement avec son organisme, sans avoir encore trouvé d'entreprise : la
+// démonstration montre la fonction à l'œuvre, et la remise à zéro annule un « trouvée » de visiteur.
+const PARTAGE = { shareProgress: true, shareProgressAt: new Date(), foundCompanyAt: null };
+
+// Date d'envoi : quatre jours avant la relance prévue (la lettre de relance dit « envoyée il y a
+// quatre jours »), dix jours pour une candidature refusée. Sans elle, le tableau de bord affichait
+// « 0 candidature envoyée » à côté de deux candidatures au statut Envoyé.
+function dateEnvoi(o: { statut: string; relance: Date | null }) {
+  if (o.relance) return new Date(o.relance.getTime() - 4 * 86_400_000);
+  return o.statut === "Envoyé" || o.statut === "Refusé" ? jourss(-10) : null;
+}
+
 /** Offres d'exemple : des intitulés réels du secteur, pas du lorem. */
 const OFFRES = [
   {
@@ -165,14 +177,14 @@ async function main() {
     (
       await db
         .insert(users)
-        .values({ email: EMAIL, passwordHash: hash, role: "etudiant", organisationId: org.id })
+        .values({ email: EMAIL, passwordHash: hash, role: "etudiant", organisationId: org.id, ...PARTAGE })
         .returning()
     )[0];
 
   if (userExistant) {
     await db
       .update(users)
-      .set({ passwordHash: hash, organisationId: org.id, role: "etudiant", deletedAt: null })
+      .set({ passwordHash: hash, organisationId: org.id, role: "etudiant", deletedAt: null, ...PARTAGE })
       .where(eq(users.id, user.id));
   }
 
@@ -233,6 +245,7 @@ async function main() {
       userId: user.id,
       jobId: job.id,
       status: o.statut,
+      sentAt: dateEnvoi(o),
       letterGenerated: o.lettre,
       emailGenerated: o.lettre,
       linkedinGenerated: false,

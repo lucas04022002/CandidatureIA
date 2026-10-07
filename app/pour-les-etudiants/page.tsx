@@ -160,6 +160,11 @@ export default function PourLesEtudiants() {
               ApplyBot n&apos;envoie aucune candidature à votre place. Vous postulez vous-même, sur
               le site de l&apos;employeur, avec un texte que vous avez relu.
             </p>
+            <p className="mt-3 max-w-[62ch] font-body text-[15px] leading-[1.6] text-grey">
+              Si vous l&apos;acceptez, votre organisme voit le nombre de candidatures que vous avez
+              envoyées et si vous avez trouvé une entreprise, jamais leur contenu. Vous pouvez changer
+              d&apos;avis à tout moment dans votre profil.
+            </p>
           </div>
         </section>
 

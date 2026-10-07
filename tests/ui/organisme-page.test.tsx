@@ -123,6 +123,11 @@ describe("OrganisationView", () => {
     expect(screen.getByText("1 a trouvé une entreprise · 2 partagent leur avancement sur 3 inscrits")).toBeInTheDocument();
   });
 
+  it("accorde le résumé au singulier", () => {
+    renderView({ members: [MEMBERS[0]] });
+    expect(screen.getByText("0 a trouvé une entreprise · 1 partage son avancement sur 1 inscrit")).toBeInTheDocument();
+  });
+
   it("sans etudiant, invite à communiquer le code plutôt que d'afficher un tableau vide", () => {
     renderView({ members: [] });
     expect(screen.queryByRole("table")).not.toBeInTheDocument();

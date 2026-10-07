@@ -92,6 +92,7 @@ export const PROCESSED_DATA = [
   "le texte extrait du CV importé par l'utilisateur, et le profil qui en est déduit (métier visé, compétences, localisation, coordonnées présentes dans le CV) ;",
   "les offres d'emploi collectées pour l'utilisateur et le score attribué à chacune ;",
   "les candidatures préparées (lettre, e-mail, message LinkedIn, relance) et leur statut ;",
+  "le choix de partager ou non son avancement avec son organisme, et sa date, ainsi que la date à laquelle l'étudiant déclare avoir trouvé une entreprise ;",
   "des horodatages techniques : création du compte, dernière connexion, imports de CV, recherches lancées.",
 ];
 
