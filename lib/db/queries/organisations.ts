@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { PLACES_ESSAI } from "@/lib/places";
 import { db } from "@/lib/db/client";
-import { organisations, users } from "@/lib/db/schema";
+import { applications, organisations, users } from "@/lib/db/schema";
 import { generateOrgCode } from "@/lib/auth/org-code";
 
 export type OrgCodeReason = "unknown" | "inactive" | "full";
@@ -85,7 +85,7 @@ export async function registerResponsableWithNewOrganisation(p: { organisationNa
   });
 }
 
-export async function registerTraineeWithCode(p: { email: string; passwordHash: string; code: string }) {
+export async function registerTraineeWithCode(p: { email: string; passwordHash: string; code: string; shareProgress?: boolean }) {
   return db.transaction(async (tx) => {
     const [org] = await tx.select().from(organisations).where(eq(organisations.code, p.code)).for("update");
     if (!org) throw new OrgCodeError("unknown");
@@ -96,7 +96,17 @@ export async function registerTraineeWithCode(p: { email: string; passwordHash: 
       .insert(users)
       // L'inscription ouvre une session : c'est une première connexion. Sans la date, l'organisme
       // lisait « Jamais » en face d'un étudiant qui venait de s'inscrire et utilisait l'outil.
-      .values({ email: p.email, passwordHash: p.passwordHash, role: "etudiant", organisationId: org.id, lastLoginAt: new Date() })
+      // La case « partager mon avancement » est répondue à l'inscription : décochée vaut refus, daté
+      // comme un accord, pour que l'encart du tableau de bord ne repose pas la question.
+      .values({
+        email: p.email,
+        passwordHash: p.passwordHash,
+        role: "etudiant",
+        organisationId: org.id,
+        lastLoginAt: new Date(),
+        shareProgress: p.shareProgress ?? false,
+        shareProgressAt: new Date(),
+      })
       .returning();
     return user;
   });
@@ -123,21 +133,53 @@ export async function regenerateCode(organisationId: string) {
   throw new Error("Impossible de générer un code d'organisme unique après plusieurs tentatives");
 }
 
-// Ce que le responsable a le droit de voir de ses étudiants : l'e-mail et deux dates. Jamais leur
-// CV, leurs offres ni leurs candidatures — d'où une projection explicite plutôt qu'un `select()`.
+// Ce que le responsable a le droit de voir de ses étudiants : l'e-mail, deux dates et, seulement
+// pour ceux qui l'ont accepté, le nombre de candidatures envoyées, la date de la dernière et la date
+// « entreprise trouvée ». Jamais une entreprise, un intitulé ni un texte : la sous-requête ne lit
+// que `sent_at`, et la jointure n'a lieu que pour les étudiants qui partagent.
 export async function listMembers(organisationId: string) {
-  return db
+  const envoyees = db
+    .select({
+      userId: applications.userId,
+      sentCount: count(applications.sentAt).as("sent_count"),
+      lastSentAt: max(applications.sentAt).as("last_sent_at"),
+    })
+    .from(applications)
+    .groupBy(applications.userId)
+    .as("envoyees");
+
+  const rows = await db
     .select({
       id: users.id,
       email: users.email,
       createdAt: users.createdAt,
       lastLoginAt: users.lastLoginAt,
+      shareProgress: users.shareProgress,
+      foundCompanyAt: users.foundCompanyAt,
+      sentCount: envoyees.sentCount,
+      lastSentAt: envoyees.lastSentAt,
     })
     .from(users)
+    .leftJoin(envoyees, and(eq(envoyees.userId, users.id), eq(users.shareProgress, true)))
     .where(
       and(eq(users.organisationId, organisationId), eq(users.role, "etudiant"), isNull(users.deletedAt)),
     )
     .orderBy(desc(users.createdAt));
+
+  // `foundCompanyAt` vit sur `users` : la jointure conditionnée ne le masque pas, d'où ce filtre.
+  return rows.map((r) => {
+    const shared = r.shareProgress === true;
+    return {
+      id: r.id,
+      email: r.email,
+      createdAt: r.createdAt,
+      lastLoginAt: r.lastLoginAt,
+      shareProgress: r.shareProgress,
+      sentCount: shared ? Number(r.sentCount ?? 0) : null,
+      lastSentAt: shared && r.lastSentAt ? new Date(r.lastSentAt) : null,
+      foundCompanyAt: shared ? r.foundCompanyAt : null,
+    };
+  });
 }
 
 // L'étudiant n'est retourné que s'il appartient à CET organisme : un responsable qui envoie l'id
