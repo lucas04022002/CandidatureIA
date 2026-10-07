@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FoundCompanyAction, SharePrompt } from "@/components/actions/progress-actions";
 import { Button } from "@/components/button";
 import { Empty } from "@/components/empty";
 import { Kpi } from "@/components/kpi";
@@ -10,6 +11,7 @@ import { parisDay } from "@/lib/dates";
 import { getApplications } from "@/lib/db/queries/applications";
 import { getJobRows } from "@/lib/db/queries/jobs";
 import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
+import { getProgressSettings } from "@/lib/db/queries/progress";
 import type { Application } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -71,10 +73,11 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
   if (session.role !== "etudiant") redirect(homeForRole(session.role));
 
-  const [jobRows, applications, profile] = await Promise.all([
+  const [jobRows, applications, profile, progress] = await Promise.all([
     getJobRows(session.id),
     getApplications(session.id),
     getCandidateProfileSummary(session.id),
+    getProgressSettings(session.id),
   ]);
 
   const today = parisDay(new Date());
@@ -99,12 +102,18 @@ export default async function DashboardPage() {
         }
       />
 
+      {/* La question n'est posée qu'une fois : l'inscription y répond déjà pour les nouveaux comptes,
+          l'encart rattrape ceux inscrits avant la fonction. */}
+      {progress.organisationId && progress.shareProgress === null ? <SharePrompt /> : null}
+
       <section className="grid grid-cols-2 gap-4 rounded-tile border border-line bg-white px-6 py-5 lg:grid-cols-4">
         <Kpi value={jobsToday} label="offres du jour" />
         <Kpi value={sent} label="candidatures envoyées" />
         <Kpi value={awaiting} label="réponses attendues" />
         <Kpi value={followupsToDo} label="relances à faire" />
       </section>
+
+      <FoundCompanyAction foundCompanyAt={progress.foundCompanyAt ? progress.foundCompanyAt.toISOString() : null} />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-[22px] font-extrabold leading-none text-ink">

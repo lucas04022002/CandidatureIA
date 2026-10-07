@@ -69,7 +69,7 @@ describe("LoginForm — onglet inscription", () => {
     expect(classes).toContain("uppercase");
     expect(classes).toContain("tracking-[0.2em]");
 
-    const cgu = screen.getByRole("checkbox");
+    const cgu = screen.getByRole("checkbox", { name: /conditions d.utilisation/ });
     expect(cgu).toBeRequired();
     expect(screen.getByRole("link", { name: "conditions d'utilisation" })).toHaveAttribute("href", "/cgu");
     expect(screen.getByText("10 caractères minimum.")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("LoginForm — erreurs de l'API", () => {
     fill("E-mail", "camille.test@mail.fr");
     fill("Mot de passe", "motdepasse10");
     fill("Code d'organisme", "K7MZ4P2R");
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: /conditions d.utilisation/ }));
     submit();
 
     await waitFor(() => {
@@ -134,14 +134,14 @@ describe("LoginForm — corps envoyés à l'API", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
   });
 
-  it("inscription : POST /api/auth/register avec { email, password, orgCode, acceptedTerms }", async () => {
+  it("inscription : POST /api/auth/register avec { email, password, orgCode, acceptedTerms, shareProgress }", async () => {
     const fetchMock = mockFetch(201, {});
     render(<LoginForm />);
     fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
     fill("E-mail", "camille.test@mail.fr");
     fill("Mot de passe", "motdepasse10");
     fill("Code d'organisme", "K7MZ4P2R");
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: /conditions d.utilisation/ }));
     submit();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -152,6 +152,27 @@ describe("LoginForm — corps envoyés à l'API", () => {
       password: "motdepasse10",
       orgCode: "K7MZ4P2R",
       acceptedTerms: true,
+      shareProgress: false,
     });
+  });
+
+  it("inscription : la case « partager mon avancement » cochée envoie shareProgress: true", async () => {
+    const fetchMock = mockFetch(201, {});
+    render(<LoginForm />);
+    fireEvent.click(screen.getByRole("button", { name: "Inscription" }));
+    fill("E-mail", "camille.test@mail.fr");
+    fill("Mot de passe", "motdepasse10");
+    fill("Code d'organisme", "K7MZ4P2R");
+    fireEvent.click(screen.getByRole("checkbox", { name: /conditions d.utilisation/ }));
+    const share = screen.getByRole("checkbox", { name: /Partager mon avancement/ });
+    // Facultative et décochée par défaut : l'accord doit être un geste, pas un réglage subi.
+    expect(share).not.toBeChecked();
+    expect(share).not.toBeRequired();
+    fireEvent.click(share);
+    submit();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).shareProgress).toBe(true);
   });
 });

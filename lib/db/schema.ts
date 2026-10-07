@@ -24,6 +24,11 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull(),
   organisationId: uuid("organisation_id").references(() => organisations.id),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  // Partage d'avancement avec l'organisme : NULL jamais répondu, true accepté, false refusé.
+  shareProgress: boolean("share_progress"),
+  shareProgressAt: timestamp("share_progress_at", { withTimezone: true }),
+  // « J'ai trouvé mon entreprise » : une date, jamais un nom d'entreprise.
+  foundCompanyAt: timestamp("found_company_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 }, (t) => [uniqueIndex("users_email_lower_idx").on(sqlLower(t.email))]);

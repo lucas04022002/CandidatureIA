@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { PageTitle } from "@/components/page-title";
+import { ShareSetting } from "@/components/actions/progress-actions";
 import { AccountActions } from "@/components/forms/account-actions";
 import { CvUpload } from "@/components/forms/cv-upload";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { getSession } from "@/lib/auth/session";
 import { getCandidateProfileSummary } from "@/lib/db/queries/profiles";
+import { getProgressSettings } from "@/lib/db/queries/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,8 @@ export default async function ProfilPage() {
   if (!session) redirect("/login");
 
   const profile = await getCandidateProfileSummary(session.id);
+  // Le réglage ne concerne que l'étudiant rattaché à un organisme : c'est à lui qu'il partagerait.
+  const progress = session.role === "etudiant" && session.organisationId ? await getProgressSettings(session.id) : null;
   const imported = profile.source === "imported";
 
   return (
@@ -74,6 +78,12 @@ export default async function ProfilPage() {
       <Card title="Ta lettre type">
         <ProfileForm profile={profile} />
       </Card>
+
+      {progress ? (
+        <Card title="Ton organisme">
+          <ShareSetting shareProgress={progress.shareProgress} />
+        </Card>
+      ) : null}
 
       <Card title="Tes données">
         <AccountActions email={session.email} />

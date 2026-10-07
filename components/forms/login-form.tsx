@@ -50,6 +50,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [orgCode, setOrgCode] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [shareProgress, setShareProgress] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +67,7 @@ export function LoginForm() {
       if (mode === "signin") {
         await postJson("/api/auth/login", { email, password });
       } else {
-        await postJson("/api/auth/register", { email, password, orgCode, acceptedTerms });
+        await postJson("/api/auth/register", { email, password, orgCode, acceptedTerms, shareProgress });
       }
 
       router.push(next);
@@ -158,6 +159,19 @@ export function LoginForm() {
                     conditions d&apos;utilisation
                   </Link>
                   .
+                </span>
+              }
+            />
+
+            {/* Facultative et décochée : partager son avancement doit être un geste de l'étudiant. */}
+            <Checkbox
+              checked={shareProgress}
+              onChange={(event) => setShareProgress(event.target.checked)}
+              className="items-start gap-2.5 py-1 text-[13.5px] text-grey accent-klein"
+              label={
+                <span>
+                  Partager mon avancement avec mon organisme : le nombre de candidatures envoyées et si
+                  j&apos;ai trouvé une entreprise. Jamais leur contenu.
                 </span>
               }
             />

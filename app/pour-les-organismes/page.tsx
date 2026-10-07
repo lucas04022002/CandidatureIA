@@ -29,12 +29,12 @@ const BENEFICES = [
   {
     titre: "Suivez l'utilisation",
     texte:
-      "Depuis votre espace, vous voyez quels étudiants ont créé leur compte, leur dernière connexion, et le nombre de places encore disponibles. Vous savez simplement si l'outil est utilisé.",
+      "Depuis votre espace, vous voyez quels étudiants ont créé leur compte, leur dernière connexion et le nombre de places disponibles. Pour ceux qui l'acceptent, vous voyez aussi combien de candidatures ils ont envoyées, la date de la dernière, et s'ils ont trouvé une entreprise.",
   },
   {
     titre: "Les candidatures restent privées",
     texte:
-      "Vous n'avez accès ni aux CV, ni aux offres enregistrées, ni aux lettres, ni aux candidatures de vos étudiants. Ces informations ne sont visibles que par eux.",
+      "Vous n'avez accès ni aux CV, ni aux offres enregistrées, ni aux lettres, ni au contenu des candidatures de vos étudiants. Partager leur avancement est leur choix, et ils peuvent le retirer à tout moment.",
   },
 ];
 

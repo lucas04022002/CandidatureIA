@@ -82,7 +82,9 @@ describe("RGPD : export et suppression de compte", () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(Object.keys(body).sort()).toEqual(["applications", "exportedAt", "jobs", "profile"]);
+    expect(Object.keys(body).sort()).toEqual(["applications", "exportedAt", "jobs", "profile", "progress"]);
+    // Le choix de partager son avancement avec l'organisme fait partie des données de l'étudiant.
+    expect(Object.keys(body.progress).sort()).toEqual(["foundCompanyAt", "shareProgress", "shareProgressAt"]);
     expect(body.profile.fullName).toBe("Profil Alpha");
     expect(body.jobs).toHaveLength(1);
     expect(body.jobs[0].company).toBe("Alpha");

@@ -71,21 +71,28 @@ export interface UserDataExport {
   profile: typeof candidateProfiles.$inferSelect | null;
   jobs: (typeof jobs.$inferSelect)[];
   applications: (typeof applications.$inferSelect)[];
+  progress: { shareProgress: boolean | null; shareProgressAt: Date | null; foundCompanyAt: Date | null };
   exportedAt: string;
 }
 
 // Portabilité (RGPD art. 20) : uniquement les lignes de CET utilisateur, telles qu'elles sont
 // stockées. Aucune donnée d'un autre compte ni de l'organisme n'entre ici.
 export async function exportUserData(userId: string): Promise<UserDataExport> {
-  const [profileRows, jobRows, applicationRows] = await Promise.all([
+  const [profileRows, jobRows, applicationRows, progressRows] = await Promise.all([
     db.select().from(candidateProfiles).where(eq(candidateProfiles.userId, userId)).limit(1),
     db.select().from(jobs).where(eq(jobs.userId, userId)).orderBy(desc(jobs.createdAt)),
     db.select().from(applications).where(eq(applications.userId, userId)).orderBy(desc(applications.updatedAt)),
+    db
+      .select({ shareProgress: users.shareProgress, shareProgressAt: users.shareProgressAt, foundCompanyAt: users.foundCompanyAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1),
   ]);
   return {
     profile: profileRows[0] ?? null,
     jobs: jobRows,
     applications: applicationRows,
+    progress: progressRows[0] ?? { shareProgress: null, shareProgressAt: null, foundCompanyAt: null },
     exportedAt: new Date().toISOString(),
   };
 }
