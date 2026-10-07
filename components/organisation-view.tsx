@@ -12,6 +12,12 @@ export interface OrganisationMember {
   email: string;
   createdAt: Date;
   lastLoginAt: Date | null;
+  // Avancement, seulement pour un étudiant qui l'a accepté (`shareProgress === true`) ; sinon les
+  // trois champs suivants valent `null` dès la requête (`listMembers`).
+  shareProgress: boolean | null;
+  sentCount: number | null;
+  lastSentAt: Date | null;
+  foundCompanyAt: Date | null;
 }
 
 export interface OrganisationViewProps {
@@ -25,12 +31,34 @@ export interface OrganisationViewProps {
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
 const dateTimeFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+const dayFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+
+// Ce que la colonne dit d'un étudiant : rien s'il ne partage pas, sinon un nombre, une date et un
+// statut. Jamais une entreprise ni une offre : la requête ne les lit même pas.
+function avancement(member: OrganisationMember): string {
+  if (member.shareProgress !== true) return "Non partagé";
+  if (member.foundCompanyAt) return `Entreprise trouvée le ${dayFormat.format(member.foundCompanyAt)}`;
+  const n = member.sentCount ?? 0;
+  const envoyees = `${n} envoyée${n > 1 ? "s" : ""}`;
+  const derniere = member.lastSentAt ? ` · dernière le ${dayFormat.format(member.lastSentAt)}` : "";
+  return `${envoyees}${derniere} · En recherche`;
+}
+
+function resume(members: OrganisationMember[]): string {
+  const partagent = members.filter((member) => member.shareProgress === true);
+  const trouve = partagent.filter((member) => member.foundCompanyAt).length;
+  return [
+    `${trouve} ${trouve > 1 ? "ont" : "a"} trouvé une entreprise`,
+    `${partagent.length} ${partagent.length > 1 ? "partagent" : "partage"} leur avancement sur ${members.length} inscrit${members.length > 1 ? "s" : ""}`,
+  ].join(" · ");
+}
 
 type MemberRow = {
   key: string;
   email: string;
   inscrit: string;
   connexion: string;
+  avancement: string;
   retirer: ReactNode;
 };
 
@@ -38,6 +66,7 @@ const COLUMNS: TableColumn<MemberRow>[] = [
   { key: "email", label: "E-mail" },
   { key: "inscrit", label: "Inscrit le" },
   { key: "connexion", label: "Dernière connexion" },
+  { key: "avancement", label: "Avancement" },
   // En-tête nommé plutôt que vide : une colonne d'actions sans intitulé laisse un `<th>` muet, que
   // le lecteur d'écran annonce comme une colonne sans nom.
   { key: "retirer", label: "Action" },
@@ -56,6 +85,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
     email: member.email,
     inscrit: dateFormat.format(member.createdAt),
     connexion: member.lastLoginAt ? dateTimeFormat.format(member.lastLoginAt) : "Jamais",
+    avancement: avancement(member),
     retirer: <RemoveMemberAction userId={member.id} email={member.email} />,
   }));
 
@@ -63,7 +93,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
     <div className="flex flex-col gap-6">
       <PageTitle
         title="Mon organisme"
-        subtitle="Le code d'inscription de vos étudiants, vos places et les comptes ouverts. Leurs CV et leurs candidatures restent privés."
+        subtitle="Le code d'inscription de vos étudiants, vos places et les comptes ouverts. Vous voyez l'avancement de ceux qui l'acceptent, jamais leurs CV ni le contenu de leurs candidatures."
       />
 
       {active && seats <= PLACES_ESSAI ? (
@@ -115,6 +145,7 @@ export function OrganisationView({ name, code, seats, active, createdAt, members
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-[22px] font-extrabold leading-none text-ink">Étudiants</h2>
+        {rows.length ? <p className="font-body text-[14px] text-grey">{resume(members)}</p> : null}
         {rows.length ? (
           <div className="overflow-x-auto rounded-tile border border-line bg-white px-2 py-1">
             <Table columns={COLUMNS} rows={rows} getRowKey={(row) => row.key} />

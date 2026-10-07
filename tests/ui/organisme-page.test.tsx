@@ -18,12 +18,30 @@ const MEMBERS = [
     email: "camille@promo-elec.fr",
     createdAt: new Date("2026-03-02T09:00:00Z"),
     lastLoginAt: new Date("2026-09-10T07:30:00Z"),
+    shareProgress: true,
+    sentCount: 7,
+    lastSentAt: new Date("2026-10-03T10:00:00Z"),
+    foundCompanyAt: null,
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
     email: "sofiane@promo-elec.fr",
     createdAt: new Date("2026-04-14T09:00:00Z"),
     lastLoginAt: null,
+    shareProgress: null,
+    sentCount: null,
+    lastSentAt: null,
+    foundCompanyAt: null,
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444444",
+    email: "ines@promo-elec.fr",
+    createdAt: new Date("2026-04-20T09:00:00Z"),
+    lastLoginAt: new Date("2026-10-05T08:00:00Z"),
+    shareProgress: true,
+    sentCount: 4,
+    lastSentAt: new Date("2026-09-28T10:00:00Z"),
+    foundCompanyAt: new Date("2026-10-05T09:00:00Z"),
   },
 ];
 
@@ -61,6 +79,10 @@ describe("OrganisationView", () => {
       email: `étudiant${index}@promo-elec.fr`,
       createdAt: new Date("2026-03-02T09:00:00Z"),
       lastLoginAt: null,
+      shareProgress: null,
+      sentCount: null,
+      lastSentAt: null,
+      foundCompanyAt: null,
     }));
     renderView({ members });
     expect(screen.getByText("12 / 20")).toBeInTheDocument();
@@ -73,8 +95,32 @@ describe("OrganisationView", () => {
     expect(screen.getByText("sofiane@promo-elec.fr")).toBeInTheDocument();
     // Un compte qui ne s'est jamais connecté ne doit pas afficher une date vide.
     expect(screen.getByText("Jamais")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Retirer" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Retirer" })).toHaveLength(MEMBERS.length);
     expect(screen.getByRole("button", { name: "Régénérer" })).toBeInTheDocument();
+  });
+
+  it("affiche l'avancement de ceux qui partagent, et « Non partagé » sinon", () => {
+    renderView();
+    expect(screen.getByText("7 envoyées · dernière le 3 oct. · En recherche")).toBeInTheDocument();
+    expect(screen.getByText("Entreprise trouvée le 5 oct.")).toBeInTheDocument();
+    expect(screen.getByText("Non partagé")).toBeInTheDocument();
+  });
+
+  it("accorde « envoyée » au singulier et dit « 0 envoyée » sans date", () => {
+    const base = MEMBERS[0];
+    renderView({
+      members: [
+        { ...base, id: "a", email: "un@ex.fr", sentCount: 1, lastSentAt: new Date("2026-10-01T10:00:00Z") },
+        { ...base, id: "b", email: "zero@ex.fr", sentCount: 0, lastSentAt: null },
+      ],
+    });
+    expect(screen.getByText("1 envoyée · dernière le 1 oct. · En recherche")).toBeInTheDocument();
+    expect(screen.getByText("0 envoyée · En recherche")).toBeInTheDocument();
+  });
+
+  it("résume les étudiants placés et ceux qui partagent", () => {
+    renderView();
+    expect(screen.getByText("1 a trouvé une entreprise · 2 partagent leur avancement sur 3 inscrits")).toBeInTheDocument();
   });
 
   it("sans etudiant, invite à communiquer le code plutôt que d'afficher un tableau vide", () => {
