@@ -13,6 +13,8 @@ const Body = z.object({
   // Acceptation des CGU : refusée par le schéma si absente ou fausse (400), pour que le
   // consentement soit exigé côté serveur et pas seulement par la case à cocher du formulaire.
   acceptedTerms: z.literal(true),
+  // Case facultative : partager son avancement avec son organisme. Absente, elle vaut refus.
+  shareProgress: z.boolean().optional(),
 });
 
 const MESSAGES = {
@@ -34,6 +36,7 @@ export const POST = handle(async (req) => {
       email: b.email.toLowerCase(),
       passwordHash: await hashPassword(b.password),
       code: b.orgCode,
+      shareProgress: b.shareProgress === true,
     });
     const res = json({ id: user.id, email: user.email, role: user.role }, { status: 201 });
     setSessionCookie(res, await signSession({ userId: user.id, role: user.role }));
